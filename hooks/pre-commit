@@ -1,0 +1,12 @@
+#!/bin/sh
+# Imitation Machine — pre-commit hook
+# Runs: secret scan (blocks on any finding)
+set -e
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+cd "$REPO_ROOT"
+
+echo "⚡ [agentic] Running pre-commit gate: security-secrets"
+bun cli/index.ts gate security-secrets --ref "pre-commit"
+
+echo "✓ Pre-commit gates passed"

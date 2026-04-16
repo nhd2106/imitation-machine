@@ -1,0 +1,14 @@
+#!/bin/sh
+# Imitation Machine — pre-push hook
+# Runs: typecheck + coverage + SAST (blocks merge if any fails)
+set -e
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+cd "$REPO_ROOT"
+
+SHA=$(git rev-parse --short HEAD)
+
+echo "⚡ [agentic] Running pre-push gates for $SHA"
+bun cli/index.ts gate all --ref "$SHA"
+
+echo "✓ Pre-push gates passed — safe to push"

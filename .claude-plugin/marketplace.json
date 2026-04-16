@@ -1,0 +1,17 @@
+{
+  "name": "imitation-machine-dev",
+  "owner": {
+    "name": "duoc95"
+  },
+  "plugins": [
+    {
+      "name": "imitation-machine",
+      "description": "Enterprise agentic SDLC workflow plugin and skills for Claude Code and OpenCode",
+      "version": "0.1.0",
+      "source": "./",
+      "author": {
+        "name": "duoc95"
+      }
+    }
+  ]
+}

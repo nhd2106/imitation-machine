@@ -1,0 +1,45 @@
+{
+  "name": "@duoc95/imitation-machine",
+  "version": "0.1.0",
+  "description": "Enterprise agentic SDLC plugin and CLI for OpenCode and Claude-style skill workflows",
+  "license": "MIT",
+  "type": "module",
+  "main": ".opencode/plugins/imitation-machine.js",
+  "private": true,
+  "bin": {
+    "agentic": "./cli/index.ts"
+  },
+  "files": [
+    ".claude-plugin/**",
+    ".opencode/**",
+    "bin/**",
+    "agents/**",
+    "audit/**",
+    "cli/**",
+    "db/**",
+    "gates/**",
+    "hooks/**",
+    "monorepo/**",
+    "skills/**",
+    "CLAUDE_INSTALL.md",
+    "README.md"
+  ],
+  "scripts": {
+    "dev": "bun --hot cli/index.ts",
+    "test": "bun test",
+    "typecheck": "bunx tsc --noEmit",
+    "pack:dry": "npm pack --dry-run"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.2"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

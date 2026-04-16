@@ -1,0 +1,60 @@
+# Claude Code Install
+
+For local development, the most reliable path is a local development marketplace install.
+
+## Local install (recommended while iterating)
+
+1. Clone this repository locally.
+2. Run:
+
+```bash
+./scripts/install-local-claude-plugin.sh
+```
+
+3. Start a new Claude Code session.
+
+This uses Claude Code's native plugin system:
+
+- adds a local marketplace from this repo
+- installs `imitation-machine@imitation-machine-dev`
+
+## Optional loose-skill install
+
+If you want the skills visible directly under `~/.claude/skills/` while iterating, also run:
+
+```bash
+./scripts/install-local-claude.sh
+```
+
+## Verify
+
+In a fresh Claude Code session, ask the agent to:
+
+```text
+Use Skill tool to list available skills and then load using-agentic.
+```
+
+Expected:
+
+- `using-agentic` appears in skill list
+- `using-agentic` loads successfully
+- workflow then routes through process skills (`brainstorm`/`plan`/`tdd`) before implementation actions
+
+If the skills do not appear, inspect the symlinks in `~/.claude/skills/` and start a brand new session.
+
+If the plugin itself does not appear, run:
+
+```bash
+claude plugin list
+claude plugin marketplace list
+```
+
+and confirm `imitation-machine@imitation-machine-dev` is installed.
+
+## Mandatory workflow (Claude + OpenCode parity)
+
+The `using-agentic` skill is the policy entrypoint and enforces:
+
+1. skill-first invocation
+2. process-skill before implementation
+3. `agentic verify all` evidence before completion claim
