@@ -1,0 +1,44 @@
+{
+  "id": "PLN-201",
+  "requirementId": "REQ-201",
+  "title": "Add verify trigger fixtures and assertions",
+  "tasks": [
+    {
+      "id": "TSK-201",
+      "title": "Add failing prompt-fixture test coverage for verify triggers",
+      "description": "Update tests/prompt-fixtures.test.ts so verify trigger fixtures are required before adding new fixture content.",
+      "filePaths": [
+        "tests/prompt-fixtures.test.ts"
+      ],
+      "verificationCommand": "bun test tests/prompt-fixtures.test.ts",
+      "expectedOutput": "fails because tests/skill-triggering/verify-prompts.md does not exist yet",
+      "estimatedMinutes": 3,
+      "status": "pending"
+    },
+    {
+      "id": "TSK-202",
+      "title": "Add verify trigger fixture",
+      "description": "Create tests/skill-triggering/verify-prompts.md with realistic prompts that route to fresh verification evidence.",
+      "filePaths": [
+        "tests/skill-triggering/verify-prompts.md"
+      ],
+      "verificationCommand": "bun test tests/prompt-fixtures.test.ts",
+      "expectedOutput": "pass",
+      "estimatedMinutes": 4,
+      "status": "pending"
+    },
+    {
+      "id": "TSK-203",
+      "title": "Deepen verify skill guidance",
+      "description": "Update skills/verify/SKILL.md so fix verification requires rerunning the original failing proof before broader verification.",
+      "filePaths": [
+        "skills/verify/SKILL.md",
+        "tests/skills.test.ts"
+      ],
+      "verificationCommand": "bun test tests/skills.test.ts",
+      "expectedOutput": "pass",
+      "estimatedMinutes": 4,
+      "status": "pending"
+    }
+  ]
+}

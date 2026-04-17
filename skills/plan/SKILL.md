@@ -99,6 +99,11 @@ Stop and rewrite if the plan contains:
 
 Save to `plans/PLN-xxx.json`.
 
+Example artifacts:
+
+- `skills/plan/examples/example-plan.json` shows a small linear plan
+- `skills/plan/examples/example-parallel-plan.json` shows grouped tasks with parallel lanes
+
 ```json
 {
   "id": "PLN-xxx",
@@ -135,6 +140,8 @@ After saving and approving the plan, choose the execution mode deliberately:
 - `executing-plans` for direct inline execution of a small approved plan in the current session
 - `subagent-driven-development` for fresh-worker task execution with review gates
 - direct implementation workflow only if the work is truly narrow enough to stay inline
+
+If the plan contains independent lanes, say so explicitly and group the tasks. If tasks share setup, files, or review dependencies, keep them in one group instead of pretending they are parallel.
 
 ## Runtime Agent
 

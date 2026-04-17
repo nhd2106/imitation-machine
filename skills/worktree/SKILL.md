@@ -63,7 +63,7 @@ agentic worktree remove --path .worktrees/feat/req-123
 - verify project-local worktree directories are safely ignored before using them
 - run setup and baseline validation before heavy implementation work
 - inspect worktree status before removal
-- before starting later work, check merged PRs and clean stale local branches/worktrees safely
+- before starting later work, check merged PRs or merged branches and clean stale local branches/worktrees safely
 - use force removal only when the user accepts losing uncommitted work
 
 ## Safety Verification
@@ -73,6 +73,8 @@ For project-local worktree directories, verify they are ignored before trusting 
 If the baseline in the worktree is already failing, report that before starting implementation so new failures are not confused with existing ones.
 
 If a plan fans out into independent lanes, create or verify multiple worktrees only for those independent groups. Shared groups stay together in one lane until their common work is done.
+
+Before cleanup, confirm whether the branch was already merged and whether local-only commits or uncommitted changes still exist. Removal safety matters more than tidiness.
 
 ## Red Flags
 

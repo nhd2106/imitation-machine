@@ -68,6 +68,12 @@ digraph verify_flow {
 | Bug is fixed | verification of the original symptom | code changed, assumed fixed |
 | Work is complete | verification evidence matching the scope | implementation report alone |
 
+## Regression Proof For Fixes
+
+When the claim is "the bug is fixed," do one more thing before you say a fix is verified: rerun the exact command that exposed the bug, confirm the failure is gone for the same reason, then run the broader verification command for the surrounding scope.
+
+If the original failure came from a targeted test, use that targeted test first. If it came from a reproduction script, reuse that script before falling back to general confidence language.
+
 ## Red Flags
 
 Stop if you are about to say:

@@ -1,0 +1,75 @@
+{
+  "id": "PLN-202",
+  "requirementId": "REQ-202",
+  "title": "Refresh thin-skill eval fixtures in parallel lanes",
+  "execution": "parallel where groups are independent",
+  "taskGroups": [
+    {
+      "id": "GRP-A",
+      "title": "Plan and verify artifacts",
+      "parallel": false,
+      "tasks": [
+        {
+          "id": "TSK-301",
+          "title": "Add failing tests for plan examples",
+          "description": "Require concrete serial and grouped plan examples before creating the files.",
+          "filePaths": [
+            "tests/skills.test.ts",
+            "tests/skill-packages.test.ts"
+          ],
+          "verificationCommand": "bun test tests/skills.test.ts tests/skill-packages.test.ts",
+          "expectedOutput": "fails until example files exist",
+          "estimatedMinutes": 4,
+          "status": "pending"
+        },
+        {
+          "id": "TSK-302",
+          "title": "Add serial and grouped plan examples",
+          "description": "Create example-plan.json and example-parallel-plan.json with exact files, commands, and expected results.",
+          "filePaths": [
+            "skills/plan/examples/example-plan.json",
+            "skills/plan/examples/example-parallel-plan.json"
+          ],
+          "verificationCommand": "bun test tests/skills.test.ts tests/skill-packages.test.ts",
+          "expectedOutput": "pass",
+          "estimatedMinutes": 4,
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "GRP-B",
+      "title": "Workflow fixture lane",
+      "parallel": true,
+      "tasks": [
+        {
+          "id": "TSK-303",
+          "title": "Add worktree and verify fixtures",
+          "description": "Create explicit-request and trigger fixtures covering cleanup safety and fresh verification evidence.",
+          "filePaths": [
+            "tests/explicit-skill-requests/worktree-prompts.md",
+            "tests/skill-triggering/verify-prompts.md",
+            "tests/skill-triggering/worktree-prompts.md"
+          ],
+          "verificationCommand": "bun test tests/prompt-fixtures.test.ts",
+          "expectedOutput": "pass",
+          "estimatedMinutes": 5,
+          "status": "pending"
+        },
+        {
+          "id": "TSK-304",
+          "title": "Add lightweight PR and release fixtures",
+          "description": "Create bounded trigger fixtures for PR traceability and release readiness routing.",
+          "filePaths": [
+            "tests/skill-triggering/pr-prompts.md",
+            "tests/skill-triggering/release-prompts.md"
+          ],
+          "verificationCommand": "bun test tests/prompt-fixtures.test.ts",
+          "expectedOutput": "pass",
+          "estimatedMinutes": 3,
+          "status": "pending"
+        }
+      ]
+    }
+  ]
+}

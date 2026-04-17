@@ -116,6 +116,24 @@ describe("core skill content", () => {
     expect(content.includes("executing-plans")).toBe(true);
   });
 
+  test("plan ships concrete serial and grouped example plans", async () => {
+    const linearPlan = JSON.parse(
+      await Bun.file(join(ROOT, "skills", "plan", "examples", "example-plan.json")).text(),
+    ) as Record<string, unknown>;
+    const parallelPlan = JSON.parse(
+      await Bun.file(join(ROOT, "skills", "plan", "examples", "example-parallel-plan.json")).text(),
+    ) as Record<string, unknown>;
+
+    expect(linearPlan.title).toBeTruthy();
+    expect(Array.isArray(linearPlan.tasks)).toBe(true);
+    expect((linearPlan.tasks as Array<unknown>).length).toBeGreaterThanOrEqual(2);
+
+    expect(parallelPlan.title).toBeTruthy();
+    expect(Array.isArray(parallelPlan.taskGroups)).toBe(true);
+    expect((parallelPlan.taskGroups as Array<unknown>).length).toBeGreaterThanOrEqual(2);
+    expect(JSON.stringify(parallelPlan)).toContain("parallel");
+  });
+
   test("executing-plans ships workflow, red flags, and direct-execution guidance", async () => {
     const content = await Bun.file(join(ROOT, "skills", "executing-plans", "SKILL.md")).text();
     expect(content.includes("description: Use when")).toBe(true);
@@ -136,6 +154,8 @@ describe("core skill content", () => {
     expect(content.includes("## Claim Matrix")).toBe(true);
     expect(content.includes("Not sufficient")).toBe(true);
     expect(content.includes("Confidence is not evidence")).toBe(true);
+    expect(content.includes("before you say a fix is verified")).toBe(true);
+    expect(content.includes("rerun the exact command that exposed the bug")).toBe(true);
   });
 
   test("subagent-driven-development documents implementer status handling", async () => {
@@ -153,6 +173,17 @@ describe("core skill content", () => {
     expect(content.includes("ignored")).toBe(true);
     expect(content.includes("multiple worktrees")).toBe(true);
     expect(content.includes("clean stale local branches/worktrees safely")).toBe(true);
+    expect(content.includes("merged branch") || content.includes("merged PR")).toBe(true);
+    expect(content.includes("force removal")).toBe(true);
+  });
+
+  test("gate documents blocker handling and review-stage gates", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "gate", "SKILL.md")).text();
+    expect(content.includes("workflow blockers")).toBe(true);
+    expect(content.includes("spec")).toBe(true);
+    expect(content.includes("quality")).toBe(true);
+    expect(content.includes("plan --planPath")).toBe(true);
+    expect(content.includes("Do not proceed to PR, release, or completion claims while any required gate is failing.")).toBe(true);
   });
 
   test("delivery skills document grouped delivery lanes and cleanup", async () => {
