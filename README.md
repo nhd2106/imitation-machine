@@ -3,6 +3,7 @@
 Enterprise-oriented agentic SDLC framework with:
 
 - Skill-driven workflow (brainstorm, plan, tdd, staged reviews)
+- Expanded workflow inventory (`systematic-debugging`, `dispatching-parallel-agents`, `finishing-a-development-branch`, `receiving-code-review`)
 - Hard gates (coverage/typecheck/security)
 - Verification-before-completion (`agentic verify all`)
 - Mono-repo impact tooling (`agentic repo *`)
@@ -63,6 +64,8 @@ Then start a new Claude Code session and ask:
 ```text
 Use Skill tool to list available skills and then load using-agentic.
 ```
+
+Expanded workflow examples to look for in the skill inventory: `systematic-debugging`, `dispatching-parallel-agents`, `finishing-a-development-branch`, and `receiving-code-review`.
 
 See step-by-step local setup details in `CLAUDE_INSTALL.md`.
 

@@ -65,6 +65,8 @@ digraph agentic_flow {
 | New idea or under-specified behavior | `brainstorm` |
 | Approved requirement needs executable tasks | `plan` |
 | Implementation or bug fix | `tdd` |
+| Debugging a stubborn failure | `systematic-debugging` |
+| Safe fanout of independent agent work | `dispatching-parallel-agents` |
 
 ## Supporting Skills
 
@@ -75,6 +77,8 @@ digraph agentic_flow {
 | Spec review | `review-spec` |
 | Quality review | `review-quality` |
 | Security review | `review-security` |
+| Responding to review feedback | `receiving-code-review` |
+| Final branch cleanup and handoff | `finishing-a-development-branch` |
 | PR creation | `pr` |
 | Release work | `release` |
 | Completion verification | `verify` |

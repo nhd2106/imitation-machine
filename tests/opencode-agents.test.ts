@@ -25,6 +25,10 @@ describe("OpenCode agents", () => {
     expect(content.includes("Do not code inline until this decision is resolved.")).toBe(true);
     expect(content.includes("## Parallelism Rule")).toBe(true);
     expect(content.includes("@worktree")).toBe(true);
+    expect(content.includes("systematic-debugging")).toBe(true);
+    expect(content.includes("dispatching-parallel-agents")).toBe(true);
+    expect(content.includes("finishing-a-development-branch")).toBe(true);
+    expect(content.includes("receiving-code-review")).toBe(true);
   });
 
   test("coder can edit while reviewers are read-only", async () => {

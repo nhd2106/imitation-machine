@@ -158,6 +158,57 @@ describe("imitation-machine plugin behavior", () => {
     ).resolves.toBeUndefined();
   });
 
+  test("does not unlock write access for workflow-recognized skills that are not write-authorizing", async () => {
+    const cwd = await makeProject(true);
+    process.chdir(cwd);
+    const plugin = await ImitationMachinePlugin();
+
+    const bootstrapOutput = { messages: [userMessage("debug and finish this branch")] };
+    await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s-new-skills", cwd }, bootstrapOutput);
+
+    for (const skill of [
+      "systematic-debugging",
+      "dispatching-parallel-agents",
+      "finishing-a-development-branch",
+      "receiving-code-review",
+    ] as const) {
+      await plugin["tool.execute.before"]?.(
+        { sessionID: `s-${skill}`, tool: "skill", cwd, args: { name: skill } },
+        { args: { name: skill } },
+      );
+
+      await expect(
+        plugin["tool.execute.before"]?.(
+          { sessionID: `s-${skill}`, tool: "edit", cwd },
+          { args: { filePath: `/tmp/${skill}.md` } },
+        ),
+      ).rejects.toThrow("load a workflow skill before writing");
+    }
+  });
+
+  test("keeps write access for core implementation and review workflow skills", async () => {
+    const cwd = await makeProject(true);
+    process.chdir(cwd);
+    const plugin = await ImitationMachinePlugin();
+
+    const bootstrapOutput = { messages: [userMessage("implement and review this change")] };
+    await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s-write-core", cwd }, bootstrapOutput);
+
+    for (const skill of ["tdd", "review-spec", "review-quality", "review-security"] as const) {
+      await plugin["tool.execute.before"]?.(
+        { sessionID: `s-core-${skill}`, tool: "skill", cwd, args: { name: skill } },
+        { args: { name: skill } },
+      );
+
+      await expect(
+        plugin["tool.execute.before"]?.(
+          { sessionID: `s-core-${skill}`, tool: "edit", cwd },
+          { args: { filePath: `/tmp/${skill}.md` } },
+        ),
+      ).resolves.toBeUndefined();
+    }
+  });
+
   test("rewrites bash commands after workflow skill loaded in opted-in repos", async () => {
     const cwd = await makeProject(true);
     process.chdir(cwd);
@@ -219,6 +270,21 @@ describe("imitation-machine plugin behavior", () => {
     // Must mention specific subagents
     expect(bootstrapText).toContain("@coder");
     expect(bootstrapText).toContain("@planner");
+  });
+
+  test("bootstrap references newly added workflow skills at natural decision points", async () => {
+    const cwd = await makeProject(true);
+    process.chdir(cwd);
+    const plugin = await ImitationMachinePlugin();
+    const output = { messages: [userMessage("help me work through this branch")] };
+
+    await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s-bootstrap-skills", cwd }, output);
+    const bootstrapText = output.messages[0]?.parts[0]?.text ?? "";
+
+    expect(bootstrapText).toContain("systematic-debugging");
+    expect(bootstrapText).toContain("dispatching-parallel-agents");
+    expect(bootstrapText).toContain("finishing-a-development-branch");
+    expect(bootstrapText).toContain("receiving-code-review");
   });
 
   test("does not block bash in opted-in repos when auto-activation sets usingLoaded", async () => {
@@ -356,5 +422,26 @@ describe("imitation-machine plugin behavior", () => {
     expect(config.agent?.security?.mode).toBe("subagent");
     expect(String(config.agent?.planner?.prompt ?? "")).toContain("You are the Planner agent.");
     expect(String(config.agent?.coder?.prompt ?? "")).toContain("You are the Coder agent.");
+  });
+
+  test("backfills packaged agent defaults into partial existing config", async () => {
+    const plugin = await ImitationMachinePlugin();
+    const config = {
+      agent: {
+        coder: {
+          description: "custom coder description",
+        },
+      },
+    } as {
+      skills?: { paths?: string[] };
+      agent?: Record<string, { description?: string; mode?: string; prompt?: string; permission?: Record<string, string> }>;
+    };
+
+    await plugin.config?.(config);
+
+    expect(config.agent?.coder?.description).toBe("custom coder description");
+    expect(config.agent?.coder?.mode).toBe("subagent");
+    expect(String(config.agent?.coder?.prompt ?? "")).toContain("You are the Coder agent.");
+    expect(config.agent?.coder?.permission).toEqual({ edit: "allow", bash: "ask", webfetch: "deny" });
   });
 });

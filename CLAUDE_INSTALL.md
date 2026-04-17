@@ -39,6 +39,7 @@ Expected:
 - `using-agentic` appears in skill list
 - `using-agentic` loads successfully
 - workflow then routes through process skills (`brainstorm`/`plan`/`tdd`) before implementation actions
+- expanded workflow skills appear, including `systematic-debugging`, `dispatching-parallel-agents`, `finishing-a-development-branch`, and `receiving-code-review`
 
 If the skills do not appear, inspect the symlinks in `~/.claude/skills/` and start a brand new session.
 
@@ -58,3 +59,5 @@ The `using-agentic` skill is the policy entrypoint and enforces:
 1. skill-first invocation
 2. process-skill before implementation
 3. `agentic verify all` evidence before completion claim
+
+Typical follow-on workflow choices now include `systematic-debugging` for stubborn failures, `dispatching-parallel-agents` for safe concurrency, `receiving-code-review` for reply/fix loops, and `finishing-a-development-branch` for final handoff cleanup.

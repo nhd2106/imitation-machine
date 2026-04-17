@@ -68,4 +68,15 @@ describe("skill packages", () => {
     expect(await exists("skills/commit/references/conventional-commit-guide.md")).toBe(true);
     expect(await exists("skills/commit/commit-message-template.md")).toBe(true);
   });
+
+  test("superpowers-gap skill packages ship companion assets", async () => {
+    expect(await exists("skills/systematic-debugging/references/debugging-checklist.md")).toBe(true);
+    expect(await exists("skills/systematic-debugging/hypothesis-log-template.md")).toBe(true);
+    expect(await exists("skills/dispatching-parallel-agents/references/parallel-safety-checklist.md")).toBe(true);
+    expect(await exists("skills/dispatching-parallel-agents/dispatch-template.md")).toBe(true);
+    expect(await exists("skills/finishing-a-development-branch/references/branch-finish-checklist.md")).toBe(true);
+    expect(await exists("skills/finishing-a-development-branch/branch-hand-off-template.md")).toBe(true);
+    expect(await exists("skills/receiving-code-review/references/review-response-checklist.md")).toBe(true);
+    expect(await exists("skills/receiving-code-review/fix-summary-template.md")).toBe(true);
+  });
 });

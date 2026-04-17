@@ -17,10 +17,11 @@ const agentsDir = path.resolve(__dirname, "../agents");
 const pluginRoot = path.resolve(__dirname, "../..");
 const cliPath = path.resolve(pluginRoot, "cli/index.ts");
 const binDir = path.resolve(pluginRoot, "bin");
-const EXECUTION_SKILLS = new Set(["brainstorm", "plan", "tdd"]);
-const REVIEW_SKILLS = new Set(["review-spec", "review-quality", "review-security", "verify", "gate", "pr", "release"]);
-const DOMAIN_SKILLS = new Set(["subagent-driven-development", "worktree", "repo", "adr", "commit", "design"]);
+const EXECUTION_SKILLS = new Set(["brainstorm", "plan", "tdd", "systematic-debugging", "dispatching-parallel-agents"]);
+const REVIEW_SKILLS = new Set(["review-spec", "review-quality", "review-security", "verify", "gate", "pr", "release", "receiving-code-review"]);
+const DOMAIN_SKILLS = new Set(["subagent-driven-development", "worktree", "repo", "adr", "commit", "design", "finishing-a-development-branch"]);
 const WORKFLOW_ENTRY_SKILLS = new Set([...EXECUTION_SKILLS, ...REVIEW_SKILLS, ...DOMAIN_SKILLS]);
+const WRITE_AUTHORIZING_SKILLS = new Set(["brainstorm", "plan", "tdd", "review-spec", "review-quality", "review-security", "verify", "gate", "pr", "release"]);
 const ACTIVATION_MARKERS = [
   ".imitation-machine-enabled",
   ".agentic",
@@ -67,17 +68,21 @@ function buildBootstrap(projectSkills = []) {
     "",
     "Your job is to delegate work to specialized subagents. Do NOT implement, edit files, or run tests yourself unless the task is a single tiny step.",
     "",
-    "## Mandatory Delegation Rules",
-    "",
-    "- Multi-step work → dispatch @planner to decompose into tasks first.",
-    "- Implementation work → dispatch @worktree for isolation, then @coder to implement ONE task at a time.",
-    "- After each @coder task → dispatch @reviewer-spec, then @reviewer-quality.",
-    "- Risk-sensitive changes → dispatch @security.",
-    "- Test gaps → dispatch @qa.",
-    "- Docs updates → dispatch @docs.",
-    "- PR/release → dispatch @release.",
-    "- Requirement unclear → dispatch @po to clarify.",
-    "- Architecture decision → dispatch @architect.",
+     "## Mandatory Delegation Rules",
+     "",
+     "- Multi-step work → dispatch @planner to decompose into tasks first.",
+     "- Stubborn failure or unclear regression → load `systematic-debugging` before changing code.",
+     "- Implementation work → dispatch @worktree for isolation, then @coder to implement ONE task at a time.",
+     "- Independent checks or research threads → load `dispatching-parallel-agents` before fanning out work.",
+     "- After each @coder task → dispatch @reviewer-spec, then @reviewer-quality.",
+     "- Review feedback to process → load `receiving-code-review` before replying or patching.",
+     "- Risk-sensitive changes → dispatch @security.",
+     "- Test gaps → dispatch @qa.",
+     "- Docs updates → dispatch @docs.",
+     "- PR/release → dispatch @release.",
+     "- Branch handoff or final cleanup → load `finishing-a-development-branch` before calling it ready.",
+     "- Requirement unclear → dispatch @po to clarify.",
+     "- Architecture decision → dispatch @architect.",
     "",
     "## Anti-Pattern: DO NOT",
     "",
@@ -96,7 +101,7 @@ function buildBootstrap(projectSkills = []) {
     "",
     "## Required Workflow",
     "",
-    "1. Load a process skill: brainstorm/plan/tdd for implementation or review-spec/review-quality/review-security for review.",
+     "1. Load a process skill: brainstorm/plan/tdd for implementation, systematic-debugging for debugging, dispatching-parallel-agents for safe parallel fanout, or review-spec/review-quality/review-security/receiving-code-review for review work.",
     "2. When delegating to subagents, tell them: \"Load the skill tool with <skill-name> before starting.\"",
     "3. Delegate implementation to @coder via the task tool.",
     "4. Completion requires fresh evidence from `agentic verify all`.",
@@ -275,7 +280,7 @@ function enforceToolPolicy(input, output) {
       if (skillName === "using-agentic") {
         nextState.usingLoaded = true;
       }
-      if (WORKFLOW_ENTRY_SKILLS.has(skillName)) {
+      if (WRITE_AUTHORIZING_SKILLS.has(skillName)) {
         nextState.workflowLoaded = true;
       }
     });
@@ -337,9 +342,15 @@ const ImitationMachinePlugin = async () => {
 
       config.agent = config.agent || {};
       for (const [agentName, agentConfig] of Object.entries(PACKAGED_AGENT_CONFIGS)) {
-        config.agent[agentName] = config.agent[agentName] || {
+        const existingAgentConfig = config.agent[agentName] || {};
+        config.agent[agentName] = {
           ...agentConfig,
           prompt: loadAgentPrompt(agentName),
+          ...existingAgentConfig,
+          permission: {
+            ...agentConfig.permission,
+            ...(existingAgentConfig.permission || {}),
+          },
         };
       }
     },

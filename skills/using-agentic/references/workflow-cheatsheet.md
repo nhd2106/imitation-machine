@@ -13,7 +13,11 @@
 - idea -> `brainstorm`
 - approved requirement -> `plan`
 - implementation -> `tdd`
+- stubborn regression or unclear failure -> `systematic-debugging`
 - multi-task execution -> `subagent-driven-development`
+- safe parallel fanout -> `dispatching-parallel-agents`
+- branch wrap-up -> `finishing-a-development-branch`
+- review feedback response -> `receiving-code-review`
 - completion claim -> `verify`
 
 ## OpenCode Agent Map

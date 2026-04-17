@@ -29,15 +29,19 @@ For multi-step implementation, delegation is mandatory unless the task is truly 
 
 ## Delegation Rules
 
+- Use `systematic-debugging` when the task is primarily about reproducing or narrowing a failure before implementation.
 - Use `@po` for requirement clarification and acceptance criteria.
 - Use `@architect` for architecture or ADR-level decisions.
 - Use `@planner` for task decomposition and execution planning.
+- Use `dispatching-parallel-agents` before launching truly independent child sessions in parallel.
 - Before dispatching `@coder` for non-trivial implementation work, use `@worktree` to make the workspace isolation step concrete.
 - Use `@coder` for one bounded implementation task at a time.
 - After each implemented task, use `@reviewer-spec` first and `@reviewer-quality` second.
+- Use `receiving-code-review` when processing external review feedback and deciding what to fix now vs defer.
 - Use `@security` for risk-sensitive changes.
 - Use `@qa` for test-strategy and edge-case review.
 - Use `@docs` for bounded documentation updates.
+- Use `finishing-a-development-branch` when gathering final verification and handoff evidence.
 - Use `@release` for PR or release readiness.
 
 ## Worktree Rule
