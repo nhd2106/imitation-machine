@@ -17,18 +17,14 @@ const agentsDir = path.resolve(__dirname, "../agents");
 const pluginRoot = path.resolve(__dirname, "../..");
 const cliPath = path.resolve(pluginRoot, "cli/index.ts");
 const binDir = path.resolve(pluginRoot, "bin");
-const EXECUTION_SKILLS = new Set(["brainstorm", "plan", "tdd", "systematic-debugging", "dispatching-parallel-agents"]);
-const REVIEW_SKILLS = new Set(["review-spec", "review-quality", "review-security", "verify", "gate", "pr", "release", "receiving-code-review"]);
-const DOMAIN_SKILLS = new Set(["subagent-driven-development", "worktree", "repo", "adr", "commit", "design", "finishing-a-development-branch"]);
-const WORKFLOW_ENTRY_SKILLS = new Set([...EXECUTION_SKILLS, ...REVIEW_SKILLS, ...DOMAIN_SKILLS]);
-const WRITE_AUTHORIZING_SKILLS = new Set(["brainstorm", "plan", "tdd", "review-spec", "review-quality", "review-security", "verify", "gate", "pr", "release"]);
+const WRITE_AUTHORIZING_SKILLS = new Set(["brainstorm", "plan", "tdd", "systematic-debugging"]);
 const ACTIVATION_MARKERS = [
   ".imitation-machine-enabled",
   ".agentic",
 ];
 
-/** @type {Map<string, { usingLoaded: boolean, workflowLoaded: boolean, bootstrapInjected: boolean }>} */
-const sessionState = new Map();
+/** @type {Map<string, Record<string, boolean>>} */
+const policyStateStore = new Map();
 const activationCache = new Map();
 const projectSkillsCache = new Map();
 
@@ -223,14 +219,6 @@ function getProjectKey(input, output) {
   return `project:${getProjectRoot(input, output)}`;
 }
 
-function createDefaultState() {
-  return {
-    usingLoaded: false,
-    workflowLoaded: false,
-    bootstrapInjected: false,
-  };
-}
-
 function createProjectState() {
   return {
     usingLoaded: false,
@@ -248,8 +236,8 @@ function getState(input, output) {
   const sessionKey = getSessionKey(input, output);
   const projectKey = getProjectKey(input, output);
 
-  const sessionEntry = sessionState.get(sessionKey) || createSessionState();
-  const projectEntry = sessionState.get(projectKey) || createProjectState();
+  const sessionEntry = policyStateStore.get(sessionKey) || createSessionState();
+  const projectEntry = policyStateStore.get(projectKey) || createProjectState();
 
   const state = {
     usingLoaded: Boolean(projectEntry.usingLoaded),
@@ -257,8 +245,8 @@ function getState(input, output) {
     bootstrapInjected: Boolean(sessionEntry.bootstrapInjected),
   };
 
-  sessionState.set(sessionKey, { ...sessionEntry });
-  sessionState.set(projectKey, { ...projectEntry });
+  policyStateStore.set(sessionKey, { ...sessionEntry });
+  policyStateStore.set(projectKey, { ...projectEntry });
 
   return { sessionKey, projectKey, state };
 }
@@ -266,8 +254,8 @@ function getState(input, output) {
 function updateState(input, output, mutator) {
   const { sessionKey, projectKey, state } = getState(input, output);
   mutator(state);
-  sessionState.set(sessionKey, { bootstrapInjected: state.bootstrapInjected });
-  sessionState.set(projectKey, {
+  policyStateStore.set(sessionKey, { bootstrapInjected: state.bootstrapInjected });
+  policyStateStore.set(projectKey, {
     usingLoaded: state.usingLoaded,
     workflowLoaded: state.workflowLoaded,
   });
@@ -324,9 +312,9 @@ function enforceToolPolicy(input, output) {
   // After usingLoaded: if no workflow skill yet, only block edit/write
   if (!state.workflowLoaded) {
     if (tool === "edit" || tool === "write") {
-      throw new Error(
-        "Policy blocked: load a workflow skill before writing files. Examples: brainstorm/plan/tdd for implementation or review-spec/review-quality/review-security for review.",
-      );
+        throw new Error(
+          "Policy blocked: load an implementation workflow skill before writing files. Examples: brainstorm/plan/tdd/systematic-debugging.",
+        );
     }
     return;
   }

@@ -93,7 +93,7 @@ describe("imitation-machine plugin behavior", () => {
     ).resolves.toBeUndefined();
   });
 
-  test("allows bash before skill load in opted-in repos after bootstrap", async () => {
+  test("allows bash after bootstrap without any additional workflow skill", async () => {
     const cwd = await makeProject(true);
     process.chdir(cwd);
     const plugin = await ImitationMachinePlugin();
@@ -121,23 +121,7 @@ describe("imitation-machine plugin behavior", () => {
     // using-agentic loaded via bootstrap, but no workflow skill yet
     await expect(
       plugin["tool.execute.before"]?.({ sessionID: "s3", tool: "edit", cwd }, { args: { filePath: "/tmp/test.ts" } }),
-    ).rejects.toThrow("load a workflow skill before writing");
-  });
-
-  test("allows bash after using-agentic without workflow skill in opted-in repos", async () => {
-    const cwd = await makeProject(true);
-    process.chdir(cwd);
-    const plugin = await ImitationMachinePlugin();
-
-    // Bootstrap sets usingLoaded
-    const chatOutput = { messages: [userMessage("hello")] };
-    await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s-bash2", cwd }, chatOutput);
-
-    // Bash should be allowed even without workflow skill
-    const bashOutput = { args: { command: "bun test" } };
-    await expect(
-      plugin["tool.execute.before"]?.({ sessionID: "s-bash2", tool: "bash", cwd }, bashOutput),
-    ).resolves.toBeUndefined();
+    ).rejects.toThrow("implementation workflow skill");
   });
 
   test("allows edit after using-agentic and workflow skill in opted-in repos", async () => {
@@ -167,7 +151,6 @@ describe("imitation-machine plugin behavior", () => {
     await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s-new-skills", cwd }, bootstrapOutput);
 
     for (const skill of [
-      "systematic-debugging",
       "dispatching-parallel-agents",
       "finishing-a-development-branch",
       "receiving-code-review",
@@ -182,11 +165,11 @@ describe("imitation-machine plugin behavior", () => {
           { sessionID: `s-${skill}`, tool: "edit", cwd },
           { args: { filePath: `/tmp/${skill}.md` } },
         ),
-      ).rejects.toThrow("load a workflow skill before writing");
+      ).rejects.toThrow("implementation workflow skill");
     }
   });
 
-  test("keeps write access for core implementation and review workflow skills", async () => {
+  test("keeps write access for core implementation workflow skills", async () => {
     const cwd = await makeProject(true);
     process.chdir(cwd);
     const plugin = await ImitationMachinePlugin();
@@ -194,7 +177,7 @@ describe("imitation-machine plugin behavior", () => {
     const bootstrapOutput = { messages: [userMessage("implement and review this change")] };
     await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s-write-core", cwd }, bootstrapOutput);
 
-    for (const skill of ["tdd", "review-spec", "review-quality", "review-security"] as const) {
+    for (const skill of ["brainstorm", "plan", "tdd", "systematic-debugging"] as const) {
       await plugin["tool.execute.before"]?.(
         { sessionID: `s-core-${skill}`, tool: "skill", cwd, args: { name: skill } },
         { args: { name: skill } },
@@ -206,6 +189,29 @@ describe("imitation-machine plugin behavior", () => {
           { args: { filePath: `/tmp/${skill}.md` } },
         ),
       ).resolves.toBeUndefined();
+    }
+  });
+
+  test("keeps read-only review skills from unlocking file writes", async () => {
+    const cwd = await makeProject(true);
+    process.chdir(cwd);
+    const plugin = await ImitationMachinePlugin();
+
+    const bootstrapOutput = { messages: [userMessage("review this change")] };
+    await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s-readonly-review", cwd }, bootstrapOutput);
+
+    for (const skill of ["review-spec", "review-quality", "review-security"] as const) {
+      await plugin["tool.execute.before"]?.(
+        { sessionID: `s-review-${skill}`, tool: "skill", cwd, args: { name: skill } },
+        { args: { name: skill } },
+      );
+
+      await expect(
+        plugin["tool.execute.before"]?.(
+          { sessionID: `s-review-${skill}`, tool: "edit", cwd },
+          { args: { filePath: `/tmp/${skill}.md` } },
+        ),
+      ).rejects.toThrow("implementation workflow skill");
     }
   });
 
@@ -313,22 +319,6 @@ describe("imitation-machine plugin behavior", () => {
     expect(bootstrapText).toContain("independent planned task groups");
     expect(bootstrapText).toContain("multiple branches/worktrees/coders in parallel");
     expect(bootstrapText).toContain("shared groups stay together");
-  });
-
-  test("does not block bash in opted-in repos when auto-activation sets usingLoaded", async () => {
-    const cwd = await makeProject(true);
-    process.chdir(cwd);
-    const plugin = await ImitationMachinePlugin();
-
-    // Simulate auto-activation: trigger a message transform which sets usingLoaded
-    const chatOutput = { messages: [userMessage("hello")] };
-    await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s-auto", cwd }, chatOutput);
-
-    // Now bash should not be blocked even without explicitly loading using-agentic skill
-    const bashOutput = { args: { command: "bun test" } };
-    await expect(
-      plugin["tool.execute.before"]?.({ sessionID: "s-auto", tool: "bash", cwd }, bashOutput),
-    ).resolves.toBeUndefined();
   });
 
   test("does not activate strict mode from project-local plugin config alone", async () => {
