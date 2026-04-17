@@ -43,5 +43,16 @@ export type PlanTask = {
   verificationCommand: string;
   expectedOutput: string;
   estimatedMinutes: number;
+  executionGroupId: string;
+  prGroupId: string;
+  independence: "independent" | "shared";
+  dependsOnTaskIds?: string[];
   status: "pending" | "in_progress" | "completed" | "failed";
+};
+
+export type PlanFile<TTask extends PlanTask = PlanTask> = {
+  id: string;
+  requirementId?: string;
+  title: string;
+  tasks: TTask[];
 };

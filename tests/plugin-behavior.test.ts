@@ -256,6 +256,20 @@ describe("imitation-machine plugin behavior", () => {
     expect(bootstrapCount).toBe(1);
   });
 
+  test("injects bootstrap once per session even in the same repo", async () => {
+    const cwd = await makeProject(true);
+    process.chdir(cwd);
+    const plugin = await ImitationMachinePlugin();
+    const firstOutput = { messages: [userMessage("hello from first session")] };
+    const secondOutput = { messages: [userMessage("hello from second session")] };
+
+    await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s5-first", cwd }, firstOutput);
+    await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s5-second", cwd }, secondOutput);
+
+    expect(firstOutput.messages[0]?.parts[0]?.text ?? "").toContain("EXTREMELY_IMPORTANT");
+    expect(secondOutput.messages[0]?.parts[0]?.text ?? "").toContain("EXTREMELY_IMPORTANT");
+  });
+
   test("bootstrap mandates subagent delegation for multi-step work", async () => {
     const cwd = await makeProject(true);
     process.chdir(cwd);
@@ -285,6 +299,20 @@ describe("imitation-machine plugin behavior", () => {
     expect(bootstrapText).toContain("dispatching-parallel-agents");
     expect(bootstrapText).toContain("finishing-a-development-branch");
     expect(bootstrapText).toContain("receiving-code-review");
+  });
+
+  test("bootstrap explains multi-lane fanout for independent task groups", async () => {
+    const cwd = await makeProject(true);
+    process.chdir(cwd);
+    const plugin = await ImitationMachinePlugin();
+    const output = { messages: [userMessage("build the feature")] };
+
+    await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s-fanout", cwd }, output);
+    const bootstrapText = output.messages[0]?.parts[0]?.text ?? "";
+
+    expect(bootstrapText).toContain("independent planned task groups");
+    expect(bootstrapText).toContain("multiple branches/worktrees/coders in parallel");
+    expect(bootstrapText).toContain("shared groups stay together");
   });
 
   test("does not block bash in opted-in repos when auto-activation sets usingLoaded", async () => {
@@ -348,6 +376,26 @@ describe("imitation-machine plugin behavior", () => {
     await expect(
       plugin["tool.execute.before"]?.({ sessionID: "different-tool-session", tool: "bash", cwd }, output),
     ).resolves.toBeUndefined();
+  });
+
+  test("does not leak session state across repos when session identifiers are reused", async () => {
+    const firstCwd = await makeProject(true);
+    const secondCwd = await makeProject(true);
+    const plugin = await ImitationMachinePlugin();
+
+    process.chdir(firstCwd);
+    const firstChatOutput = { messages: [userMessage("hello")] };
+    await plugin["experimental.chat.messages.transform"]?.({ sessionID: "shared-session", cwd: firstCwd }, firstChatOutput);
+
+    await plugin["tool.execute.before"]?.(
+      { sessionID: "shared-session", tool: "skill", cwd: firstCwd, args: { name: "plan" } },
+      { args: { name: "plan" } },
+    );
+
+    process.chdir(secondCwd);
+    await expect(
+      plugin["tool.execute.before"]?.({ sessionID: "shared-session", tool: "bash", cwd: secondCwd }, { args: { command: "bun test" } }),
+    ).rejects.toThrow("load using-agentic first");
   });
 
   test("bootstrap includes discovered project-local skills", async () => {

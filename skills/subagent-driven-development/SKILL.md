@@ -71,6 +71,9 @@ digraph sdd_flow {
 - Extract the full task text before dispatching
 - Provide exact scope and file boundaries
 - Tell implementers to use `tdd`
+- let `@planner` mark independent planned task groups so they can fan out when safe
+- independent planned task groups may fan out to multiple branches/worktrees/coders in parallel
+- shared groups stay together until their shared work and delivery unit are complete
 - Answer questions before work proceeds
 - Record and respect review outcomes
 - Handle implementer status explicitly instead of guessing

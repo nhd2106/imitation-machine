@@ -10,6 +10,7 @@ Open a PR only after the branch is verified and the work is review-ready.
 ## When To Use
 
 - all planned work for the branch is complete
+- the delivery unit or grouped tasks for that branch are complete
 - verification passed
 - review approvals and traceability are ready to summarize
 

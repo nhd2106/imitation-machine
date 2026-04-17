@@ -3,12 +3,31 @@ import { extractCoveragePct } from "../gates/coverage";
 import { run as runPlan } from "../gates/plan";
 import { run as runSecretsGate } from "../gates/security-secrets";
 import { run as runSastGate } from "../gates/security-sast";
+import { writePlanTemplate } from "../cli/commands/plan";
 import { mkdtemp, writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 async function makeTempDir(): Promise<string> {
   return mkdtemp(join(tmpdir(), "agentic-test-"));
+}
+
+function makeValidPlanTask(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "TSK-001",
+    title: "Write failing test",
+    description: "Create test that asserts coverage returns false below threshold",
+    filePaths: ["tests/gates.test.ts"],
+    verificationCommand: "bun test tests/gates.test.ts",
+    expectedOutput: "1 pass",
+    estimatedMinutes: 3,
+    status: "pending",
+    executionGroupId: "lane-a",
+    prGroupId: "pr-a",
+    independence: "independent",
+    dependsOnTaskIds: [],
+    ...overrides,
+  };
 }
 
 // ── Plan Gate ─────────────────────────────────────────────────────────────────
@@ -19,18 +38,7 @@ describe("plan gate", () => {
     const plan = {
       id: "PLN-test",
       title: "Test plan",
-      tasks: [
-        {
-          id: "TSK-001",
-          title: "Write failing test",
-          description: "Create test that asserts coverage returns false below threshold",
-          filePaths: ["tests/gates.test.ts"],
-          verificationCommand: "bun test tests/gates.test.ts",
-          expectedOutput: "1 pass",
-          estimatedMinutes: 3,
-          status: "pending",
-        },
-      ],
+      tasks: [makeValidPlanTask()],
     };
     const planPath = join(dir, "PLN-test.json");
     await writeFile(planPath, JSON.stringify(plan));
@@ -46,16 +54,14 @@ describe("plan gate", () => {
       id: "PLN-bad",
       title: "Bad plan",
       tasks: [
-        {
-          id: "TSK-001",
+        makeValidPlanTask({
           title: "TBD",
           description: "Handle edge cases",
           filePaths: ["some/file.ts"],
           verificationCommand: "bun test",
           expectedOutput: "1 pass",
           estimatedMinutes: 3,
-          status: "pending",
-        },
+        }),
       ],
     };
     const planPath = join(dir, "PLN-bad.json");
@@ -72,16 +78,14 @@ describe("plan gate", () => {
       id: "PLN-slow",
       title: "Slow plan",
       tasks: [
-        {
-          id: "TSK-001",
+        makeValidPlanTask({
           title: "Long task",
           description: "Implement everything",
           filePaths: ["some/file.ts"],
           verificationCommand: "bun test",
           expectedOutput: "pass",
           estimatedMinutes: 10,
-          status: "pending",
-        },
+        }),
       ],
     };
     const planPath = join(dir, "PLN-slow.json");
@@ -103,16 +107,14 @@ describe("plan gate", () => {
       id: "PLN-nopaths",
       title: "No paths",
       tasks: [
-        {
-          id: "TSK-001",
+        makeValidPlanTask({
           title: "Missing paths",
           description: "A valid description",
           filePaths: [],
           verificationCommand: "bun test",
           expectedOutput: "pass",
           estimatedMinutes: 3,
-          status: "pending",
-        },
+        }),
       ],
     };
     const planPath = join(dir, "PLN-nopaths.json");
@@ -121,6 +123,45 @@ describe("plan gate", () => {
     const result = await runPlan({ ref: "PLN-nopaths", cwd: dir, options: { planPath } });
     expect(result.passed).toBe(false);
     expect(result.details.some((d) => d.message.includes("no file paths"))).toBe(true);
+  });
+
+  test("fails when grouping metadata is missing or invalid", async () => {
+    const dir = await makeTempDir();
+    const plan = {
+      id: "PLN-groups",
+      title: "Grouping plan",
+      tasks: [
+        makeValidPlanTask({ executionGroupId: "" }),
+        makeValidPlanTask({ id: "TSK-002", prGroupId: "" }),
+        makeValidPlanTask({ id: "TSK-003", independence: "maybe" }),
+        makeValidPlanTask({ id: "TSK-004", dependsOnTaskIds: [""] }),
+      ],
+    };
+    const planPath = join(dir, "PLN-groups.json");
+    await writeFile(planPath, JSON.stringify(plan));
+
+    const result = await runPlan({ ref: "PLN-groups", cwd: dir, options: { planPath } });
+    expect(result.passed).toBe(false);
+    expect(result.details.some((d) => d.message.includes("executionGroupId"))).toBe(true);
+    expect(result.details.some((d) => d.message.includes("prGroupId"))).toBe(true);
+    expect(result.details.some((d) => d.message.includes("independence"))).toBe(true);
+    expect(result.details.some((d) => d.message.includes("dependsOnTaskIds"))).toBe(true);
+  });
+
+  test("plan template includes grouping metadata fields", async () => {
+    const dir = await makeTempDir();
+    const planPath = await writePlanTemplate(dir, "PLN-template", "REQ-template", "Template plan");
+    const plan = await Bun.file(planPath).json() as {
+      tasks: Array<Record<string, unknown>>;
+    };
+
+    expect(plan.tasks).toHaveLength(1);
+    expect(plan.tasks[0]).toEqual(expect.objectContaining({
+      executionGroupId: "",
+      prGroupId: "",
+      independence: "independent",
+      dependsOnTaskIds: [],
+    }));
   });
 });
 

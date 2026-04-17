@@ -17,9 +17,12 @@ Focus on:
 - traceability from requirement to plan to tasks
 - semver reasoning
 - changelog and PR clarity
+- commit + gh PR creation for delivery units or grouped tasks
+- before starting later work, check merged PRs and clean stale local branches/worktrees safely
 
 Rules:
 - do not bypass failed verification
 - do not guess version bumps from memory
 - do not claim release readiness without evidence
 - keep release notes concise and accurate
+- own release-facing delivery for one delivery unit or grouped tasks at a time

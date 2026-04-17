@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { join } from "node:path";
 import { getPersona } from "../../agents/profiles";
-import type { PersonaId, PlanTask } from "../../agents/types";
+import type { PersonaId, PlanFile, PlanTask } from "../../agents/types";
 import { startAgentRun } from "../../audit/trail";
 import { db } from "../../db/client";
 import { agentRuns, plans } from "../../db/schema";
@@ -32,6 +32,14 @@ type PersonaPhase = "plan" | "build" | "governance";
 const PLAN_PHASE: readonly PersonaId[] = ["architect", "po", "planner"];
 const BUILD_PHASE: readonly PersonaId[] = ["coder", "qa", "docs"];
 const GOVERNANCE_PHASE: readonly PersonaId[] = ["security", "reviewer", "release"];
+const planPersistenceQueues = new Map<string, Promise<void>>();
+let planPersistenceDelayHookForTests: ((planId: string, tasks: PlanTaskWithPersonaCommands[]) => Promise<void> | void) | undefined;
+
+export function __setPlanPersistenceDelayHookForTests(
+  hook: ((planId: string, tasks: PlanTaskWithPersonaCommands[]) => Promise<void> | void) | undefined,
+): void {
+  planPersistenceDelayHookForTests = hook;
+}
 
 const ORCHESTRATE_USAGE = `
 agentic orchestrate — Run plan tasks through persona workflow
@@ -87,13 +95,7 @@ export async function executeOrchestration(options: OrchestrateOptions): Promise
     throw new Error(`Plan ${planRow.id} has no tasks. Add tasks to plans/${planRow.id}.json or tasks_json.`);
   }
 
-  const selectedTasks = options.taskId
-    ? tasks.filter((task) => task.id === options.taskId)
-    : tasks;
-
-  if (selectedTasks.length === 0) {
-    throw new Error(`Task not found in plan ${planRow.id}: ${options.taskId}`);
-  }
+  const selectedTasks = resolveSelectedTasks(tasks, options.taskId, planRow.id);
 
   const personaOrder = resolvePersonaOrder();
 
@@ -105,39 +107,13 @@ export async function executeOrchestration(options: OrchestrateOptions): Promise
   let runCount = 0;
   let failedRunCount = 0;
   try {
-    for (const task of selectedTasks) {
-      await updateTaskStatus(options.cwd, planRow.id, selectedTasks, task.id, "in_progress");
-
-      const planResult = await runSequentialPhase("plan", PLAN_PHASE, task, planRow.id, options);
-      runCount += planResult.runCount;
-      failedRunCount += planResult.failedRunCount;
-      if (planResult.failedRunCount > 0 && !options.continueOnError) {
-        await updateTaskStatus(options.cwd, planRow.id, selectedTasks, task.id, "failed");
-        throw new Error(planResult.firstError ?? `Plan phase failed for task ${task.id}`);
-      }
-
-      const buildResult = await runParallelPhase("build", BUILD_PHASE, task, planRow.id, options);
-      runCount += buildResult.runCount;
-      failedRunCount += buildResult.failedRunCount;
-      if (buildResult.failedRunCount > 0 && !options.continueOnError) {
-        await updateTaskStatus(options.cwd, planRow.id, selectedTasks, task.id, "failed");
-        throw new Error(buildResult.firstError ?? `Build phase failed for task ${task.id}`);
-      }
-
-      const governanceResult = await runSequentialPhase("governance", GOVERNANCE_PHASE, task, planRow.id, options);
-      runCount += governanceResult.runCount;
-      failedRunCount += governanceResult.failedRunCount;
-      if (governanceResult.failedRunCount > 0 && !options.continueOnError) {
-        await updateTaskStatus(options.cwd, planRow.id, selectedTasks, task.id, "failed");
-        throw new Error(governanceResult.firstError ?? `Governance phase failed for task ${task.id}`);
-      }
-
-      await updateTaskStatus(options.cwd, planRow.id, selectedTasks, task.id, "completed");
-    }
+    const executionResult = await executeTaskGroups(options, planRow.id, tasks, selectedTasks);
+    runCount += executionResult.runCount;
+    failedRunCount += executionResult.failedRunCount;
 
     db.update(plans)
       .set({
-        status: failedRunCount > 0 ? "failed" : "done",
+        status: resolvePlanStatus(tasks),
         updatedAt: new Date().toISOString(),
       })
       .where(eq(plans.id, planRow.id))
@@ -158,6 +134,84 @@ export async function executeOrchestration(options: OrchestrateOptions): Promise
     failedRunCount,
     dryRun: options.dryRun,
   };
+}
+
+async function executeTaskGroups(
+  options: OrchestrateOptions,
+  planId: string,
+  allTasks: PlanTaskWithPersonaCommands[],
+  selectedTasks: PlanTaskWithPersonaCommands[],
+): Promise<{ runCount: number; failedRunCount: number }> {
+  const completedTaskIds = new Set(allTasks.filter((task) => task.status === "completed").map((task) => task.id));
+  const failedTaskIds = new Set(allTasks.filter((task) => task.status === "failed").map((task) => task.id));
+  const selectedTaskIds = new Set(selectedTasks.map((task) => task.id));
+  const groupQueues = buildExecutionGroupQueues(selectedTasks);
+  const activeGroupIds = new Set<string>();
+  const activeTaskPromises = new Set<Promise<void>>();
+  const result = { runCount: 0, failedRunCount: 0 };
+  let stopScheduling = false;
+  let firstError: Error | undefined;
+
+  while (hasQueuedTasks(groupQueues) || activeTaskPromises.size > 0) {
+    while (!stopScheduling && activeGroupIds.size < options.maxParallel) {
+      const nextGroupId = findReadyGroupId(groupQueues, completedTaskIds, selectedTaskIds, failedTaskIds, activeGroupIds);
+      if (!nextGroupId) break;
+
+      const queue = groupQueues.get(nextGroupId);
+      const task = queue?.shift();
+      if (!task) {
+        activeGroupIds.delete(nextGroupId);
+        continue;
+      }
+
+      activeGroupIds.add(nextGroupId);
+      const taskPromise = executeTaskWorkflow(task, planId, options, allTasks)
+        .then((taskResult) => {
+          result.runCount += taskResult.runCount;
+          result.failedRunCount += taskResult.failedRunCount;
+          if (taskResult.success) {
+            completedTaskIds.add(task.id);
+          } else {
+            failedTaskIds.add(task.id);
+            if (!options.continueOnError) {
+              stopScheduling = true;
+              firstError = firstError ?? new Error(taskResult.error ?? `Task failed: ${task.id}`);
+            }
+          }
+        })
+        .catch((error) => {
+          failedTaskIds.add(task.id);
+          stopScheduling = true;
+          firstError = firstError ?? (error instanceof Error ? error : new Error(String(error)));
+        })
+        .finally(() => {
+          activeGroupIds.delete(nextGroupId);
+          activeTaskPromises.delete(taskPromise);
+        });
+
+      activeTaskPromises.add(taskPromise);
+    }
+
+    if (activeTaskPromises.size === 0) {
+      if (stopScheduling && firstError) {
+        throw firstError;
+      }
+
+      if (hasQueuedTasks(groupQueues)) {
+        const blockedTaskIds = getBlockedTaskIds(groupQueues);
+        throw new Error(`No runnable tasks remain. Check executionGroupId ordering and dependsOnTaskIds for: ${blockedTaskIds.join(", ")}`);
+      }
+
+      break;
+    }
+
+    await Promise.race(activeTaskPromises);
+    if (stopScheduling && activeTaskPromises.size === 0 && firstError) {
+      throw firstError;
+    }
+  }
+
+  return result;
 }
 
 async function orchestrateRun(args: string[]): Promise<void> {
@@ -249,12 +303,57 @@ function resolvePersonaOrder(): PersonaId[] {
   return [...PLAN_PHASE, ...BUILD_PHASE, ...GOVERNANCE_PHASE];
 }
 
+function resolvePlanStatus(tasks: PlanTaskWithPersonaCommands[]): "executing" | "done" | "failed" {
+  if (tasks.some((task) => task.status === "failed")) {
+    return "failed";
+  }
+
+  if (tasks.length > 0 && tasks.every((task) => task.status === "completed")) {
+    return "done";
+  }
+
+  return "executing";
+}
+
+function resolveSelectedTasks(
+  tasks: PlanTaskWithPersonaCommands[],
+  taskId: string | undefined,
+  planId: string,
+): PlanTaskWithPersonaCommands[] {
+  if (!taskId) {
+    return tasks;
+  }
+
+  const selectedTaskIndex = tasks.findIndex((task) => task.id === taskId);
+  if (selectedTaskIndex === -1) {
+    throw new Error(`Task not found in plan ${planId}: ${taskId}`);
+  }
+
+  const selectedTask = tasks[selectedTaskIndex];
+  if (!selectedTask) {
+    throw new Error(`Task not found in plan ${planId}: ${taskId}`);
+  }
+
+  const completedTaskIds = new Set(tasks.filter((task) => task.status === "completed").map((task) => task.id));
+  const blockedPredecessors = getBlockedSameLanePredecessorIds(tasks, selectedTaskIndex, completedTaskIds);
+
+  if (blockedPredecessors.length > 0) {
+    throw new Error(
+      `Cannot run task ${selectedTask.id} before same-lane predecessor(s) complete: ${blockedPredecessors.join(", ")}`,
+    );
+  }
+
+  return [selectedTask];
+}
+
 async function loadPlanTasks(cwd: string, planId: string, tasksJson: string): Promise<PlanTaskWithPersonaCommands[]> {
   const planPath = join(cwd, "plans", `${planId}.json`);
   const planFile = Bun.file(planPath);
   if (await planFile.exists()) {
-    const plan = await planFile.json() as { tasks?: PlanTaskWithPersonaCommands[] };
-    return Array.isArray(plan.tasks) ? plan.tasks : [];
+    const plan = await planFile.json() as PlanFile<PlanTaskWithPersonaCommands>;
+    const planTasks = Array.isArray(plan.tasks) ? plan.tasks : [];
+    await syncPlanTaskSnapshot(planId, planTasks, tasksJson);
+    return planTasks;
   }
 
   try {
@@ -265,6 +364,124 @@ async function loadPlanTasks(cwd: string, planId: string, tasksJson: string): Pr
   }
 }
 
+async function syncPlanTaskSnapshot(
+  planId: string,
+  planTasks: PlanTaskWithPersonaCommands[],
+  currentTasksJson: string,
+): Promise<void> {
+  const nextTasksJson = JSON.stringify(planTasks);
+  if (nextTasksJson === currentTasksJson) {
+    return;
+  }
+
+  db.update(plans)
+    .set({
+      tasksJson: nextTasksJson,
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(plans.id, planId))
+    .run();
+}
+
+function buildExecutionGroupQueues(tasks: PlanTaskWithPersonaCommands[]): Map<string, PlanTaskWithPersonaCommands[]> {
+  const queues = new Map<string, PlanTaskWithPersonaCommands[]>();
+
+  for (const task of tasks) {
+    const queue = queues.get(task.executionGroupId) ?? [];
+    queue.push(task);
+    queues.set(task.executionGroupId, queue);
+  }
+
+  return queues;
+}
+
+function hasQueuedTasks(groupQueues: Map<string, PlanTaskWithPersonaCommands[]>): boolean {
+  for (const queue of groupQueues.values()) {
+    if (queue.length > 0) return true;
+  }
+  return false;
+}
+
+function findReadyGroupId(
+  groupQueues: Map<string, PlanTaskWithPersonaCommands[]>,
+  completedTaskIds: Set<string>,
+  selectedTaskIds: Set<string>,
+  failedTaskIds: Set<string>,
+  activeGroupIds: Set<string>,
+): string | undefined {
+  for (const [groupId, queue] of groupQueues.entries()) {
+    if (queue.length === 0 || activeGroupIds.has(groupId)) continue;
+    const [nextTask] = queue;
+    if (nextTask && isTaskReadyToStart(queue, nextTask, completedTaskIds, selectedTaskIds, failedTaskIds)) {
+      return groupId;
+    }
+  }
+
+  return undefined;
+}
+
+function isTaskReadyToStart(
+  executionGroupQueue: PlanTaskWithPersonaCommands[],
+  task: PlanTaskWithPersonaCommands,
+  completedTaskIds: Set<string>,
+  selectedTaskIds: Set<string>,
+  failedTaskIds: Set<string>,
+): boolean {
+  const taskIndex = executionGroupQueue.findIndex((queuedTask) => queuedTask.id === task.id);
+  if (taskIndex === -1) {
+    return false;
+  }
+
+  const blockedPredecessors = getBlockedSameLanePredecessorIds(executionGroupQueue, taskIndex, completedTaskIds);
+  if (blockedPredecessors.length > 0) {
+    return false;
+  }
+
+  return areTaskDependenciesSatisfied(task, completedTaskIds, selectedTaskIds, failedTaskIds);
+}
+
+function getBlockedSameLanePredecessorIds(
+  orderedTasks: PlanTaskWithPersonaCommands[],
+  taskIndex: number,
+  completedTaskIds: Set<string>,
+): string[] {
+  const task = orderedTasks[taskIndex];
+  if (!task) {
+    return [];
+  }
+
+  return orderedTasks
+    .slice(0, taskIndex)
+    .filter((predecessor) => predecessor.executionGroupId === task.executionGroupId && !completedTaskIds.has(predecessor.id))
+    .map((predecessor) => predecessor.id);
+}
+
+function areTaskDependenciesSatisfied(
+  task: PlanTaskWithPersonaCommands,
+  completedTaskIds: Set<string>,
+  selectedTaskIds: Set<string>,
+  failedTaskIds: Set<string>,
+): boolean {
+  const dependsOnTaskIds = task.dependsOnTaskIds ?? [];
+  for (const dependencyTaskId of dependsOnTaskIds) {
+    if (completedTaskIds.has(dependencyTaskId)) continue;
+    if (failedTaskIds.has(dependencyTaskId)) return false;
+    if (selectedTaskIds.has(dependencyTaskId)) return false;
+    return false;
+  }
+
+  return true;
+}
+
+function getBlockedTaskIds(groupQueues: Map<string, PlanTaskWithPersonaCommands[]>): string[] {
+  const blockedTaskIds: string[] = [];
+  for (const queue of groupQueues.values()) {
+    const [task] = queue;
+    if (task) blockedTaskIds.push(task.id);
+  }
+  return blockedTaskIds;
+}
+
 async function updateTaskStatus(
   cwd: string,
   planId: string,
@@ -273,31 +490,43 @@ async function updateTaskStatus(
   status: PlanTaskWithPersonaCommands["status"],
 ): Promise<void> {
   const updatedTasks = tasks.map((task) => task.id === taskId ? { ...task, status } : task);
+  tasks.splice(0, tasks.length, ...updatedTasks);
 
-  for (let index = 0; index < tasks.length; index += 1) {
-    const updatedTask = updatedTasks[index];
-    if (updatedTask) {
-      tasks[index] = updatedTask;
+  const persistedTasks = updatedTasks.map((task) => ({ ...task }));
+
+  await enqueuePlanPersistence(planId, async () => {
+    await planPersistenceDelayHookForTests?.(planId, persistedTasks);
+
+    const planPath = join(cwd, "plans", `${planId}.json`);
+    const planFile = Bun.file(planPath);
+    if (await planFile.exists()) {
+      const plan = await planFile.json() as PlanFile<PlanTaskWithPersonaCommands>;
+      await Bun.write(planPath, JSON.stringify({
+        ...plan,
+        tasks: persistedTasks,
+      }, null, 2));
     }
-  }
 
-  const planPath = join(cwd, "plans", `${planId}.json`);
-  const planFile = Bun.file(planPath);
-  if (await planFile.exists()) {
-    const plan = await planFile.json() as Record<string, unknown>;
-    await Bun.write(planPath, JSON.stringify({
-      ...plan,
-      tasks: updatedTasks,
-    }, null, 2));
-  }
+    db.update(plans)
+      .set({
+        tasksJson: JSON.stringify(persistedTasks),
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(plans.id, planId))
+      .run();
+  });
+}
 
-  db.update(plans)
-    .set({
-      tasksJson: JSON.stringify(updatedTasks),
-      updatedAt: new Date().toISOString(),
-    })
-    .where(eq(plans.id, planId))
-    .run();
+function enqueuePlanPersistence(planId: string, persist: () => Promise<void>): Promise<void> {
+  const previous = planPersistenceQueues.get(planId) ?? Promise.resolve();
+  const next = previous.catch(() => undefined).then(persist);
+  planPersistenceQueues.set(planId, next);
+
+  return next.finally(() => {
+    if (planPersistenceQueues.get(planId) === next) {
+      planPersistenceQueues.delete(planId);
+    }
+  });
 }
 
 async function executePersonaStage(
@@ -348,6 +577,57 @@ async function executePersonaStage(
   return { success: true, executions, error: "" };
 }
 
+async function executeTaskWorkflow(
+  task: PlanTaskWithPersonaCommands,
+  planId: string,
+  options: OrchestrateOptions,
+  allTasks: PlanTaskWithPersonaCommands[],
+): Promise<{ success: boolean; runCount: number; failedRunCount: number; error?: string }> {
+  await updateTaskStatus(options.cwd, planId, allTasks, task.id, "in_progress");
+
+  const planResult = await runSequentialPhase("plan", PLAN_PHASE, task, planId, options);
+  let runCount = planResult.runCount;
+  let failedRunCount = planResult.failedRunCount;
+  if (planResult.failedRunCount > 0) {
+    await updateTaskStatus(options.cwd, planId, allTasks, task.id, "failed");
+    return {
+      success: false,
+      runCount,
+      failedRunCount,
+      error: planResult.firstError ?? `Plan phase failed for task ${task.id}`,
+    };
+  }
+
+  const buildResult = await runParallelPhase("build", BUILD_PHASE, task, planId, options, BUILD_PHASE.length);
+  runCount += buildResult.runCount;
+  failedRunCount += buildResult.failedRunCount;
+  if (buildResult.failedRunCount > 0) {
+    await updateTaskStatus(options.cwd, planId, allTasks, task.id, "failed");
+    return {
+      success: false,
+      runCount,
+      failedRunCount,
+      error: buildResult.firstError ?? `Build phase failed for task ${task.id}`,
+    };
+  }
+
+  const governanceResult = await runSequentialPhase("governance", GOVERNANCE_PHASE, task, planId, options);
+  runCount += governanceResult.runCount;
+  failedRunCount += governanceResult.failedRunCount;
+  if (governanceResult.failedRunCount > 0) {
+    await updateTaskStatus(options.cwd, planId, allTasks, task.id, "failed");
+    return {
+      success: false,
+      runCount,
+      failedRunCount,
+      error: governanceResult.firstError ?? `Governance phase failed for task ${task.id}`,
+    };
+  }
+
+  await updateTaskStatus(options.cwd, planId, allTasks, task.id, "completed");
+  return { success: true, runCount, failedRunCount };
+}
+
 async function runSequentialPhase(
   phase: PersonaPhase,
   personas: readonly PersonaId[],
@@ -378,32 +658,38 @@ async function runParallelPhase(
   task: PlanTaskWithPersonaCommands,
   planId: string,
   options: OrchestrateOptions,
+  maxConcurrency: number,
 ): Promise<{ runCount: number; failedRunCount: number; firstError?: string }> {
   const queue = [...personas];
-  const concurrency = Math.max(1, Math.min(options.maxParallel, queue.length));
+  const concurrency = Math.max(1, Math.min(maxConcurrency, queue.length));
   let failedRunCount = 0;
   let firstError: string | undefined;
 
   const workers = Array.from({ length: concurrency }, async (_, index) => {
+    let startedRunCount = 0;
+
     while (queue.length > 0) {
       const personaId = queue.shift();
-      if (!personaId) return;
+      if (!personaId) return startedRunCount;
+      startedRunCount += 1;
       const result = await runPersonaStage(phase, personaId, task, planId, options, `build-worker-${index + 1}`);
       if (!result.success) {
         failedRunCount += 1;
         firstError = firstError ?? result.error;
         if (!options.continueOnError) {
           queue.length = 0;
-          return;
+          return startedRunCount;
         }
       }
     }
+
+    return startedRunCount;
   });
 
-  await Promise.all(workers);
+  const workerRunCounts = await Promise.all(workers);
 
   return {
-    runCount: personas.length,
+    runCount: workerRunCounts.reduce((total, count) => total + count, 0),
     failedRunCount,
     firstError,
   };

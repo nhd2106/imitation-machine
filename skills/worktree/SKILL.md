@@ -16,6 +16,7 @@ The goal is reliable isolation: choose the right directory, verify it is safe, t
 - starting a new requirement or plan branch
 - isolating risky refactors from the main workspace
 - running multiple work streams in parallel
+- creating multiple worktrees for independent groups in one approved plan
 - avoiding direct implementation on `main` or `master`
 
 ## Workflow
@@ -57,10 +58,12 @@ agentic worktree remove --path .worktrees/feat/req-123
 ## Rules
 
 - prefer one requirement or plan per worktree
+- independent planned groups may use multiple worktrees, but shared groups stay together
 - do not implement directly on `main` or `master` unless explicitly approved
 - verify project-local worktree directories are safely ignored before using them
 - run setup and baseline validation before heavy implementation work
 - inspect worktree status before removal
+- before starting later work, check merged PRs and clean stale local branches/worktrees safely
 - use force removal only when the user accepts losing uncommitted work
 
 ## Safety Verification
@@ -68,6 +71,8 @@ agentic worktree remove --path .worktrees/feat/req-123
 For project-local worktree directories, verify they are ignored before trusting them.
 
 If the baseline in the worktree is already failing, report that before starting implementation so new failures are not confused with existing ones.
+
+If a plan fans out into independent lanes, create or verify multiple worktrees only for those independent groups. Shared groups stay together in one lane until their common work is done.
 
 ## Red Flags
 

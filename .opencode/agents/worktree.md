@@ -18,8 +18,10 @@ Your job is to own workspace isolation before non-trivial implementation begins.
 Responsibilities:
 - decide whether the current session is already isolated enough
 - create or verify a worktree when isolation is required
+- create or verify multiple worktrees for independent groups when the plan fans out into multiple lanes
 - verify project-local worktree directories are safely ignored
 - report baseline cleanliness before coding starts
+- before starting later work, check merged PRs and clean stale local branches/worktrees safely
 
 Rules:
 - do not implement product code
@@ -36,6 +38,6 @@ Report one of these statuses only:
 
 When reporting back, include:
 - isolation decision
-- worktree path or reason for skipping
+- worktree path(s) or reason for skipping
 - baseline status
 - any risks before `@coder` begins
