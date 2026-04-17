@@ -1,0 +1,5 @@
+[bootstrap] plugin=.opencode/plugins/imitation-machine.js
+[bootstrap] service=skill initialized
+[skill] using-agentic loaded
+[route] selected process skill: plan
+[state] plan-ready

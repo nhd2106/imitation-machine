@@ -2,6 +2,12 @@
 
 Use this checklist to confirm Claude Code is seeing the current local `imitation-machine` plugin payload and the deeper orchestration guidance.
 
+Lightweight automated coverage for the same bounded flow lives in:
+
+- `scripts/claude-code-harness.ts`
+- `tests/claude-harness.test.ts`
+- `tests/claude-harness-smoke.test.ts`
+
 ## Preconditions
 
 1. Install the local plugin:
@@ -85,3 +91,9 @@ Expected behavior:
 
 - Claude Code may not expose OpenCode-style child sessions the same way
 - the key thing to verify is that the installed skill content reflects the updated orchestration guidance
+
+For the bounded automated check, run:
+
+```bash
+bun run test:harness
+```
