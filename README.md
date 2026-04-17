@@ -69,6 +69,15 @@ Expanded workflow examples to look for in the skill inventory: `systematic-debug
 
 See step-by-step local setup details in `CLAUDE_INSTALL.md`.
 
+Lightweight harness coverage for the new OpenCode and Claude flows lives in:
+
+- `scripts/opencode-harness.ts`
+- `scripts/claude-code-harness.ts`
+- `tests/opencode-harness.test.ts`
+- `tests/claude-harness.test.ts`
+- `tests/opencode-harness-smoke.test.ts`
+- `tests/claude-harness-smoke.test.ts`
+
 ## OpenCode Session Verification
 
 Use this command to verify plugin and skills are loaded in this project session:
@@ -85,6 +94,8 @@ In logs, confirm:
 
 If skills do not appear, use the local install script above rather than the package name.
 
+The bounded OpenCode transcript harness is documented in `tests/opencode/README.md`.
+
 ## CLI
 
 ```bash
@@ -95,4 +106,10 @@ agentic check-plugin --json
 agentic orchestrate run --plan PLN-xxxx --dry-run
 agentic orchestrate run --plan PLN-xxxx --max-parallel 3 --continue-on-error
 agentic orchestrate status --plan PLN-xxxx --json
+```
+
+## Harness verification
+
+```bash
+bun run test:harness
 ```

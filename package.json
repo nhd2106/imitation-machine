@@ -27,6 +27,7 @@
   "scripts": {
     "dev": "bun --hot cli/index.ts",
     "test": "bun test",
+    "test:harness": "bun test tests/opencode-harness.test.ts tests/claude-harness.test.ts tests/opencode-harness-smoke.test.ts tests/claude-harness-smoke.test.ts",
     "typecheck": "bunx tsc --noEmit",
     "pack:dry": "npm pack --dry-run"
   },

@@ -52,6 +52,13 @@ claude plugin marketplace list
 
 and confirm `imitation-machine@imitation-machine-dev` is installed.
 
+For the bounded repo-local Claude harness, see:
+
+- `scripts/claude-code-harness.ts`
+- `tests/claude-harness.test.ts`
+- `tests/claude-harness-smoke.test.ts`
+- `tests/claude-code/README.md`
+
 ## Mandatory workflow (Claude + OpenCode parity)
 
 The `using-agentic` skill is the policy entrypoint and enforces:
@@ -61,3 +68,9 @@ The `using-agentic` skill is the policy entrypoint and enforces:
 3. `agentic verify all` evidence before completion claim
 
 Typical follow-on workflow choices now include `systematic-debugging` for stubborn failures, `dispatching-parallel-agents` for safe concurrency, `executing-plans` for approved-plan direct execution, `requesting-code-review` for pre-PR review asks, `receiving-code-review` for reply/fix loops, and `finishing-a-development-branch` for final handoff cleanup.
+
+## Bounded harness verification
+
+```bash
+bun run test:harness
+```

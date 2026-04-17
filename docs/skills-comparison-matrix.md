@@ -13,7 +13,7 @@ Comparison between `imitation-machine` and `superpowers`, focused on skill cover
 
 | Imitation Machine Skill | Superpowers Equivalent | Coverage Status | Package Depth | Eval Coverage | Main Remaining Gap | Recommended Next File |
 |---|---|---|---|---|---|---|
-| `using-agentic` | `using-superpowers` | Comparable | Partial | Partial | fixture coverage exists now, but explicit-request and multi-turn depth are still lighter than the strongest workflow bootstrap suites | `tests/multi-turn-workflows/using-agentic-to-plan.md` |
+| `using-agentic` | `using-superpowers` | Comparable | Partial | Partial | fixture coverage now includes bounded OpenCode/Claude harness transcripts, but explicit-request and multi-turn depth are still lighter than the strongest workflow bootstrap suites | `tests/opencode-harness-smoke.test.ts` |
 | `brainstorm` | `brainstorming` | Comparable | Partial | Partial | trigger and explicit-request fixtures now exist, but the package still lacks richer design-pressure examples | `tests/multi-turn-workflows/brainstorm-to-plan.md` |
 | `plan` | `writing-plans` | Partial | Partial | Partial | still thinner than the richest plan packages, but now has serial + grouped example artifacts | `skills/plan/examples/example-parallel-plan.json` |
 | `executing-plans` | `executing-plans` | Comparable | Partial | Low | initial trigger coverage exists, but direct-execution examples and pressure scenarios are still thin | `tests/skill-triggering/executing-plans-prompts.md` |
@@ -47,7 +47,7 @@ Comparison between `imitation-machine` and `superpowers`, focused on skill cover
 - explicit skill-request tests
 - trigger-based prompt suites
 - multi-turn workflow evaluations
-- more integration-style harnesses outside plain repo unit tests
+- more integration-style harnesses outside plain repo unit tests, though imitation-machine now has bounded OpenCode/Claude transcript harnesses
 
 ### 2. Prompt Fixture Libraries
 
@@ -73,4 +73,4 @@ These still lag behind the richest `superpowers` skills:
 
 `imitation-machine` is now much closer to `superpowers` in skill writing quality and package shape, including a shipped inline plan execution path.
 
-The main remaining gap is not prose. It is behavioral evaluation depth.
+The main remaining gap is not prose. It is broader behavioral evaluation depth beyond the new bounded OpenCode/Claude harness layer.
