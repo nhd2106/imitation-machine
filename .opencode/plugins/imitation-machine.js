@@ -29,17 +29,17 @@ const activationCache = new Map();
 const projectSkillsCache = new Map();
 
 const PACKAGED_AGENT_CONFIGS = {
-  architect: { description: "Produces architecture guidance, module boundaries, and ADR-quality decisions before significant design changes", mode: "subagent", permission: { edit: "ask", bash: "deny", webfetch: "deny" } },
-  po: { description: "Clarifies requirements, acceptance criteria, and scope before planning begins", mode: "subagent", permission: { edit: "ask", bash: "deny", webfetch: "deny" } },
-  planner: { description: "Breaks an approved requirement or spec into atomic 2-5 minute executable tasks with exact file paths and verification", mode: "subagent", permission: { edit: "ask", bash: "deny", webfetch: "deny" } },
-  worktree: { description: "Decides whether workspace isolation is needed and sets up or verifies a worktree before non-trivial implementation begins", mode: "subagent", permission: { edit: "deny", bash: "ask", webfetch: "deny" } },
-  coder: { description: "Implements one approved task with strict TDD, bounded file scope, and explicit status reporting", mode: "subagent", permission: { edit: "allow", bash: "ask", webfetch: "deny" } },
-  qa: { description: "Reviews test strategy, edge cases, and coverage gaps for a bounded change without editing code", mode: "subagent", permission: { edit: "deny", bash: "ask", webfetch: "deny" } },
-  security: { description: "Performs read-only security review for auth, input handling, secrets, unsafe execution paths, and boundary risks", mode: "subagent", permission: { edit: "deny", bash: "ask", webfetch: "deny" } },
-  "reviewer-spec": { description: "Checks whether implementation matches the task spec exactly before quality review begins", mode: "subagent", permission: { edit: "deny", bash: "deny", webfetch: "deny" } },
-  "reviewer-quality": { description: "Assesses readability, maintainability, and repo fit after spec review passes", mode: "subagent", permission: { edit: "deny", bash: "deny", webfetch: "deny" } },
-  docs: { description: "Updates documentation, READMEs, and usage notes for completed changes without drifting into unrelated docs work", mode: "subagent", permission: { edit: "allow", bash: "deny", webfetch: "deny" } },
-  release: { description: "Prepares verified work for PR or release by checking gates, traceability, versioning intent, and changelog clarity", mode: "subagent", permission: { edit: "ask", bash: "ask", webfetch: "deny" } },
+  architect: { mode: "subagent", permission: { edit: "ask", bash: "deny", webfetch: "deny" } },
+  po: { mode: "subagent", permission: { edit: "ask", bash: "deny", webfetch: "deny" } },
+  planner: { mode: "subagent", permission: { edit: "ask", bash: "deny", webfetch: "deny" } },
+  worktree: { mode: "subagent", permission: { edit: "deny", bash: "ask", webfetch: "deny" } },
+  coder: { mode: "subagent", permission: { edit: "allow", bash: "ask", webfetch: "deny" } },
+  qa: { mode: "subagent", permission: { edit: "deny", bash: "ask", webfetch: "deny" } },
+  security: { mode: "subagent", permission: { edit: "deny", bash: "ask", webfetch: "deny" } },
+  "reviewer-spec": { mode: "subagent", permission: { edit: "deny", bash: "deny", webfetch: "deny" } },
+  "reviewer-quality": { mode: "subagent", permission: { edit: "deny", bash: "deny", webfetch: "deny" } },
+  docs: { mode: "subagent", permission: { edit: "allow", bash: "deny", webfetch: "deny" } },
+  release: { mode: "subagent", permission: { edit: "ask", bash: "ask", webfetch: "deny" } },
 };
 
 function buildBootstrap(projectSkills = []) {
@@ -73,6 +73,7 @@ function buildBootstrap(projectSkills = []) {
     "- Implementation work → dispatch @worktree for isolation, then @coder to implement ONE task at a time.",
     "- Independent checks or research threads → load `dispatching-parallel-agents` before fanning out work.",
     "- After each @coder task → dispatch @reviewer-spec, then @reviewer-quality.",
+    "- Verified work that needs outside eyes → load `requesting-code-review` before asking for review or opening the PR ask.",
     "- Review feedback to process → load `receiving-code-review` before replying or patching.",
     "- Risk-sensitive changes → dispatch @security.",
     "- Test gaps → dispatch @qa.",
@@ -99,7 +100,7 @@ function buildBootstrap(projectSkills = []) {
     "",
     "## Required Workflow",
     "",
-    "1. Load a process skill: brainstorm/plan/executing-plans/tdd for implementation, systematic-debugging for debugging, dispatching-parallel-agents for safe parallel fanout, or review-spec/review-quality/review-security/receiving-code-review for review work.",
+    "1. Load a process skill: brainstorm/plan/executing-plans/tdd for implementation, systematic-debugging for debugging, dispatching-parallel-agents for safe parallel fanout, or review-spec/review-quality/review-security/requesting-code-review/receiving-code-review for review work.",
     "2. When delegating to subagents, tell them: \"Load the skill tool with <skill-name> before starting.\"",
     "3. Let @planner classify independence / grouping before choosing one lane or many lanes.",
     "4. Delegate each independent lane to its own @worktree + @coder flow, while shared groups stay together.",
@@ -128,6 +129,15 @@ function loadAgentPrompt(agentName) {
     return frontmatterMatch ? content.slice(frontmatterMatch[0].length).trim() : content.trim();
   } catch {
     return "";
+  }
+}
+
+function loadAgentFrontmatter(agentName) {
+  try {
+    const content = fs.readFileSync(path.join(agentsDir, `${agentName}.md`), "utf8");
+    return parseFrontmatter(content);
+  } catch {
+    return {};
   }
 }
 
@@ -350,8 +360,10 @@ const ImitationMachinePlugin = async () => {
       config.agent = config.agent || {};
       for (const [agentName, agentConfig] of Object.entries(PACKAGED_AGENT_CONFIGS)) {
         const existingAgentConfig = config.agent[agentName] || {};
+        const frontmatter = loadAgentFrontmatter(agentName);
         config.agent[agentName] = {
           ...agentConfig,
+          description: String(frontmatter.description || "").trim(),
           prompt: loadAgentPrompt(agentName),
           ...existingAgentConfig,
           permission: {

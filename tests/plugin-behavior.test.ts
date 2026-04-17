@@ -305,6 +305,7 @@ describe("imitation-machine plugin behavior", () => {
     expect(bootstrapText).toContain("dispatching-parallel-agents");
     expect(bootstrapText).toContain("executing-plans");
     expect(bootstrapText).toContain("finishing-a-development-branch");
+    expect(bootstrapText).toContain("requesting-code-review");
     expect(bootstrapText).toContain("receiving-code-review");
   });
 

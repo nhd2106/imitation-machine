@@ -78,6 +78,8 @@ describe("skill packages", () => {
     expect(await exists("skills/dispatching-parallel-agents/dispatch-template.md")).toBe(true);
     expect(await exists("skills/finishing-a-development-branch/references/branch-finish-checklist.md")).toBe(true);
     expect(await exists("skills/finishing-a-development-branch/branch-hand-off-template.md")).toBe(true);
+    expect(await exists("skills/requesting-code-review/references/review-request-checklist.md")).toBe(true);
+    expect(await exists("skills/requesting-code-review/review-request-template.md")).toBe(true);
     expect(await exists("skills/receiving-code-review/references/review-response-checklist.md")).toBe(true);
     expect(await exists("skills/receiving-code-review/fix-summary-template.md")).toBe(true);
   });

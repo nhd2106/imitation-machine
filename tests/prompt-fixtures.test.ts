@@ -21,6 +21,7 @@ describe("prompt fixture suites", () => {
   test("ships explicit skill-request fixtures", async () => {
     expect(await exists("tests/explicit-skill-requests/using-agentic-prompts.md")).toBe(true);
     expect(await exists("tests/explicit-skill-requests/plan-prompts.md")).toBe(true);
+    expect(await exists("tests/explicit-skill-requests/requesting-code-review-prompts.md")).toBe(true);
     expect(await exists("tests/explicit-skill-requests/verify-prompts.md")).toBe(true);
   });
 
@@ -36,6 +37,7 @@ describe("prompt fixture suites", () => {
     expect(await exists("tests/skill-triggering/systematic-debugging-prompts.md")).toBe(true);
     expect(await exists("tests/skill-triggering/dispatching-parallel-agents-prompts.md")).toBe(true);
     expect(await exists("tests/skill-triggering/finishing-a-development-branch-prompts.md")).toBe(true);
+    expect(await exists("tests/skill-triggering/requesting-code-review-prompts.md")).toBe(true);
     expect(await exists("tests/skill-triggering/receiving-code-review-prompts.md")).toBe(true);
   });
 });
