@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { join } from "node:path";
+import { readdir } from "node:fs/promises";
+import { basename, join, relative } from "node:path";
 
 const ROOT = process.cwd();
 
@@ -9,6 +10,14 @@ async function exists(relativePath: string): Promise<boolean> {
 
 async function readFixture(relativePath: string): Promise<string> {
   return Bun.file(join(ROOT, relativePath)).text();
+}
+
+async function fixturePaths(directory: string): Promise<string[]> {
+  const entries = await readdir(join(ROOT, directory));
+  return entries
+    .filter((entry) => entry.endsWith(".md"))
+    .sort()
+    .map((entry) => join(directory, entry));
 }
 
 function expectedBehaviorBlocks(content: string): string[] {
@@ -42,6 +51,50 @@ function meaningfulPromptLines(content: string): string[] {
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line.startsWith("- ") || line.startsWith('"'));
+}
+
+function inferFixtureIntent(relativePath: string): { kind: "skill" | "routing"; tokens: string[] } {
+  const slug = basename(relativePath, ".md").replace(/-prompts$/, "");
+
+  switch (slug) {
+    case "persona-agent-routing":
+      return { kind: "routing", tokens: ["@po", "@planner", "@coder"] };
+    case "worktree-routing":
+      return { kind: "routing", tokens: ["@worktree", "@coder"] };
+    case "pr":
+      return { kind: "skill", tokens: ["pr", "pull request"] };
+    case "tdd":
+      return { kind: "skill", tokens: ["tdd", "test-first", "failing test"] };
+    default:
+      return {
+        kind: "skill",
+        tokens: [slug, slug.replaceAll("-", " "), ...slug.split("-")],
+      };
+  }
+}
+
+function assertFixtureIntentAlignment(relativePath: string, content: string): void {
+  const intent = inferFixtureIntent(relativePath);
+
+  if (relativePath.includes("tests/explicit-skill-requests/")) {
+    expect(intent.kind).toBe("skill");
+    expect(content.includes(`\`${intent.tokens[0]}\``)).toBe(true);
+    expect(content.toLowerCase()).toContain("explicit");
+    return;
+  }
+
+  const lowerContent = content.toLowerCase();
+  const matchedTokens = intent.tokens.filter((token) => lowerContent.includes(token.toLowerCase()));
+
+  expect(matchedTokens.length).toBeGreaterThan(0);
+
+  if (intent.kind === "skill") {
+    if (content.includes("## Prompt 1")) {
+      expect(content.includes("Expected behavior:")).toBe(true);
+    }
+  } else {
+    expect(content.includes("@")).toBe(true);
+  }
 }
 
 async function expectPromptFixture(relativePath: string): Promise<void> {
@@ -102,73 +155,57 @@ describe("prompt fixture suites", () => {
     );
   });
 
-  test("ships structured skill-triggering fixtures for core workflow skills", async () => {
-    for (const fixture of [
-      "tests/skill-triggering/using-agentic-prompts.md",
-      "tests/skill-triggering/brainstorm-prompts.md",
-      "tests/skill-triggering/executing-plans-prompts.md",
-      "tests/skill-triggering/tdd-prompts.md",
-      "tests/skill-triggering/subagent-driven-development-prompts.md",
-      "tests/skill-triggering/persona-agent-routing-prompts.md",
-      "tests/skill-triggering/worktree-routing-prompts.md",
-      "tests/skill-triggering/review-spec-prompts.md",
-      "tests/skill-triggering/review-quality-prompts.md",
-      "tests/skill-triggering/review-security-prompts.md",
-      "tests/skill-triggering/gate-prompts.md",
-    ] as const) {
+  test("ships structured skill-triggering fixtures", async () => {
+    for (const fixture of await fixturePaths("tests/skill-triggering")) {
       await expectPromptFixture(fixture);
     }
   });
 
   test("ships structured explicit skill-request fixtures", async () => {
-    for (const fixture of [
-      "tests/explicit-skill-requests/using-agentic-prompts.md",
-      "tests/explicit-skill-requests/plan-prompts.md",
-      "tests/explicit-skill-requests/requesting-code-review-prompts.md",
-      "tests/explicit-skill-requests/verify-prompts.md",
-      "tests/explicit-skill-requests/brainstorm-prompts.md",
-      "tests/explicit-skill-requests/tdd-prompts.md",
-    ] as const) {
+    for (const fixture of await fixturePaths("tests/explicit-skill-requests")) {
       await expectPromptFixture(fixture);
     }
   });
 
   test("ships structured multi-turn workflow fixtures", async () => {
-    for (const fixture of [
-      "tests/multi-turn-workflows/brainstorm-to-plan.md",
-      "tests/multi-turn-workflows/tdd-to-verify.md",
-      "tests/multi-turn-workflows/subagent-review-loop.md",
-      "tests/multi-turn-workflows/persona-orchestration.md",
-      "tests/multi-turn-workflows/worktree-before-coder.md",
-      "tests/multi-turn-workflows/using-agentic-to-plan.md",
-    ] as const) {
+    for (const fixture of await fixturePaths("tests/multi-turn-workflows")) {
       await expectMultiTurnFixture(fixture);
     }
   });
 
-  test("ships structured skill-triggering fixtures for superpowers-gap skills", async () => {
-    for (const fixture of [
-      "tests/skill-triggering/systematic-debugging-prompts.md",
-      "tests/skill-triggering/dispatching-parallel-agents-prompts.md",
-      "tests/skill-triggering/finishing-a-development-branch-prompts.md",
-      "tests/skill-triggering/requesting-code-review-prompts.md",
-      "tests/skill-triggering/receiving-code-review-prompts.md",
+  test("fixtures align with their declared skill or routing intent", async () => {
+    for (const directory of [
+      "tests/skill-triggering",
+      "tests/explicit-skill-requests",
     ] as const) {
-      await expectPromptFixture(fixture);
+      for (const fixture of await fixturePaths(directory)) {
+        const content = await readFixture(fixture);
+        assertFixtureIntentAlignment(fixture, content);
+      }
     }
   });
 
   test("multi-turn fixtures keep user turns explicit", async () => {
-    for (const fixture of [
-      "tests/multi-turn-workflows/brainstorm-to-plan.md",
-      "tests/multi-turn-workflows/tdd-to-verify.md",
-      "tests/multi-turn-workflows/subagent-review-loop.md",
-      "tests/multi-turn-workflows/persona-orchestration.md",
-      "tests/multi-turn-workflows/worktree-before-coder.md",
-      "tests/multi-turn-workflows/using-agentic-to-plan.md",
-    ] as const) {
+    for (const fixture of await fixturePaths("tests/multi-turn-workflows")) {
       const content = await readFixture(fixture);
       expect(content).toMatch(/User: ".+"/);
     }
+  });
+
+  test("comparison matrix next-file pointers stay truthful", async () => {
+    const content = await readFixture("docs/skills-comparison-matrix.md");
+    const pointers = [...content.matchAll(/`([^`]+)` \|$/gm)].map((match) => match[1] ?? "");
+
+    expect(pointers.length).toBeGreaterThan(0);
+
+    for (const pointer of pointers) {
+      const existsOnDisk = await exists(pointer);
+      expect(existsOnDisk, `${pointer} should exist`).toBe(true);
+    }
+
+    expect(content.includes("no prompt-fixture evals")).toBe(false);
+    expect(content.includes("no visual companion or prompt-fixture coverage")).toBe(false);
+    expect(content.includes("no prompt-fixture tests for spec-review behavior")).toBe(false);
+    expect(content.includes("no prompt-fixture tests for severity and scope discipline")).toBe(false);
   });
 });

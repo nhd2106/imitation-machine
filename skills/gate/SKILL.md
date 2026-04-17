@@ -67,6 +67,14 @@ agentic gate plan --planPath <path>
 - do not treat a partial pass as good enough
 - fix the cause, not the symptom
 - rerun the gate after the fix
+- Do not proceed to PR, release, or completion claims while any required gate is failing.
+
+## Review-Stage Notes
+
+- `plan` blocks execution when the task breakdown is vague, placeholder-heavy, or not yet reviewable
+- `spec` blocks quality review when requested behavior, scope, or verification coverage is still unclear
+- `quality` blocks delivery when readability, maintainability, or repo-fit issues remain unresolved
+- if one stage gate fails, report that blocker instead of skipping ahead to a later stage
 
 ## Red Flags
 
