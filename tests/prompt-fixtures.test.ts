@@ -4,22 +4,19 @@ import { basename, join } from "node:path";
 
 const ROOT = process.cwd();
 
+function expectContainsAll(content: string, fragments: readonly string[]): void {
+  for (const fragment of fragments) {
+    expect(content).toContain(fragment);
+  }
+}
+
 const DEEPENED_FIXTURE_EXPECTATIONS = {
-  "tests/skill-triggering/design-prompts.md": ["visual", "interaction"],
-  "tests/skill-triggering/repo-prompts.md": ["affected", "dependency"],
-  "tests/skill-triggering/adr-prompts.md": ["architectural", "decision"],
-  "tests/skill-triggering/commit-prompts.md": ["verified", "conventional"],
-  "tests/explicit-skill-requests/design-prompts.md": ["explicit", "`design`", "visual"],
-  "tests/explicit-skill-requests/repo-prompts.md": ["explicit", "`repo`", "affected"],
-  "tests/explicit-skill-requests/adr-prompts.md": ["explicit", "`adr`", "architectural"],
-  "tests/explicit-skill-requests/commit-prompts.md": ["explicit", "`commit`", "conventional"],
+  "tests/skill-triggering/design-prompts.md": ["visual direction", "interaction quality", "browser validation"],
+  "tests/explicit-skill-requests/design-prompts.md": ["explicit", "`design`", "interaction quality", "browser validation"],
 } as const;
 
 const EXPECTED_MATRIX_FIXTURES = {
   design: "tests/skill-triggering/design-prompts.md",
-  repo: "tests/skill-triggering/repo-prompts.md",
-  adr: "tests/skill-triggering/adr-prompts.md",
-  commit: "tests/skill-triggering/commit-prompts.md",
 } as const;
 
 const EXPECTED_MULTI_TURN_DEPTH = {
@@ -47,17 +44,16 @@ const EXPECTED_MULTI_TURN_DEPTH = {
     "coder",
     "release",
   ],
+  "tests/multi-turn-workflows/design-to-browser-validation.md": [
+    "design",
+    "direction lock",
+    "implementation handoff",
+    "browser validation",
+  ],
 } as const;
 
-const OUTDATED_MATRIX_GAP_PHRASES = [
-  "no prompt-fixture evals",
-  "no visual companion or prompt-fixture coverage",
-  "no prompt-fixture tests for spec-review behavior",
-  "no prompt-fixture tests for severity and scope discipline",
-] as const;
-
 const STRONG_INTENT_PHRASES = {
-  design: ["visual direction", "interaction"],
+  design: ["visual direction", "interaction quality", "browser validation"],
   repo: ["affected package", "dependency impact", "monorepo"],
   adr: ["architectural decision", "expensive to reverse", "public contract"],
   commit: ["conventional commit", "traceability", "verified"],
@@ -309,7 +305,7 @@ describe("prompt fixture suites", () => {
     }
   });
 
-  test("ships the bounded eval deepening fixtures for design, repo, adr, and commit", async () => {
+  test("ships the bounded eval deepening fixtures for design", async () => {
     for (const [fixture, requiredPhrases] of Object.entries(DEEPENED_FIXTURE_EXPECTATIONS)) {
       expect(await exists(fixture), `${fixture} should exist`).toBe(true);
 
@@ -368,25 +364,32 @@ describe("prompt fixture suites", () => {
       const existsOnDisk = await exists(pointer);
       expect(existsOnDisk, `${pointer} should exist`).toBe(true);
     }
-
-    for (const phrase of OUTDATED_MATRIX_GAP_PHRASES) {
-      expect(content.includes(phrase)).toBe(false);
-    }
   });
 
-  test("comparison matrix routes design, repo, adr, and commit to real fixtures", async () => {
+  test("comparison matrix routes design to a real fixture with shipped depth", async () => {
     const content = await readFixture("docs/skills-comparison-matrix.md");
 
     for (const [skill, expectedPath] of Object.entries(EXPECTED_MATRIX_FIXTURES)) {
       const row = getComparisonMatrixRow(content, skill);
       const columns = comparisonMatrixColumns(row);
+      const packageDepth = columns[3]?.toLowerCase() ?? "";
       const evalCoverage = columns[4]?.toLowerCase() ?? "";
       const remainingGap = columns[5]?.toLowerCase() ?? "";
 
       expect(row).toContain(`\`${skill}\``);
       expect(row).toContain(`\`${expectedPath}\``);
+      expect(packageDepth).toBe("partial");
       expect(evalCoverage).toBe("partial");
-      expect(remainingGap).not.toContain("still lacks");
+      expectContainsAll(remainingGap, ["browser", "coverage"]);
     }
+  });
+
+  test("design comparison matrix row mentions deeper package and bounded remaining gap", async () => {
+    const content = await readFixture("docs/skills-comparison-matrix.md");
+    const row = getComparisonMatrixRow(content, "design");
+    const columns = comparisonMatrixColumns(row);
+    const remainingGap = (columns[5] ?? "").toLowerCase();
+
+    expectContainsAll(remainingGap, ["direction", "browser", "gap"]);
   });
 });

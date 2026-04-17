@@ -35,6 +35,12 @@ describe("skill packages", () => {
     expect(await exists("skills/review-security/review-report-template.md")).toBe(true);
   });
 
+  test("design ships reference, checklist, and brief companions", async () => {
+    expect(await exists("skills/design/references/design-reference.md")).toBe(true);
+    expect(await exists("skills/design/references/design-direction-checklist.md")).toBe(true);
+    expect(await exists("skills/design/references/design-brief-example.md")).toBe(true);
+  });
+
   test("plan and verify ship review and triage helpers", async () => {
     expect(await exists("skills/plan/plan-document-reviewer-prompt.md")).toBe(true);
     expect(await exists("skills/plan/references/plan-checklist.md")).toBe(true);

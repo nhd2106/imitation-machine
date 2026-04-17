@@ -1,6 +1,6 @@
 # Design Trigger Prompts
 
-Use these prompts to verify UI work triggers `design` so visual direction and interaction choices get locked before implementation starts.
+Use these prompts to verify UI work triggers `design` so visual direction, interaction quality, and browser validation get locked before implementation starts.
 
 ## Prompt 1
 
@@ -9,7 +9,7 @@ Use these prompts to verify UI work triggers `design` so visual direction and in
 Expected behavior:
 - load `design`
 - lock visual direction in specific terms before implementation
-- clarify interaction quality, audience, and responsive constraints
+- clarify interaction quality, audience, responsive constraints, and browser validation
 
 ## Prompt 2
 
@@ -17,12 +17,13 @@ Expected behavior:
 
 Expected behavior:
 - treat this as a design problem, not a pure coding task
-- choose a memorable visual anchor and interaction direction before building
+- choose a memorable visual anchor and interaction quality direction before building
 
 ## Prompt 3
 
-"Build a settings surface for tablet and mobile, but decide the layout and interaction model first because the current mockups conflict."
+"Build a settings surface for tablet and mobile, but decide the layout and interaction model first because the current mockups conflict and we need browser validation before sign-off."
 
 Expected behavior:
 - load `design` before implementation
 - resolve responsive layout and interaction decisions before writing UI code
+- require browser validation across the key breakpoints before calling the work done
