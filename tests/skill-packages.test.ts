@@ -38,6 +38,8 @@ describe("skill packages", () => {
   test("plan and verify ship review and triage helpers", async () => {
     expect(await exists("skills/plan/plan-document-reviewer-prompt.md")).toBe(true);
     expect(await exists("skills/plan/references/plan-checklist.md")).toBe(true);
+    expect(await exists("skills/executing-plans/references/execution-checklist.md")).toBe(true);
+    expect(await exists("skills/executing-plans/progress-update-template.md")).toBe(true);
     expect(await exists("skills/verify/references/verification-checklist.md")).toBe(true);
     expect(await exists("skills/verify/failure-triage.md")).toBe(true);
   });

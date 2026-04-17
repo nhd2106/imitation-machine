@@ -15,7 +15,8 @@ Comparison between `imitation-machine` and `superpowers`, focused on skill cover
 |---|---|---|---|---|---|---|
 | `using-agentic` | `using-superpowers` | Comparable | Partial | Partial | fewer cross-platform references and no prompt-fixture evals | `tests/skill-triggering/using-agentic-prompts.md` |
 | `brainstorm` | `brainstorming` | Comparable | Partial | Partial | no visual companion or prompt-fixture coverage | `tests/skill-triggering/brainstorm-prompts.md` |
-| `plan` | `writing-plans` / `executing-plans` | Partial | Partial | Low | lacks deeper execution-handoff examples and prompt scenarios | `skills/plan/examples/example-plan.json` |
+| `plan` | `writing-plans` | Partial | Partial | Low | lacks deeper execution-handoff examples and prompt scenarios | `skills/plan/examples/example-plan.json` |
+| `executing-plans` | `executing-plans` | Comparable | Partial | Low | needs more direct-execution prompt fixtures and richer examples | `tests/skill-triggering/executing-plans-prompts.md` |
 | `verify` | `verification-before-completion` | Partial | Partial | Low | needs explicit behavior evals under realistic prompts | `tests/explicit-skill-requests/verify-prompts.md` |
 | `subagent-driven-development` | `subagent-driven-development` | Comparable | Comparable | Partial | missing explicit multi-turn execution prompt tests | `tests/skill-triggering/subagent-driven-development-prompts.md` |
 | `tdd` | `test-driven-development` | Comparable | Partial | Low | needs pressure-scenario evals, not just structure checks | `tests/skill-triggering/tdd-prompts.md` |
@@ -38,11 +39,10 @@ Comparison between `imitation-machine` and `superpowers`, focused on skill cover
 
 ## Superpowers-Only Areas
 
-These still exist in `superpowers` without a true equivalent in `imitation-machine`, or remain intentionally deferred:
+These still exist in `superpowers` without a true equivalent in `imitation-machine`, or still have no first-class counterpart here:
 
 | Superpowers Skill | Why It Matters | Suggested Response |
 |---|---|---|
-| `executing-plans` | explicit inline plan execution path | later follow-up if imitation-machine needs a first-class non-subagent execution path |
 | `requesting-code-review` | teaches how to ask for review well | lower priority because `review-spec` and `review-quality` already exist |
 
 ## Biggest Remaining Differences
@@ -84,6 +84,6 @@ They are no longer weak, but they still need more examples, scenarios, and usage
 
 ## Bottom Line
 
-`imitation-machine` is now much closer to `superpowers` in skill writing quality and package shape.
+`imitation-machine` is now much closer to `superpowers` in skill writing quality and package shape, including a shipped inline plan execution path.
 
 The main remaining gap is not prose. It is behavioral evaluation depth.

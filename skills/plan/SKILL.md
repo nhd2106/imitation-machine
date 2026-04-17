@@ -132,6 +132,7 @@ Only approved plans should be executed.
 
 After saving and approving the plan, choose the execution mode deliberately:
 
+- `executing-plans` for direct inline execution of a small approved plan in the current session
 - `subagent-driven-development` for fresh-worker task execution with review gates
 - direct implementation workflow only if the work is truly narrow enough to stay inline
 

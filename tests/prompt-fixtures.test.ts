@@ -11,6 +11,7 @@ describe("prompt fixture suites", () => {
   test("ships skill-triggering fixtures for core workflow skills", async () => {
     expect(await exists("tests/skill-triggering/using-agentic-prompts.md")).toBe(true);
     expect(await exists("tests/skill-triggering/brainstorm-prompts.md")).toBe(true);
+    expect(await exists("tests/skill-triggering/executing-plans-prompts.md")).toBe(true);
     expect(await exists("tests/skill-triggering/tdd-prompts.md")).toBe(true);
     expect(await exists("tests/skill-triggering/subagent-driven-development-prompts.md")).toBe(true);
     expect(await exists("tests/skill-triggering/persona-agent-routing-prompts.md")).toBe(true);

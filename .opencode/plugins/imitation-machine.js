@@ -17,7 +17,7 @@ const agentsDir = path.resolve(__dirname, "../agents");
 const pluginRoot = path.resolve(__dirname, "../..");
 const cliPath = path.resolve(pluginRoot, "cli/index.ts");
 const binDir = path.resolve(pluginRoot, "bin");
-const WRITE_AUTHORIZING_SKILLS = new Set(["brainstorm", "plan", "tdd", "systematic-debugging"]);
+const WRITE_AUTHORIZING_SKILLS = new Set(["brainstorm", "plan", "executing-plans", "tdd", "systematic-debugging"]);
 const ACTIVATION_MARKERS = [
   ".imitation-machine-enabled",
   ".agentic",
@@ -67,6 +67,7 @@ function buildBootstrap(projectSkills = []) {
     "## Mandatory Delegation Rules",
     "",
     "- Multi-step work → dispatch @planner to decompose into tasks first.",
+    "- Approved plan, direct in-session execution → load `executing-plans` before implementing planned tasks inline.",
     "- Stubborn failure or unclear regression → load `systematic-debugging` before changing code.",
     "- If the plan identifies independent planned task groups, fan out to multiple branches/worktrees/coders in parallel; shared groups stay together in one delivery lane.",
     "- Implementation work → dispatch @worktree for isolation, then @coder to implement ONE task at a time.",
@@ -98,7 +99,7 @@ function buildBootstrap(projectSkills = []) {
     "",
     "## Required Workflow",
     "",
-    "1. Load a process skill: brainstorm/plan/tdd for implementation, systematic-debugging for debugging, dispatching-parallel-agents for safe parallel fanout, or review-spec/review-quality/review-security/receiving-code-review for review work.",
+    "1. Load a process skill: brainstorm/plan/executing-plans/tdd for implementation, systematic-debugging for debugging, dispatching-parallel-agents for safe parallel fanout, or review-spec/review-quality/review-security/receiving-code-review for review work.",
     "2. When delegating to subagents, tell them: \"Load the skill tool with <skill-name> before starting.\"",
     "3. Let @planner classify independence / grouping before choosing one lane or many lanes.",
     "4. Delegate each independent lane to its own @worktree + @coder flow, while shared groups stay together.",
@@ -313,7 +314,7 @@ function enforceToolPolicy(input, output) {
   if (!state.workflowLoaded) {
     if (tool === "edit" || tool === "write") {
         throw new Error(
-          "Policy blocked: load an implementation workflow skill before writing files. Examples: brainstorm/plan/tdd/systematic-debugging.",
+          "Policy blocked: load an implementation workflow skill before writing files. Examples: brainstorm/plan/executing-plans/tdd/systematic-debugging.",
         );
     }
     return;
