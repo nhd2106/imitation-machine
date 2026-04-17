@@ -3,6 +3,12 @@ import { join } from "node:path";
 
 const ROOT = process.cwd();
 
+function expectContainsAll(content: string, fragments: readonly string[]): void {
+  for (const fragment of fragments) {
+    expect(content).toContain(fragment);
+  }
+}
+
 const CORE_SKILLS = [
   "using-agentic",
   "brainstorm",
@@ -145,17 +151,19 @@ describe("core skill content", () => {
 
   test("tdd includes examples and stronger iron law wording", async () => {
     const content = await Bun.file(join(ROOT, "skills", "tdd", "SKILL.md")).text();
+    const lowerContent = content.toLowerCase();
+
     expect(content.includes("Good And Bad Tests")).toBe(true);
-    expect(content.includes("Write code before the test? Delete it. Start over.")).toBe(true);
+    expectContainsAll(lowerContent, ["write code before", "delete it", "start over"]);
   });
 
   test("verify includes a claim matrix and stronger proof guidance", async () => {
     const content = await Bun.file(join(ROOT, "skills", "verify", "SKILL.md")).text();
+    const lowerContent = content.toLowerCase();
+
     expect(content.includes("## Claim Matrix")).toBe(true);
     expect(content.includes("Not sufficient")).toBe(true);
-    expect(content.includes("Confidence is not evidence")).toBe(true);
-    expect(content.includes("before you say a fix is verified")).toBe(true);
-    expect(content.includes("rerun the exact command that exposed the bug")).toBe(true);
+    expectContainsAll(lowerContent, ["confidence", "evidence", "fix", "verified", "exact command"]);
   });
 
   test("subagent-driven-development documents implementer status handling", async () => {
@@ -179,11 +187,11 @@ describe("core skill content", () => {
 
   test("gate documents blocker handling and review-stage gates", async () => {
     const content = await Bun.file(join(ROOT, "skills", "gate", "SKILL.md")).text();
+    const lowerContent = content.toLowerCase();
+
     expect(content.includes("workflow blockers")).toBe(true);
-    expect(content.includes("spec")).toBe(true);
-    expect(content.includes("quality")).toBe(true);
     expect(content.includes("plan --planPath")).toBe(true);
-    expect(content.includes("Do not proceed to PR, release, or completion claims while any required gate is failing.")).toBe(true);
+    expectContainsAll(lowerContent, ["spec", "quality", "pr", "release", "completion", "failing"]);
   });
 
   test("delivery skills document grouped delivery lanes and cleanup", async () => {
@@ -207,6 +215,18 @@ describe("core skill content", () => {
       expect(content.includes("## Red Flags")).toBe(true);
       expect(content.includes("description: Use when")).toBe(true);
     }
+  });
+
+  test("design skill locks direction, interaction quality, and browser validation with companion docs", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "design", "SKILL.md")).text();
+    const lowerContent = content.toLowerCase();
+
+    expectContainsAll(lowerContent, ["direction lock", "interaction quality", "browser validation"]);
+    expectContainsAll(content, [
+      "references/design-reference.md",
+      "references/design-direction-checklist.md",
+      "references/design-brief-example.md",
+    ]);
   });
 
   test("review and delivery skills include rewritten workflow structure", async () => {

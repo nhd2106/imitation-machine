@@ -23,7 +23,7 @@ Comparison between `imitation-machine` and `superpowers`, focused on skill cover
 | `review-spec` | request/review system pieces | Partial | Partial | Partial | now has multi-turn enforcement that `review-spec` must precede `review-quality`, but review-report depth is still sparse | `tests/multi-turn-workflows/subagent-review-loop.md` |
 | `review-quality` | request/review system pieces | Partial | Partial | Partial | now has multi-turn coverage for quality review after spec approval, but severity calibration scenarios remain light | `tests/multi-turn-workflows/subagent-review-loop.md` |
 | `review-security` | no exact match; related security review patterns | Unique | Comparable | Low | needs stronger behavioral/eval scenarios for real findings | `tests/skill-triggering/review-security-prompts.md` |
-| `design` | partially overlaps brainstorming + design guidance | Unique | Partial | Partial | now has dedicated prompt fixtures for direction-lock and interaction-quality scenarios, but multi-turn browser-validation coverage is still thin | `tests/skill-triggering/design-prompts.md` |
+| `design` | partially overlaps brainstorming + design guidance | Unique | Partial | Partial | stronger direction-lock guidance, companion docs, and a bounded multi-turn browser-validation workflow now ship; the remaining bounded gap is more pressure-scenario browser-validation coverage | `tests/skill-triggering/design-prompts.md` |
 | `systematic-debugging` | `systematic-debugging` | Comparable | Partial | Low | needs deeper debugging prompt fixtures and decision-pressure evals | `tests/skill-triggering/systematic-debugging-prompts.md` |
 | `dispatching-parallel-agents` | `dispatching-parallel-agents` | Comparable | Partial | Low | needs explicit safe-parallelism prompt fixtures | `tests/skill-triggering/dispatching-parallel-agents-prompts.md` |
 | `finishing-a-development-branch` | branch-finishing / release-adjacent flow | Partial | Partial | Low | needs branch-handoff prompt fixtures and final-cleanup examples | `tests/skill-triggering/finishing-a-development-branch-prompts.md` |
@@ -61,13 +61,13 @@ These still lag behind the richest `superpowers` skills:
 - `adr`
 - `commit`
 
-`design`, `plan`, `verify`, `gate`, and `worktree` are no longer the thinnest workflow packages after the current fixture/examples wave, but they still benefit from more pressure-scenario coverage.
+`plan`, `verify`, `gate`, and `worktree` are no longer the thinnest workflow packages after the current fixture/examples wave, and `design` is stronger on direction lock and browser-validation handoff depth, but all still benefit from more pressure-scenario coverage.
 
 ## Recommended Next Wave
 
 1. Deepen pressure-scenario coverage for already-triggered skills such as `verify`, `gate`, `pr`, and `release`.
 2. Add more realistic multi-turn fixtures where workflow stages hand off evidence across turns.
-3. Expand `design`, `repo`, `adr`, and `commit` eval depth, which now stand out more clearly than the earlier thin-skill set.
+3. Expand `design`, `repo`, `adr`, and `commit` eval depth with more pressure cases, especially post-implementation browser-validation checks for `design`.
 
 ## Bottom Line
 
