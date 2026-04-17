@@ -34,6 +34,7 @@ For multi-step implementation, delegation is mandatory unless the task is truly 
 - Use `@architect` for architecture or ADR-level decisions.
 - Use `@planner` for task decomposition and execution planning.
 - Use `dispatching-parallel-agents` before launching truly independent child sessions in parallel.
+- Have `@planner` classify independence / grouping so independent task groups can fan out while shared groups stay together.
 - Before dispatching `@coder` for non-trivial implementation work, use `@worktree` to make the workspace isolation step concrete.
 - Use `@coder` for one bounded implementation task at a time.
 - After each implemented task, use `@reviewer-spec` first and `@reviewer-quality` second.
@@ -42,7 +43,7 @@ For multi-step implementation, delegation is mandatory unless the task is truly 
 - Use `@qa` for test-strategy and edge-case review.
 - Use `@docs` for bounded documentation updates.
 - Use `finishing-a-development-branch` when gathering final verification and handoff evidence.
-- Use `@release` for PR or release readiness.
+- Use `@release` for PR or release readiness; `@release` owns commit + gh PR creation for each delivery unit or grouped tasks.
 
 ## Worktree Rule
 
@@ -86,8 +87,8 @@ Inline execution is allowed only for:
 
 ## Parallelism Rule
 
-- If tasks are truly independent, dispatch child sessions in parallel.
-- If tasks share files, state, or sequencing constraints, execute them sequentially.
+- If tasks are truly independent, dispatch child sessions in parallel and let them fan out to multiple branches/worktrees/coders in parallel.
+- If tasks share files, state, or sequencing constraints, keep those shared groups together and execute them sequentially.
 - Never parallelize implementation tasks that could conflict in the same files.
 
 ## Preferred Sequence
@@ -100,3 +101,4 @@ Inline execution is allowed only for:
 6. review with `@reviewer-spec`
 7. review with `@reviewer-quality`
 8. run `@security`, `@qa`, `@docs`, `@release` as needed
+9. before starting later work, check merged PRs and clean stale local branches/worktrees safely

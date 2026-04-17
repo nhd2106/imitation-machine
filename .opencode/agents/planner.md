@@ -23,6 +23,9 @@ Rules:
 - no vague work like "handle edge cases"
 - split any task that bundles multiple outcomes
 - keep the sequence dependency-safe
+- classify each task group for independence / grouping
+- if groups are independent, say they can fan out to multiple branches/worktrees/coders in parallel
+- if groups share files, state, or sequencing, say those shared groups stay together
 - when execution is about to begin, decide whether workspace isolation/worktree setup is needed before coding
 - hand the actual isolation/setup step off to `@worktree`
 - if the task prompt mentions project skills, load them with the skill tool first so your plan respects project conventions

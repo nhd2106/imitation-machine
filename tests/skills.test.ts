@@ -132,6 +132,22 @@ describe("core skill content", () => {
     expect(content.includes("## Safety Verification")).toBe(true);
     expect(content.includes("baseline")).toBe(true);
     expect(content.includes("ignored")).toBe(true);
+    expect(content.includes("multiple worktrees")).toBe(true);
+    expect(content.includes("clean stale local branches/worktrees safely")).toBe(true);
+  });
+
+  test("delivery skills document grouped delivery lanes and cleanup", async () => {
+    const release = await Bun.file(join(ROOT, "skills", "release", "SKILL.md")).text();
+    const pr = await Bun.file(join(ROOT, "skills", "pr", "SKILL.md")).text();
+    const sdd = await Bun.file(join(ROOT, "skills", "subagent-driven-development", "SKILL.md")).text();
+
+    expect(release.includes("commit + gh PR creation")).toBe(true);
+    expect(release.includes("delivery units or grouped tasks")).toBe(true);
+    expect(release.includes("check merged PRs")).toBe(true);
+    expect(pr.includes("delivery unit")).toBe(true);
+    expect(pr.includes("grouped tasks")).toBe(true);
+    expect(sdd.includes("independent planned task groups")).toBe(true);
+    expect(sdd.includes("shared groups stay together")).toBe(true);
   });
 
   test("rewritten discipline skills include workflow and red flags", async () => {

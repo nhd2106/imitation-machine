@@ -56,6 +56,8 @@ describe("OpenCode agents", () => {
     expect(planner.includes("exact file paths")).toBe(true);
     expect(planner.includes("verification command")).toBe(true);
     expect(planner.includes("@worktree")).toBe(true);
+    expect(planner.includes("independence / grouping")).toBe(true);
+    expect(planner.includes("fan out to multiple branches/worktrees/coders in parallel")).toBe(true);
     expect(po.includes("acceptance criteria")).toBe(true);
     expect(po.includes("do not start planning or coding")).toBe(true);
   });
@@ -100,5 +102,15 @@ describe("OpenCode agents", () => {
     expect(content.includes("do not implement product code")).toBe(true);
     expect(content.includes("git worktree *")).toBe(true);
     expect(content.includes("ALREADY_ISOLATED")).toBe(true);
+    expect(content.includes("multiple worktrees")).toBe(true);
+    expect(content.includes("clean stale local branches/worktrees safely")).toBe(true);
+  });
+
+  test("release agent owns delivery-unit commits and PR creation", async () => {
+    const content = await readAgent("release");
+    expect(content.includes("commit + gh PR creation")).toBe(true);
+    expect(content.includes("delivery units or grouped tasks")).toBe(true);
+    expect(content.includes("check merged PRs")).toBe(true);
+    expect(content.includes("clean stale local branches/worktrees safely")).toBe(true);
   });
 });

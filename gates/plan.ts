@@ -1,5 +1,5 @@
 import type { GateContext, GateResult, GateDetail } from "./types";
-import type { PlanTask } from "../agents/types";
+import type { PlanFile, PlanTask } from "../agents/types";
 
 const PLACEHOLDER_PATTERNS = [
   /\bTBD\b/,
@@ -11,12 +11,6 @@ const PLACEHOLDER_PATTERNS = [
   /handle edge cases/i,
   /\.\.\./,
 ];
-
-type PlanFile = {
-  id: string;
-  title: string;
-  tasks: PlanTask[];
-};
 
 export async function run(ctx: GateContext): Promise<GateResult> {
   const start = Date.now();
@@ -67,6 +61,40 @@ export async function run(ctx: GateContext): Promise<GateResult> {
         message: `Task "${task.id}" has no file paths specified`,
         location: planPath,
       });
+    }
+
+    if (typeof task.executionGroupId !== "string" || task.executionGroupId.trim().length === 0) {
+      details.push({
+        severity: "error",
+        message: `Task "${task.id}" must specify a non-empty executionGroupId`,
+        location: planPath,
+      });
+    }
+
+    if (typeof task.prGroupId !== "string" || task.prGroupId.trim().length === 0) {
+      details.push({
+        severity: "error",
+        message: `Task "${task.id}" must specify a non-empty prGroupId`,
+        location: planPath,
+      });
+    }
+
+    if (task.independence !== "independent" && task.independence !== "shared") {
+      details.push({
+        severity: "error",
+        message: `Task "${task.id}" must set independence to \"independent\" or \"shared\"`,
+        location: planPath,
+      });
+    }
+
+    if (task.dependsOnTaskIds !== undefined) {
+      if (!Array.isArray(task.dependsOnTaskIds) || task.dependsOnTaskIds.some((dep) => typeof dep !== "string" || dep.trim().length === 0)) {
+        details.push({
+          severity: "error",
+          message: `Task "${task.id}" dependsOnTaskIds must be an array of non-empty task ids`,
+          location: planPath,
+        });
+      }
     }
 
     if (task.estimatedMinutes > 5) {

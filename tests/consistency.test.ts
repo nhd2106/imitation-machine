@@ -29,7 +29,22 @@ describe("plan scaffolding", () => {
       id: "PLN-12345678",
       requirementId: "REQ-12345678",
       title: "Test plan",
-      tasks: [],
+      tasks: [
+        {
+          id: "TSK-<id>",
+          title: "",
+          description: "",
+          filePaths: [],
+          verificationCommand: "",
+          expectedOutput: "",
+          estimatedMinutes: 3,
+          status: "pending",
+          executionGroupId: "",
+          prGroupId: "",
+          independence: "independent",
+          dependsOnTaskIds: [],
+        },
+      ],
     });
   });
 });

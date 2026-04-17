@@ -5,6 +5,7 @@ import { plans } from "../../db/schema";
 import { eq } from "drizzle-orm";
 import * as planGate from "../../gates/plan";
 import { persistGateResult } from "../../gates/persist";
+import type { PlanFile, PlanTask } from "../../agents/types";
 
 const PLAN_USAGE = `
 agentic plan — Manage implementation plans
@@ -45,17 +46,18 @@ async function planNew(args: string[]): Promise<void> {
 
   const id = `PLN-${crypto.randomUUID().slice(0, 8)}`;
   const now = new Date().toISOString();
+  const template = createPlanTemplate(reqId, id, title);
   db.insert(plans).values({
     id,
     requirementId: reqId,
     title,
-    tasksJson: "[]",
+    tasksJson: JSON.stringify(template.tasks),
     status: "draft",
     createdAt: now,
     updatedAt: now,
   }).run();
 
-  await writePlanTemplate(process.cwd(), id, reqId, title);
+  await writePlanTemplate(process.cwd(), id, reqId, title, template);
 
   console.log(`Plan created: ${id}`);
   console.log(`Edit plans/${id}.json to add tasks, then run: agentic plan verify --id ${id}`);
@@ -66,20 +68,43 @@ export async function writePlanTemplate(
   planId: string,
   requirementId: string,
   title: string,
+  template: PlanFile<PlanTask> = createPlanTemplate(requirementId, planId, title),
 ): Promise<string> {
   const plansDir = join(cwd, "plans");
   const planPath = join(plansDir, `${planId}.json`);
 
   await mkdir(plansDir, { recursive: true });
-  await Bun.write(planPath, JSON.stringify({
-    id: planId,
-    requirementId,
-    title,
-    tasks: [],
-  }, null, 2));
+  await Bun.write(planPath, JSON.stringify(template, null, 2));
 
   return planPath;
 }
+
+function createPlanTemplate(requirementId: string, planId: string, title: string): PlanFile<PlanTask> {
+  return {
+    id: planId,
+    requirementId,
+    title,
+    tasks: [createPlanTemplateTask()],
+  };
+}
+
+function createPlanTemplateTask(): PlanTask {
+  return {
+    id: "TSK-<id>",
+    title: "",
+    description: "",
+    filePaths: [],
+    verificationCommand: "",
+    expectedOutput: "",
+    estimatedMinutes: 3,
+    executionGroupId: "",
+    prGroupId: "",
+    independence: "independent",
+    dependsOnTaskIds: [],
+    status: "pending",
+  };
+}
+
 
 async function planVerify(args: string[]): Promise<void> {
   const id = getFlag(args, "--id");
