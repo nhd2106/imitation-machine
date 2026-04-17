@@ -39,6 +39,7 @@ For multi-step implementation, delegation is mandatory unless the task is truly 
 - Before dispatching `@coder` for non-trivial implementation work, use `@worktree` to make the workspace isolation step concrete.
 - Use `@coder` for one bounded implementation task at a time.
 - After each implemented task, use `@reviewer-spec` first and `@reviewer-quality` second.
+- Use `requesting-code-review` when verified work is ready for outside review and the ask needs clear reviewer focus.
 - Use `receiving-code-review` when processing external review feedback and deciding what to fix now vs defer.
 - Use `@security` for risk-sensitive changes.
 - Use `@qa` for test-strategy and edge-case review.

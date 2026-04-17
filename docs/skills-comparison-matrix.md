@@ -27,6 +27,7 @@ Comparison between `imitation-machine` and `superpowers`, focused on skill cover
 | `systematic-debugging` | `systematic-debugging` | Comparable | Partial | Low | needs deeper debugging prompt fixtures and decision-pressure evals | `tests/skill-triggering/systematic-debugging-prompts.md` |
 | `dispatching-parallel-agents` | `dispatching-parallel-agents` | Comparable | Partial | Low | needs explicit safe-parallelism prompt fixtures | `tests/skill-triggering/dispatching-parallel-agents-prompts.md` |
 | `finishing-a-development-branch` | branch-finishing / release-adjacent flow | Partial | Partial | Low | needs branch-handoff prompt fixtures and final-cleanup examples | `tests/skill-triggering/finishing-a-development-branch-prompts.md` |
+| `requesting-code-review` | `requesting-code-review` | Comparable | Partial | Low | needs more end-to-end PR review-request scenarios beyond the initial fixtures | `tests/skill-triggering/requesting-code-review-prompts.md` |
 | `receiving-code-review` | `receiving-code-review` | Comparable | Partial | Low | needs reviewer-feedback response fixtures and defer-vs-fix evals | `tests/skill-triggering/receiving-code-review-prompts.md` |
 | `gate` | no strong direct counterpart | Unique | Partial | Low | needs more examples and gate-failure scenario fixtures | `tests/skill-triggering/gate-prompts.md` |
 | `pr` | no strong direct counterpart | Unique | Partial | Low | lacks prompt-fixture PR-body and traceability evals | `tests/skill-triggering/pr-prompts.md` |
@@ -36,14 +37,6 @@ Comparison between `imitation-machine` and `superpowers`, focused on skill cover
 | `adr` | no strong direct counterpart | Unique | Comparable | Low | needs decision-quality examples and ADR prompt scenarios | `tests/skill-triggering/adr-prompts.md` |
 | `commit` | no strong direct counterpart | Unique | Comparable | Low | no commit-message / traceability prompt-fixture evals | `tests/skill-triggering/commit-prompts.md` |
 | `writing-skills` | `writing-skills` | Comparable | Comparable | Partial | still lacks repo-local harness tying skill-writing to explicit eval runs | `tests/skill-triggering/writing-skills-prompts.md` |
-
-## Superpowers-Only Areas
-
-These still exist in `superpowers` without a true equivalent in `imitation-machine`, or still have no first-class counterpart here:
-
-| Superpowers Skill | Why It Matters | Suggested Response |
-|---|---|---|
-| `requesting-code-review` | teaches how to ask for review well | lower priority because `review-spec` and `review-quality` already exist |
 
 ## Biggest Remaining Differences
 

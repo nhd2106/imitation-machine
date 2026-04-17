@@ -19,6 +19,7 @@ const SUPERPOWERS_GAP_SKILLS = [
   "systematic-debugging",
   "dispatching-parallel-agents",
   "finishing-a-development-branch",
+  "requesting-code-review",
   "receiving-code-review",
 ] as const;
 
@@ -61,6 +62,7 @@ describe("core skill content", () => {
     expect(content.includes("systematic-debugging")).toBe(true);
     expect(content.includes("dispatching-parallel-agents")).toBe(true);
     expect(content.includes("finishing-a-development-branch")).toBe(true);
+    expect(content.includes("requesting-code-review")).toBe(true);
     expect(content.includes("receiving-code-review")).toBe(true);
   });
 
@@ -73,6 +75,7 @@ describe("core skill content", () => {
     expect(content.includes("dispatching-parallel-agents")).toBe(true);
     expect(content.includes("executing-plans")).toBe(true);
     expect(content.includes("finishing-a-development-branch")).toBe(true);
+    expect(content.includes("requesting-code-review")).toBe(true);
     expect(content.includes("receiving-code-review")).toBe(true);
   });
 
@@ -83,6 +86,7 @@ describe("core skill content", () => {
       expect(content.includes("dispatching-parallel-agents")).toBe(true);
       expect(content.includes("executing-plans")).toBe(true);
       expect(content.includes("finishing-a-development-branch")).toBe(true);
+      expect(content.includes("requesting-code-review")).toBe(true);
       expect(content.includes("receiving-code-review")).toBe(true);
     }
   });
@@ -91,9 +95,11 @@ describe("core skill content", () => {
     const content = await Bun.file(join(ROOT, "docs", "skills-comparison-matrix.md")).text();
 
     expect(content.includes("dispatching-parallel-agents")).toBe(true);
+    expect(content.includes("requesting-code-review")).toBe(true);
     expect(content.includes("receiving-code-review")).toBe(true);
     expect(content.includes("executing-plans")).toBe(true);
     expect(content.includes("shipped inline plan execution path")).toBe(true);
+    expect(content.includes("teaches how to ask for review well")).toBe(false);
     expect(content.includes("later follow-up")).toBe(false);
   });
 
@@ -221,11 +227,13 @@ describe("core skill content", () => {
     const debugging = await Bun.file(join(ROOT, "skills", "systematic-debugging", "SKILL.md")).text();
     const dispatching = await Bun.file(join(ROOT, "skills", "dispatching-parallel-agents", "SKILL.md")).text();
     const finishing = await Bun.file(join(ROOT, "skills", "finishing-a-development-branch", "SKILL.md")).text();
+    const requesting = await Bun.file(join(ROOT, "skills", "requesting-code-review", "SKILL.md")).text();
     const review = await Bun.file(join(ROOT, "skills", "receiving-code-review", "SKILL.md")).text();
 
     expect(debugging.includes("runtime agent") || debugging.includes("runtime-agent")).toBe(true);
     expect(dispatching.includes("runtime agent") || dispatching.includes("runtime-agent")).toBe(true);
     expect(finishing.includes("runtime agent") || finishing.includes("runtime-agent")).toBe(true);
+    expect(requesting.includes("@release")).toBe(true);
     expect(review.includes("runtime agent") || review.includes("runtime-agent")).toBe(true);
   });
 });

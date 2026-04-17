@@ -78,6 +78,7 @@ digraph agentic_flow {
 | Spec review | `review-spec` |
 | Quality review | `review-quality` |
 | Security review | `review-security` |
+| Preparing a clear review request | `requesting-code-review` |
 | Responding to review feedback | `receiving-code-review` |
 | Final branch cleanup and handoff | `finishing-a-development-branch` |
 | PR creation | `pr` |

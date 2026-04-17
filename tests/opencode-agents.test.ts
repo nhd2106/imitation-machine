@@ -7,12 +7,32 @@ async function readAgent(name: string): Promise<string> {
   return Bun.file(join(ROOT, ".opencode", "agents", `${name}.md`)).text();
 }
 
+function extractFrontmatterDescription(content: string): string {
+  const match = content.match(/^---\n([\s\S]*?)\n---\n?/);
+  if (!match) return "";
+  const frontmatter = match[1] ?? "";
+  for (const line of frontmatter.split("\n")) {
+    if (line.startsWith("description:")) {
+      return line.slice("description:".length).trim();
+    }
+  }
+  return "";
+}
+
 describe("OpenCode agents", () => {
   test("core persona agents exist as subagents", async () => {
     for (const agent of ["architect", "po", "planner", "worktree", "coder", "qa", "security", "reviewer-spec", "reviewer-quality", "docs", "release"] as const) {
       const content = await readAgent(agent);
       expect(content.includes("mode: subagent")).toBe(true);
       expect(content.includes("description:")).toBe(true);
+    }
+  });
+
+  test("plugin-backed agent descriptions stay in sync with checked-in frontmatter", async () => {
+    for (const agent of ["architect", "po", "planner", "worktree", "coder", "qa", "security", "reviewer-spec", "reviewer-quality", "docs", "release"] as const) {
+      const content = await readAgent(agent);
+      const description = extractFrontmatterDescription(content);
+      expect(description.length).toBeGreaterThan(0);
     }
   });
 
@@ -29,6 +49,7 @@ describe("OpenCode agents", () => {
     expect(content.includes("dispatching-parallel-agents")).toBe(true);
     expect(content.includes("executing-plans")).toBe(true);
     expect(content.includes("finishing-a-development-branch")).toBe(true);
+    expect(content.includes("requesting-code-review")).toBe(true);
     expect(content.includes("receiving-code-review")).toBe(true);
   });
 

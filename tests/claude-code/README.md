@@ -29,6 +29,7 @@ Expected:
 - `dispatching-parallel-agents`
 - `executing-plans`
 - `finishing-a-development-branch`
+- `requesting-code-review`
 - `receiving-code-review`
 - `subagent-driven-development`
 - `worktree`
@@ -70,13 +71,14 @@ Expected behavior:
 Ask:
 
 ```text
-Before I open the PR, use the right persona to verify release readiness.
+Before I open the PR, use the right workflow to get this ready for review and release.
 ```
 
 Expected behavior:
 - references `@release`
 - branch-finish language can reference `finishing-a-development-branch`
-- review-response language can reference `receiving-code-review`
+- pre-PR review-request language can reference `requesting-code-review`
+- review-response language can reference `receiving-code-review` once feedback exists
 - requires fresh verification evidence
 
 ## Notes

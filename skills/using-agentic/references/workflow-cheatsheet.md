@@ -18,6 +18,7 @@
 - multi-task execution -> `subagent-driven-development`
 - safe parallel fanout -> `dispatching-parallel-agents`
 - branch wrap-up -> `finishing-a-development-branch`
+- asking others to review verified work -> `requesting-code-review`
 - review feedback response -> `receiving-code-review`
 - completion claim -> `verify`
 
