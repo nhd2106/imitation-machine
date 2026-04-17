@@ -14,6 +14,13 @@ const CORE_SKILLS = [
   "design",
 ] as const;
 
+const SUPERPOWERS_GAP_SKILLS = [
+  "systematic-debugging",
+  "dispatching-parallel-agents",
+  "finishing-a-development-branch",
+  "receiving-code-review",
+] as const;
+
 describe("core skill content", () => {
   test("core skills use trigger-based descriptions", async () => {
     for (const skill of CORE_SKILLS) {
@@ -50,6 +57,41 @@ describe("core skill content", () => {
     const content = await Bun.file(join(ROOT, "skills", "using-agentic", "SKILL.md")).text();
     expect(content.includes("explicitly opts into the Imitation Machine workflow")).toBe(true);
     expect(content.includes("Do not use this just because the plugin is globally installed.")).toBe(true);
+    expect(content.includes("systematic-debugging")).toBe(true);
+    expect(content.includes("dispatching-parallel-agents")).toBe(true);
+    expect(content.includes("finishing-a-development-branch")).toBe(true);
+    expect(content.includes("receiving-code-review")).toBe(true);
+  });
+
+  test("workflow cheatsheet mentions new workflow skills in decision points", async () => {
+    const content = await Bun.file(
+      join(ROOT, "skills", "using-agentic", "references", "workflow-cheatsheet.md"),
+    ).text();
+
+    expect(content.includes("systematic-debugging")).toBe(true);
+    expect(content.includes("dispatching-parallel-agents")).toBe(true);
+    expect(content.includes("finishing-a-development-branch")).toBe(true);
+    expect(content.includes("receiving-code-review")).toBe(true);
+  });
+
+  test("workflow-facing install docs mention expanded skill inventory", async () => {
+    for (const relativePath of ["README.md", "CLAUDE_INSTALL.md", "tests/claude-code/README.md"] as const) {
+      const content = await Bun.file(join(ROOT, relativePath)).text();
+      expect(content.includes("systematic-debugging")).toBe(true);
+      expect(content.includes("dispatching-parallel-agents")).toBe(true);
+      expect(content.includes("finishing-a-development-branch")).toBe(true);
+      expect(content.includes("receiving-code-review")).toBe(true);
+    }
+  });
+
+  test("skills comparison matrix reflects shipped workflow skills and deferred executing-plans", async () => {
+    const content = await Bun.file(join(ROOT, "docs", "skills-comparison-matrix.md")).text();
+
+    expect(content.includes("dispatching-parallel-agents")).toBe(true);
+    expect(content.includes("receiving-code-review")).toBe(true);
+    expect(content.includes("Missing")).toBe(true);
+    expect(content.includes("executing-plans")).toBe(true);
+    expect(content.includes("later follow-up")).toBe(true);
   });
 
   test("brainstorm requires written spec review before planning", async () => {
@@ -121,5 +163,40 @@ describe("core skill content", () => {
       expect(content.includes("```dot")).toBe(true);
       expect(content.includes("## Red Flags")).toBe(true);
     }
+  });
+
+  test("writing-skills removes stale superpowers references", async () => {
+    const skill = await Bun.file(join(ROOT, "skills", "writing-skills", "SKILL.md")).text();
+    const testingReference = await Bun.file(
+      join(ROOT, "skills", "writing-skills", "testing-skills-with-subagents.md"),
+    ).text();
+
+    expect(skill.includes("superpowers:")).toBe(false);
+    expect(testingReference.includes("superpowers:")).toBe(false);
+    expect(skill.includes("imitation-machine-local")).toBe(true);
+  });
+
+  test("superpowers-gap skills include frontmatter workflow and red flags", async () => {
+    for (const skill of SUPERPOWERS_GAP_SKILLS) {
+      const content = await Bun.file(join(ROOT, "skills", skill, "SKILL.md")).text();
+      const descriptionLine = content.split("\n").find((line) => line.startsWith("description:"));
+
+      expect(descriptionLine).toBeDefined();
+      expect(descriptionLine?.includes("Use when")).toBe(true);
+      expect(content.includes("## Workflow")).toBe(true);
+      expect(content.includes("## Red Flags")).toBe(true);
+    }
+  });
+
+  test("superpowers-gap skills mention runtime agents where natural", async () => {
+    const debugging = await Bun.file(join(ROOT, "skills", "systematic-debugging", "SKILL.md")).text();
+    const dispatching = await Bun.file(join(ROOT, "skills", "dispatching-parallel-agents", "SKILL.md")).text();
+    const finishing = await Bun.file(join(ROOT, "skills", "finishing-a-development-branch", "SKILL.md")).text();
+    const review = await Bun.file(join(ROOT, "skills", "receiving-code-review", "SKILL.md")).text();
+
+    expect(debugging.includes("runtime agent") || debugging.includes("runtime-agent")).toBe(true);
+    expect(dispatching.includes("runtime agent") || dispatching.includes("runtime-agent")).toBe(true);
+    expect(finishing.includes("runtime agent") || finishing.includes("runtime-agent")).toBe(true);
+    expect(review.includes("runtime agent") || review.includes("runtime-agent")).toBe(true);
   });
 });

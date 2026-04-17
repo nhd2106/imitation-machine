@@ -23,6 +23,10 @@ Comparison between `imitation-machine` and `superpowers`, focused on skill cover
 | `review-quality` | request/review system pieces | Partial | Partial | Low | no prompt-fixture tests for severity and scope discipline | `tests/skill-triggering/review-quality-prompts.md` |
 | `review-security` | no exact match; related security review patterns | Unique | Comparable | Low | needs stronger behavioral/eval scenarios for real findings | `tests/skill-triggering/review-security-prompts.md` |
 | `design` | partially overlaps brainstorming + design guidance | Unique | Partial | Low | no visual/design evaluation suite and reference duplication remains | `skills/design/references/common-failures.md` |
+| `systematic-debugging` | `systematic-debugging` | Comparable | Partial | Low | needs deeper debugging prompt fixtures and decision-pressure evals | `tests/skill-triggering/systematic-debugging-prompts.md` |
+| `dispatching-parallel-agents` | `dispatching-parallel-agents` | Comparable | Partial | Low | needs explicit safe-parallelism prompt fixtures | `tests/skill-triggering/dispatching-parallel-agents-prompts.md` |
+| `finishing-a-development-branch` | branch-finishing / release-adjacent flow | Partial | Partial | Low | needs branch-handoff prompt fixtures and final-cleanup examples | `tests/skill-triggering/finishing-a-development-branch-prompts.md` |
+| `receiving-code-review` | `receiving-code-review` | Comparable | Partial | Low | needs reviewer-feedback response fixtures and defer-vs-fix evals | `tests/skill-triggering/receiving-code-review-prompts.md` |
 | `gate` | no strong direct counterpart | Unique | Partial | Low | needs more examples and gate-failure scenario fixtures | `tests/skill-triggering/gate-prompts.md` |
 | `pr` | no strong direct counterpart | Unique | Partial | Low | lacks prompt-fixture PR-body and traceability evals | `tests/skill-triggering/pr-prompts.md` |
 | `release` | finishing/release-adjacent flow | Partial | Partial | Low | lacks release decision fixtures and tagging/changelog prompt tests | `tests/skill-triggering/release-prompts.md` |
@@ -34,13 +38,11 @@ Comparison between `imitation-machine` and `superpowers`, focused on skill cover
 
 ## Superpowers-Only Areas
 
-These still exist in `superpowers` without a true equivalent in `imitation-machine`:
+These still exist in `superpowers` without a true equivalent in `imitation-machine`, or remain intentionally deferred:
 
 | Superpowers Skill | Why It Matters | Suggested Response |
 |---|---|---|
-| `dispatching-parallel-agents` | formalizes parallel agent execution | add only if you want a separate concurrency workflow from subagent-driven development |
-| `executing-plans` | explicit inline plan execution path | consider adding if you want a non-subagent plan execution mode |
-| `receiving-code-review` | teaches how to process review feedback | high-value addition if review loops become more central |
+| `executing-plans` | explicit inline plan execution path | later follow-up if imitation-machine needs a first-class non-subagent execution path |
 | `requesting-code-review` | teaches how to ask for review well | lower priority because `review-spec` and `review-quality` already exist |
 
 ## Biggest Remaining Differences

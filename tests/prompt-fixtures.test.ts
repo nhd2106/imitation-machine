@@ -30,4 +30,11 @@ describe("prompt fixture suites", () => {
     expect(await exists("tests/multi-turn-workflows/persona-orchestration.md")).toBe(true);
     expect(await exists("tests/multi-turn-workflows/worktree-before-coder.md")).toBe(true);
   });
+
+  test("ships skill-triggering fixtures for superpowers-gap skills", async () => {
+    expect(await exists("tests/skill-triggering/systematic-debugging-prompts.md")).toBe(true);
+    expect(await exists("tests/skill-triggering/dispatching-parallel-agents-prompts.md")).toBe(true);
+    expect(await exists("tests/skill-triggering/finishing-a-development-branch-prompts.md")).toBe(true);
+    expect(await exists("tests/skill-triggering/receiving-code-review-prompts.md")).toBe(true);
+  });
 });
