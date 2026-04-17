@@ -177,7 +177,7 @@ describe("imitation-machine plugin behavior", () => {
     const bootstrapOutput = { messages: [userMessage("implement and review this change")] };
     await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s-write-core", cwd }, bootstrapOutput);
 
-    for (const skill of ["brainstorm", "plan", "tdd", "systematic-debugging"] as const) {
+    for (const skill of ["brainstorm", "plan", "executing-plans", "tdd", "systematic-debugging"] as const) {
       await plugin["tool.execute.before"]?.(
         { sessionID: `s-core-${skill}`, tool: "skill", cwd, args: { name: skill } },
         { args: { name: skill } },
@@ -303,6 +303,7 @@ describe("imitation-machine plugin behavior", () => {
 
     expect(bootstrapText).toContain("systematic-debugging");
     expect(bootstrapText).toContain("dispatching-parallel-agents");
+    expect(bootstrapText).toContain("executing-plans");
     expect(bootstrapText).toContain("finishing-a-development-branch");
     expect(bootstrapText).toContain("receiving-code-review");
   });

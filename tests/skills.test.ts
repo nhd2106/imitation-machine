@@ -7,6 +7,7 @@ const CORE_SKILLS = [
   "using-agentic",
   "brainstorm",
   "plan",
+  "executing-plans",
   "verify",
   "subagent-driven-development",
   "tdd",
@@ -40,7 +41,7 @@ describe("core skill content", () => {
   });
 
   test("process skills document explicit workflow structure", async () => {
-    for (const skill of ["using-agentic", "brainstorm", "plan", "verify", "subagent-driven-development"] as const) {
+    for (const skill of ["using-agentic", "brainstorm", "plan", "executing-plans", "verify", "subagent-driven-development"] as const) {
       const content = await Bun.file(join(ROOT, "skills", skill, "SKILL.md")).text();
       expect(content.includes("```dot")).toBe(true);
     }
@@ -70,6 +71,7 @@ describe("core skill content", () => {
 
     expect(content.includes("systematic-debugging")).toBe(true);
     expect(content.includes("dispatching-parallel-agents")).toBe(true);
+    expect(content.includes("executing-plans")).toBe(true);
     expect(content.includes("finishing-a-development-branch")).toBe(true);
     expect(content.includes("receiving-code-review")).toBe(true);
   });
@@ -79,19 +81,20 @@ describe("core skill content", () => {
       const content = await Bun.file(join(ROOT, relativePath)).text();
       expect(content.includes("systematic-debugging")).toBe(true);
       expect(content.includes("dispatching-parallel-agents")).toBe(true);
+      expect(content.includes("executing-plans")).toBe(true);
       expect(content.includes("finishing-a-development-branch")).toBe(true);
       expect(content.includes("receiving-code-review")).toBe(true);
     }
   });
 
-  test("skills comparison matrix reflects shipped workflow skills and deferred executing-plans", async () => {
+  test("skills comparison matrix reflects shipped executing-plans skill", async () => {
     const content = await Bun.file(join(ROOT, "docs", "skills-comparison-matrix.md")).text();
 
     expect(content.includes("dispatching-parallel-agents")).toBe(true);
     expect(content.includes("receiving-code-review")).toBe(true);
-    expect(content.includes("Missing")).toBe(true);
     expect(content.includes("executing-plans")).toBe(true);
-    expect(content.includes("later follow-up")).toBe(true);
+    expect(content.includes("shipped inline plan execution path")).toBe(true);
+    expect(content.includes("later follow-up")).toBe(false);
   });
 
   test("brainstorm requires written spec review before planning", async () => {
@@ -104,6 +107,16 @@ describe("core skill content", () => {
     const content = await Bun.file(join(ROOT, "skills", "plan", "SKILL.md")).text();
     expect(content.includes("## Execution Handoff")).toBe(true);
     expect(content.includes("subagent-driven-development")).toBe(true);
+    expect(content.includes("executing-plans")).toBe(true);
+  });
+
+  test("executing-plans ships workflow, red flags, and direct-execution guidance", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "executing-plans", "SKILL.md")).text();
+    expect(content.includes("description: Use when")).toBe(true);
+    expect(content.includes("## Workflow")).toBe(true);
+    expect(content.includes("## Red Flags")).toBe(true);
+    expect(content.includes("approved plan")).toBe(true);
+    expect(content.includes("@coder")).toBe(true);
   });
 
   test("tdd includes examples and stronger iron law wording", async () => {

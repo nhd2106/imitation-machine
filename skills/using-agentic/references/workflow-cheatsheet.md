@@ -12,6 +12,7 @@
 
 - idea -> `brainstorm`
 - approved requirement -> `plan`
+- approved plan, direct in-session execution -> `executing-plans`
 - implementation -> `tdd`
 - stubborn regression or unclear failure -> `systematic-debugging`
 - multi-task execution -> `subagent-driven-development`

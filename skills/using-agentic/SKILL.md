@@ -64,6 +64,7 @@ digraph agentic_flow {
 |---|---|
 | New idea or under-specified behavior | `brainstorm` |
 | Approved requirement needs executable tasks | `plan` |
+| Approved plan should be executed directly in-session | `executing-plans` |
 | Implementation or bug fix | `tdd` |
 | Debugging a stubborn failure | `systematic-debugging` |
 | Safe fanout of independent agent work | `dispatching-parallel-agents` |

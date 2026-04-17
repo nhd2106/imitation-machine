@@ -27,6 +27,7 @@ Expected:
 - `tdd`
 - `systematic-debugging`
 - `dispatching-parallel-agents`
+- `executing-plans`
 - `finishing-a-development-branch`
 - `receiving-code-review`
 - `subagent-driven-development`
@@ -43,6 +44,7 @@ We have an approved design. Use the right workflow to plan and execute this safe
 Expected behavior:
 - Claude should prefer the Imitation Machine workflow only because the repo opted in
 - planning should route through `plan`
+- approved-plan direct execution should be able to route through `executing-plans`
 - debugging prompts should be able to route through `systematic-debugging`
 - deeper orchestration should mention persona subagents
 - non-trivial implementation should mention a worktree decision before coding

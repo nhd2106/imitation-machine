@@ -33,6 +33,7 @@ For multi-step implementation, delegation is mandatory unless the task is truly 
 - Use `@po` for requirement clarification and acceptance criteria.
 - Use `@architect` for architecture or ADR-level decisions.
 - Use `@planner` for task decomposition and execution planning.
+- Use `executing-plans` when an approved plan should be executed directly in the current session without the full fresh-worker loop.
 - Use `dispatching-parallel-agents` before launching truly independent child sessions in parallel.
 - Have `@planner` classify independence / grouping so independent task groups can fan out while shared groups stay together.
 - Before dispatching `@coder` for non-trivial implementation work, use `@worktree` to make the workspace isolation step concrete.

@@ -27,6 +27,7 @@ describe("OpenCode agents", () => {
     expect(content.includes("@worktree")).toBe(true);
     expect(content.includes("systematic-debugging")).toBe(true);
     expect(content.includes("dispatching-parallel-agents")).toBe(true);
+    expect(content.includes("executing-plans")).toBe(true);
     expect(content.includes("finishing-a-development-branch")).toBe(true);
     expect(content.includes("receiving-code-review")).toBe(true);
   });
@@ -80,6 +81,7 @@ describe("OpenCode agents", () => {
   test("skill docs reference the corresponding runtime agents", async () => {
     const checks: Array<[string, string]> = [
       ["skills/plan/SKILL.md", "@planner"],
+      ["skills/executing-plans/SKILL.md", "@coder"],
       ["skills/worktree/SKILL.md", "@worktree"],
       ["skills/brainstorm/SKILL.md", "@po"],
       ["skills/adr/SKILL.md", "@architect"],
