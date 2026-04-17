@@ -23,7 +23,7 @@ Comparison between `imitation-machine` and `superpowers`, focused on skill cover
 | `review-spec` | request/review system pieces | Partial | Partial | Low | trigger fixtures exist, but review reports and deeper compliance scenarios are still sparse | `tests/skill-triggering/review-spec-prompts.md` |
 | `review-quality` | request/review system pieces | Partial | Partial | Low | trigger fixtures exist, but severity calibration and maintainability-pressure scenarios remain light | `tests/skill-triggering/review-quality-prompts.md` |
 | `review-security` | no exact match; related security review patterns | Unique | Comparable | Low | needs stronger behavioral/eval scenarios for real findings | `tests/skill-triggering/review-security-prompts.md` |
-| `design` | partially overlaps brainstorming + design guidance | Unique | Partial | Low | still lacks a dedicated visual/design evaluation suite and remains relatively reference-heavy | `skills/design/SKILL.md` |
+| `design` | partially overlaps brainstorming + design guidance | Unique | Partial | Partial | now has dedicated prompt fixtures for direction-lock and interaction-quality scenarios, but multi-turn browser-validation coverage is still thin | `tests/skill-triggering/design-prompts.md` |
 | `systematic-debugging` | `systematic-debugging` | Comparable | Partial | Low | needs deeper debugging prompt fixtures and decision-pressure evals | `tests/skill-triggering/systematic-debugging-prompts.md` |
 | `dispatching-parallel-agents` | `dispatching-parallel-agents` | Comparable | Partial | Low | needs explicit safe-parallelism prompt fixtures | `tests/skill-triggering/dispatching-parallel-agents-prompts.md` |
 | `finishing-a-development-branch` | branch-finishing / release-adjacent flow | Partial | Partial | Low | needs branch-handoff prompt fixtures and final-cleanup examples | `tests/skill-triggering/finishing-a-development-branch-prompts.md` |
@@ -33,9 +33,9 @@ Comparison between `imitation-machine` and `superpowers`, focused on skill cover
 | `pr` | no strong direct counterpart | Unique | Partial | Partial | now has lightweight trigger coverage; still thinner than full end-to-end PR evals | `tests/skill-triggering/pr-prompts.md` |
 | `release` | finishing/release-adjacent flow | Partial | Partial | Partial | now has lightweight release-routing fixtures; still needs richer semver pressure cases | `tests/skill-triggering/release-prompts.md` |
 | `worktree` | `using-git-worktrees` | Partial | Partial | Partial | stronger cleanup/removal-safety coverage landed; still lighter than the richest workspace fixture sets | `tests/explicit-skill-requests/worktree-prompts.md` |
-| `repo` | no strong direct counterpart | Unique | Partial | Low | still lacks prompt-fixture coverage for affected-package and dependency-impact routing | `skills/repo/impact-checklist.md` |
-| `adr` | no strong direct counterpart | Unique | Comparable | Low | still needs decision-quality examples and prompt-level routing coverage | `skills/adr/adr-template.md` |
-| `commit` | no strong direct counterpart | Unique | Comparable | Low | still lacks behavioral evals around staging discipline and message drafting | `skills/commit/commit-message-template.md` |
+| `repo` | no strong direct counterpart | Unique | Partial | Partial | now has prompt fixtures for affected-package and dependency-impact reasoning, but scoped verification pressure cases are still lighter than the best-covered workflow skills | `tests/skill-triggering/repo-prompts.md` |
+| `adr` | no strong direct counterpart | Unique | Comparable | Partial | now has prompt fixtures for durable decision triggers, but richer ADR artifact examples and follow-through reviews are still sparse | `tests/skill-triggering/adr-prompts.md` |
+| `commit` | no strong direct counterpart | Unique | Comparable | Partial | now has prompt fixtures for verified conventional commits, but hook-failure and follow-up commit scenarios still need more depth | `tests/skill-triggering/commit-prompts.md` |
 | `writing-skills` | `writing-skills` | Comparable | Comparable | Partial | still lacks a repo-local harness tying skill-writing guidance to explicit eval runs | `skills/writing-skills/testing-skills-with-subagents.md` |
 
 ## Biggest Remaining Differences
@@ -57,9 +57,11 @@ Comparison between `imitation-machine` and `superpowers`, focused on skill cover
 
 These still lag behind the richest `superpowers` skills:
 
-- `design`
+- `repo`
+- `adr`
+- `commit`
 
-`plan`, `verify`, `gate`, and `worktree` are no longer the thinnest workflow packages after the current fixture/examples wave, but they still benefit from more pressure-scenario coverage.
+`design`, `plan`, `verify`, `gate`, and `worktree` are no longer the thinnest workflow packages after the current fixture/examples wave, but they still benefit from more pressure-scenario coverage.
 
 ## Recommended Next Wave
 
