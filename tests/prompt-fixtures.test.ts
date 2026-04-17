@@ -22,6 +22,33 @@ const EXPECTED_MATRIX_FIXTURES = {
   commit: "tests/skill-triggering/commit-prompts.md",
 } as const;
 
+const EXPECTED_MULTI_TURN_DEPTH = {
+  "tests/multi-turn-workflows/using-agentic-to-tdd-to-verify.md": [
+    "using-agentic",
+    "tdd",
+    "verify",
+    "failing test",
+    "fresh verification",
+  ],
+  "tests/multi-turn-workflows/requesting-to-receiving-code-review.md": [
+    "requesting-code-review",
+    "receiving-code-review",
+    "review request",
+    "review feedback",
+  ],
+  "tests/multi-turn-workflows/subagent-review-loop.md": [
+    "subagent-driven-development",
+    "review-spec",
+    "review-quality",
+    "no skipped stage",
+  ],
+  "tests/multi-turn-workflows/worktree-before-coder.md": [
+    "worktree",
+    "coder",
+    "release",
+  ],
+} as const;
+
 const OUTDATED_MATRIX_GAP_PHRASES = [
   "no prompt-fixture evals",
   "no visual companion or prompt-fixture coverage",
@@ -297,6 +324,37 @@ describe("prompt fixture suites", () => {
     for (const fixture of await fixturePaths("tests/multi-turn-workflows")) {
       const content = await readFixture(fixture);
       expect(content).toMatch(/User: ".+"/);
+    }
+  });
+
+  test("ships deeper multi-turn workflow fixtures and stage order", async () => {
+    for (const [fixture, requiredPhrases] of Object.entries(EXPECTED_MULTI_TURN_DEPTH)) {
+      expect(await exists(fixture), `${fixture} should exist`).toBe(true);
+
+      const content = await readFixture(fixture).then((value) => value.toLowerCase());
+      for (const phrase of requiredPhrases) {
+        expect(content).toContain(phrase.toLowerCase());
+      }
+    }
+  });
+
+  test("comparison matrix reflects deeper multi-turn workflow coverage honestly", async () => {
+    const content = await readFixture("docs/skills-comparison-matrix.md");
+
+    for (const skill of [
+      "using-agentic",
+      "tdd",
+      "verify",
+      "subagent-driven-development",
+      "review-spec",
+      "review-quality",
+      "requesting-code-review",
+      "receiving-code-review",
+      "worktree",
+      "release",
+    ] as const) {
+      const row = getComparisonMatrixRow(content, skill);
+      expect(row.toLowerCase()).toContain("multi-turn");
     }
   });
 
