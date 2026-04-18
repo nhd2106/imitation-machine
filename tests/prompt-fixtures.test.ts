@@ -41,6 +41,11 @@ const DEEPENED_FIXTURE_EXPECTATIONS = {
     ["pushed", "already pushed"],
     ["follow-up commit", "follow up commit"],
   ],
+  "tests/skill-triggering/writing-skills-prompts.md": [
+    ["create", "write", "skill package"],
+    ["repair", "fix", "broken"],
+    ["validate", "test", "skill package"],
+  ],
   "tests/skill-triggering/executing-plans-prompts.md": [
     ["approved plan", "plan is approved"],
     ["execute the next task", "work through the plan", "inline"],
@@ -158,6 +163,7 @@ const EXPLICIT_PER_PROMPT_FIXTURES = [
   "tests/explicit-skill-requests/repo-prompts.md",
   "tests/explicit-skill-requests/adr-prompts.md",
   "tests/explicit-skill-requests/commit-prompts.md",
+  "tests/explicit-skill-requests/writing-skills-prompts.md",
   "tests/explicit-skill-requests/executing-plans-prompts.md",
   "tests/explicit-skill-requests/dispatching-parallel-agents-prompts.md",
   "tests/explicit-skill-requests/review-security-prompts.md",
@@ -176,6 +182,17 @@ const AVOID_JARGON_PHRASES = {
   "tests/skill-triggering/dispatching-parallel-agents-prompts.md": ["safe parallelism", "safe parallel fanout", "merge coordinator"],
   "tests/explicit-skill-requests/dispatching-parallel-agents-prompts.md": ["safe parallel fanout", "merge coordinator"],
   "tests/multi-turn-workflows/dispatching-parallel-agents-safe-fanout.md": ["safe parallel fanout", "merge coordinator"],
+  "tests/skill-triggering/writing-skills-prompts.md": ["baseline evidence", "prompt fixtures", "evaluation evidence"],
+  "tests/explicit-skill-requests/writing-skills-prompts.md": [
+    "baseline evidence",
+    "prompt-fixture coverage",
+    "evaluation evidence",
+  ],
+  "tests/multi-turn-workflows/writing-skill-to-validate-to-fix.md": [
+    "baseline evidence",
+    "validation evidence",
+    "fix handoff",
+  ],
 } as const;
 
 const DISTINCT_SCENARIO_EXPECTATIONS = {
@@ -211,6 +228,21 @@ const DISTINCT_SCENARIO_EXPECTATIONS = {
     [/production-only|intermittent/, /reproduce first/],
     [/hypothesis log/, /evidence/],
     [/fix handoff|bounded fix plan/, /evidence trail|cause is narrowed/],
+  ],
+  "tests/skill-triggering/writing-skills-prompts.md": [
+    [/keep reaching for docs|new skill|from scratch/, /skill/, /failing test|first/],
+    [/not following|still .*following|still skip|keep skipping/, /skill/, /fix|repair|tighten/],
+    [/before we ship|try this on|dry run/, /skill/, /test|validate|check/],
+  ],
+  "tests/explicit-skill-requests/writing-skills-prompts.md": [
+    [/`writing-skills`/, /write|create/, /skill/],
+    [/`writing-skills`/, /fix|repair/, /skill/],
+    [/`writing-skills`/, /test|validate|try/, /skill/],
+  ],
+  "tests/multi-turn-workflows/writing-skill-to-validate-to-fix.md": [
+    [/writing-skills/, /release handoff|checklist/, /failing test|transcript/],
+    [/try it|validate|test/, /same transcript|same failure/, /test prompts|dry run/],
+    [/fix|repair/, /same notes|same transcript|same examples/, /rewrite|rewriting|tighten|update/],
   ],
 } as const;
 
@@ -316,6 +348,14 @@ const EXPECTED_MULTI_TURN_DEPTH = {
     "follow-up commit",
     "pushed",
   ],
+  "tests/multi-turn-workflows/writing-skill-to-validate-to-fix.md": [
+    "writing-skills",
+    "release handoff",
+    "failing test",
+    "test prompts",
+    "same transcript",
+    "fix",
+  ],
 } as const;
 
 const EXPECTED_MULTI_TURN_PROGRESSIONS = {
@@ -363,6 +403,11 @@ const EXPECTED_MULTI_TURN_PROGRESSIONS = {
     ["`commit`", "verification evidence", "agentic verify all", "no bypass", "hook-aware"],
     ["hook", "pre-commit", "auto-formatted", "stage the hook changes", "retry the commit"],
     ["prior commit", "pushed", "follow-up commit", "do not amend", "no bypass"],
+  ],
+  "tests/multi-turn-workflows/writing-skill-to-validate-to-fix.md": [
+    [/`writing-skills`/, /release handoff|skill/, /failing test|transcript/, /write|draft|create/],
+    [/`writing-skills`/, /same transcript|same failure/, /test prompts|dry run|try it/, /validate|check/],
+    [/`writing-skills`/, /same transcript|same notes|same examples/, /fix|repair|tighten/, /rewrite|rewriting|update/],
   ],
 } as const;
 
@@ -624,7 +669,9 @@ function assertDistinctScenarioCoverage(
   expect(assignedSections.size).toBeGreaterThanOrEqual(scenarios.length);
 }
 
-function assertTurnLevelProgression(content: string, turnExpectations: readonly (readonly string[])[]): void {
+type TurnExpectation = string | RegExp;
+
+function assertTurnLevelProgression(content: string, turnExpectations: readonly (readonly TurnExpectation[])[]): void {
   const turns = structuredSections(content, "Turn");
   expect(turns.length).toBeGreaterThanOrEqual(turnExpectations.length);
 
@@ -633,7 +680,12 @@ function assertTurnLevelProgression(content: string, turnExpectations: readonly 
     const lowerTurn = turn.toLowerCase();
 
     for (const fragment of requiredFragments) {
-      expect(lowerTurn, `turn ${index + 1} should contain ${fragment}`).toContain(fragment.toLowerCase());
+      if (typeof fragment === "string") {
+        expect(lowerTurn, `turn ${index + 1} should contain ${fragment}`).toContain(fragment.toLowerCase());
+        continue;
+      }
+
+      expect(lowerTurn, `turn ${index + 1} should match ${fragment}`).toMatch(fragment);
     }
   }
 }
@@ -800,6 +852,7 @@ describe("prompt fixture suites", () => {
       "release",
       "finishing-a-development-branch",
       "repo",
+      "writing-skills",
         "plan",
         "executing-plans",
         "subagent-driven-development",
@@ -880,6 +933,25 @@ describe("prompt fixture suites", () => {
 
     const commitRow = getComparisonMatrixRow(content, "commit").toLowerCase();
     expectContainsAll(commitRow, ["trigger", "explicit-request", "multi-turn", "commit after hooks and verification"]);
+
+    const writingSkillsRow = getComparisonMatrixRow(content, "writing-skills").toLowerCase();
+    expectContainsAll(writingSkillsRow, ["trigger", "explicit-request", "multi-turn", "validate", "fix"]);
+    expect(writingSkillsRow).not.toContain("pressure");
+  });
+
+  test("writing-skills docs avoid contradictory force-load links and keep deep testing guidance in the companion reference", async () => {
+    const skill = await readFixture("skills/writing-skills/SKILL.md");
+    const testingReference = await readFixture("skills/writing-skills/testing-skills-with-subagents.md");
+
+    expect(skill).toContain("testing-skills-with-subagents.md");
+    expect(skill).not.toContain("@testing-skills-with-subagents.md");
+    expect(skill).not.toContain("@graphviz-conventions.dot");
+    expect(skill).not.toContain("## Testing All Skill Types");
+    expect(skill).not.toContain("## Common Rationalizations for Skipping Testing");
+
+    expect(testingReference).toContain("## Testing All Skill Types");
+    expect(testingReference).toContain("## Common Rationalizations for Skipping Testing");
+    expect(testingReference).toContain("## RED-GREEN-REFACTOR for Skills");
   });
 
   test("commit skill docs cover hook retry no-bypass and pushed-history follow-up commit discipline", async () => {
