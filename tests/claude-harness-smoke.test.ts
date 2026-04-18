@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { evaluateClaudeTranscript } from "../scripts/claude-code-harness";
 
 describe("Claude harness smoke", () => {
-  test("fixture shows install visibility to review-ready progression", async () => {
+  test("fixture shows bounded visible-skill subset to review-ready progression", async () => {
     const transcript = await Bun.file("tests/harness-fixtures/claude-review-session.txt").text();
     const result = evaluateClaudeTranscript(transcript);
 

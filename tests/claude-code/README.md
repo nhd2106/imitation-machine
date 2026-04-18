@@ -1,12 +1,40 @@
 # Claude Code Manual Verification
 
-Use this checklist to confirm Claude Code is seeing the current local `imitation-machine` plugin payload and the deeper orchestration guidance.
+Use this guide to separate the fast bounded harness from slower integration-oriented Claude Code verification.
 
-Lightweight automated coverage for the same bounded flow lives in:
+## Fast bounded coverage
+
+Lightweight automated coverage for a bounded subset of the Claude workflow lives in:
 
 - `scripts/claude-code-harness.ts`
 - `tests/claude-harness.test.ts`
 - `tests/claude-harness-smoke.test.ts`
+- `tests/claude-code/run-tests.sh fast`
+
+Run either:
+
+```bash
+bash tests/claude-code/run-tests.sh fast
+```
+
+or:
+
+```bash
+bun test tests/claude-harness.test.ts tests/claude-harness-smoke.test.ts
+```
+
+## Integration-oriented manual verification
+
+Use the rest of this checklist to confirm Claude Code is seeing the current local `imitation-machine` plugin payload and the deeper orchestration guidance in a real session.
+
+The fast harness does **not** try to prove the full documented Claude skill inventory. It only checks a bounded subset needed for the review-oriented flow:
+
+- `using-agentic`
+- `requesting-code-review`
+- `review-spec`
+- `review-quality`
+
+Use the manual checks below when you need confidence in the broader installed inventory and orchestration behavior.
 
 ## Preconditions
 
@@ -26,7 +54,7 @@ Ask Claude Code:
 Use Skill tool to list available skills.
 ```
 
-Expected:
+Expected broader inventory examples:
 - `using-agentic`
 - `brainstorm`
 - `plan`
@@ -92,7 +120,7 @@ Expected behavior:
 - Claude Code may not expose OpenCode-style child sessions the same way
 - the key thing to verify is that the installed skill content reflects the updated orchestration guidance
 
-For the bounded automated check, run:
+For the full bounded harness suite across both surfaces, run:
 
 ```bash
 bun run test:harness

@@ -40,6 +40,20 @@ describe("OpenCode harness", () => {
     expect(result.selectedProcessSkill).toBe("dispatching-parallel-agents");
   });
 
+  test("parses the selected process skill from the first route line in transcript order", () => {
+    const result = evaluateOpenCodeTranscript(`
+[bootstrap] plugin=.opencode/plugins/imitation-machine.js
+[bootstrap] service=skill initialized
+[skill] using-agentic loaded
+[route] selected process skill: plan
+[route] selected process skill: brainstorm
+[state] plan-ready
+`);
+
+    expect(result.valid).toBe(true);
+    expect(result.selectedProcessSkill).toBe("plan");
+  });
+
   test("rejects transcripts that skip process-skill selection", () => {
     const result = evaluateOpenCodeTranscript(`
 [bootstrap] plugin=.opencode/plugins/imitation-machine.js
