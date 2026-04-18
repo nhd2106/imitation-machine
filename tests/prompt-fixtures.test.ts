@@ -181,6 +181,57 @@ const EXPECTED_MULTI_TURN_DEPTH = {
     "hypothesis log",
     "fix handoff",
   ],
+  "tests/multi-turn-workflows/verify-to-gate-to-pr.md": [
+    "verify",
+    "gate",
+    "pr",
+    "fresh verification",
+    "draft pr",
+  ],
+  "tests/multi-turn-workflows/release-to-finishing-a-development-branch.md": [
+    "release",
+    "finishing-a-development-branch",
+    "release evidence",
+    "finish the branch",
+  ],
+  "tests/multi-turn-workflows/repo-to-plan-to-subagent-driven-development.md": [
+    "repo",
+    "plan",
+    "subagent-driven-development",
+    "affected package",
+    "task by task",
+  ],
+  "tests/multi-turn-workflows/review-security-to-systematic-debugging-to-verify.md": [
+    "review-security",
+    "systematic-debugging",
+    "verify",
+    "security finding",
+    "hypothesis log",
+    "fresh verification",
+  ],
+} as const;
+
+const EXPECTED_MULTI_TURN_PROGRESSIONS = {
+  "tests/multi-turn-workflows/verify-to-gate-to-pr.md": [
+    ["`verify`", "agentic verify all", "coverage 81.4%", "typecheck clean", "112 tests passed"],
+    ["`gate`", "coverage 79.8%", "security scan", "blocking", "cve-2026-4101"],
+    ["`pr`", "coverage 82.1%", "security scan clean", "draft pr", "what shipped together"],
+  ],
+  "tests/multi-turn-workflows/release-to-finishing-a-development-branch.md": [
+    ["`release`", "v1.4.2", "release evidence", "dist/imitation-machine-1.4.2.tgz", "sha256:9f3c"],
+    ["`finishing-a-development-branch`", "v1.4.2", "merged into `main`", "release evidence", "branch cleanup"],
+    ["git status: clean", "safe local cleanup", "git branch -d release/v1.4.2", "remote deletion is optional"],
+  ],
+  "tests/multi-turn-workflows/repo-to-plan-to-subagent-driven-development.md": [
+    ["`repo`", "packages/web", "packages/build-utils", "dependency impact", "base branch `origin/main`"],
+    ["`plan`", "pln-742", "tsk-201", "tsk-202", "packages/build-utils"],
+    ["`subagent-driven-development`", "pln-742", "tsk-201", "tsk-202", "fresh workers", "review gates"],
+  ],
+  "tests/multi-turn-workflows/review-security-to-systematic-debugging-to-verify.md": [
+    ["`review-security`", "sec-17", "auth bypass", "token leakage", "high severity"],
+    ["`systematic-debugging`", "sec-17", "hypothesis log", "h-3", "reproduce"],
+    ["`verify`", "sec-17", "h-3", "agentic verify all", "fresh verification", "password-reset flow"],
+  ],
 } as const;
 
 const STRONG_INTENT_PHRASES = {
@@ -252,7 +303,7 @@ function assertStructuredSectionsAreCoherent(content: string, sectionLabel: "Pro
     if (sectionLabel === "Turn") {
       expect(section).toMatch(/User: ".+"/);
     } else {
-      expect(section).toMatch(/".+"/);
+      expect(section).toMatch(/^".+"$/m);
     }
   }
 }
@@ -437,7 +488,21 @@ function assertDistinctScenarioCoverage(
     assignedSections.add(distinctCandidate ?? candidates[0]!);
   }
 
-  expect(assignedSections.size).toBeGreaterThanOrEqual(Math.min(scenarios.length, 2));
+  expect(assignedSections.size).toBeGreaterThanOrEqual(scenarios.length);
+}
+
+function assertTurnLevelProgression(content: string, turnExpectations: readonly (readonly string[])[]): void {
+  const turns = structuredSections(content, "Turn");
+  expect(turns.length).toBeGreaterThanOrEqual(turnExpectations.length);
+
+  for (const [index, requiredFragments] of turnExpectations.entries()) {
+    const turn = turns[index] ?? "";
+    const lowerTurn = turn.toLowerCase();
+
+    for (const fragment of requiredFragments) {
+      expect(lowerTurn, `turn ${index + 1} should contain ${fragment}`).toContain(fragment.toLowerCase());
+    }
+  }
 }
 
 describe("prompt fixture suites", () => {
@@ -455,6 +520,12 @@ describe("prompt fixture suites", () => {
     expect(() => assertStructuredSectionsAreCoherent(content, "Turn")).toThrow(
       "Expected behavior",
     );
+  });
+
+  test("rejects sections satisfied only by incidental quoted text instead of a dedicated prompt line", () => {
+    const content = `# Example\n\n## Prompt 1\n\nContext: the reviewer wrote "please help" in a log snippet.\n\nExpected behavior:\n- load the right skill\n`;
+
+    expect(() => assertStructuredSectionsAreCoherent(content, "Prompt")).toThrow();
   });
 
   test("rejects explicit skill-request fixtures that use the old loose fallback format", () => {
@@ -480,6 +551,14 @@ describe("prompt fixture suites", () => {
         content,
       ),
     ).toThrow();
+  });
+
+  test("rejects distinct scenario suites when three declared scenarios collapse onto only two sections", () => {
+    const sections = ["scenario alpha beta", "scenario gamma"];
+
+    const scenarios = [[/alpha/], [/beta/], [/gamma/]] as const;
+
+    expect(() => assertDistinctScenarioCoverage(sections, scenarios)).toThrow();
   });
 
   test("ships structured skill-triggering fixtures", async () => {
@@ -569,15 +648,30 @@ describe("prompt fixture suites", () => {
     }
   });
 
+  test("new bounded workflow fixtures preserve ordered stage progression with carried evidence", async () => {
+    for (const [fixture, turnExpectations] of Object.entries(EXPECTED_MULTI_TURN_PROGRESSIONS)) {
+      const content = await readFixture(fixture);
+      assertTurnLevelProgression(content, turnExpectations);
+    }
+  });
+
   test("comparison matrix reflects deeper multi-turn workflow coverage honestly", async () => {
     const content = await readFixture("docs/skills-comparison-matrix.md");
 
     for (const skill of [
       "using-agentic",
       "tdd",
+      "verify",
+      "gate",
+      "pr",
+      "release",
+      "finishing-a-development-branch",
+      "repo",
+      "plan",
       "subagent-driven-development",
       "review-spec",
       "review-quality",
+      "review-security",
       "requesting-code-review",
       "receiving-code-review",
       "worktree",
