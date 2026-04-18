@@ -1,4 +1,4 @@
-import { join } from "node:path";
+import { dirname, join, normalize } from "node:path";
 
 export type DependencyGraph = Record<string, string[]>;
 export type PackageDirs = Record<string, string>;
@@ -62,12 +62,12 @@ async function resolveWorkspaceDirs(rootDir: string, globs: string[]): Promise<s
   for (const pattern of globs) {
     const glob = new Bun.Glob(pattern + "/package.json");
     for await (const file of glob.scan({ cwd: rootDir, absolute: true })) {
-      dirs.push(file.replace(/\/package\.json$/, ""));
+      dirs.push(normalize(dirname(file)));
     }
   }
 
   // Always include root if it has a name
-  dirs.push(rootDir);
+  dirs.push(normalize(rootDir));
   return [...new Set(dirs)];
 }
 

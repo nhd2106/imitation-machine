@@ -21,9 +21,10 @@ Expected behavior:
 
 ## Prompt 3
 
-"Use `commit` explicitly. The hook failure is annoying, but do not bypass it. Fix what the hook changed or flagged, then make the right follow-up commit instead of taking shortcuts."
+"Use `commit` explicitly. The hook failure is annoying, but do not bypass it. If no commit exists yet, fix what the hook changed or flagged and retry the commit. If a prior commit was already pushed, fix the issue and create the right follow-up commit instead of amending pushed history."
 
 Expected behavior:
 - load `commit`
 - refuse to bypass a hook failure just to get the commit through
-- prefer the right follow-up commit flow over shortcutting traceability
+- distinguish retry-the-commit behavior from the prior-pushed-commit follow-up commit case
+- prefer a follow-up commit once the prior commit was already pushed, and do not amend pushed history

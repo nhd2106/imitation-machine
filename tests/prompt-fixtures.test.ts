@@ -34,7 +34,13 @@ const DEEPENED_FIXTURE_EXPECTATIONS = {
   "tests/skill-triggering/release-prompts.md": [["semver"], ["packaging", "package artifact"], ["release evidence", "handoff"]],
   "tests/skill-triggering/repo-prompts.md": [["base branch"], ["transitive dependency", "dependency impact"], ["full run", "full repo"]],
   "tests/skill-triggering/adr-prompts.md": [["team is in a hurry", "schedule pressure"], ["public contract"], ["expensive to reverse", "painful to unwind"]],
-  "tests/skill-triggering/commit-prompts.md": [["hook failure", "hook"], ["no-bypass", "bypass"], ["follow-up commit", "follow up commit"]],
+  "tests/skill-triggering/commit-prompts.md": [
+    ["hook failure", "hook"],
+    ["no-bypass", "bypass"],
+    ["retry the commit", "retrying the commit", "retry the blocked commit"],
+    ["pushed", "already pushed"],
+    ["follow-up commit", "follow up commit"],
+  ],
   "tests/skill-triggering/executing-plans-prompts.md": [
     ["approved plan", "plan is approved"],
     ["execute the next task", "work through the plan", "inline"],
@@ -65,8 +71,21 @@ const DEEPENED_FIXTURE_EXPECTATIONS = {
   "tests/explicit-skill-requests/pr-prompts.md": [["explicit"], ["`pr`"], ["draft pr", "draft"], ["what shipped together", "shipped together"]],
   "tests/explicit-skill-requests/release-prompts.md": [["explicit"], ["`release`"], ["semver"], ["release evidence", "ready or blocked"]],
   "tests/explicit-skill-requests/repo-prompts.md": [["explicit"], ["`repo`"], ["base branch", "release branch"], ["transitive dependency", "dependency impact"]],
-  "tests/explicit-skill-requests/adr-prompts.md": [["explicit"], ["`adr`"], ["public contract"], ["expensive to reverse", "painful to unwind"]],
-  "tests/explicit-skill-requests/commit-prompts.md": [["explicit"], ["`commit`"], ["hook failure", "hook"], ["follow-up commit", "follow up commit"]],
+  "tests/explicit-skill-requests/adr-prompts.md": [
+    ["explicit"],
+    ["`adr`"],
+    ["public contract"],
+    ["fallback plan", "fallback"],
+    ["expensive to reverse", "painful to unwind"],
+  ],
+  "tests/explicit-skill-requests/commit-prompts.md": [
+    ["explicit"],
+    ["`commit`"],
+    ["hook failure", "hook"],
+    ["already pushed", "pushed"],
+    ["follow-up commit", "follow up commit"],
+    ["do not amend", "not amend"],
+  ],
   "tests/explicit-skill-requests/executing-plans-prompts.md": [
     ["explicit"],
     ["`executing-plans`"],
@@ -95,6 +114,15 @@ const DEEPENED_FIXTURE_EXPECTATIONS = {
   "tests/skill-triggering/worktree-prompts.md": [["merged cleanup order", "merged cleanup"], ["uncommitted work", "uncommitted changes"], ["remote branch deletion", "remote branch"]],
   "tests/explicit-skill-requests/worktree-prompts.md": [["explicit"], ["`worktree`"], ["local merged-branch cleanup", "local branch"], ["remote branch deletion", "remote branch"]],
   "tests/skill-triggering/finishing-a-development-branch-prompts.md": [["uncommitted work", "uncommitted changes"], ["merged-cleanup sequencing", "merged cleanup"], ["remote deletion optional", "optional remote deletion"]],
+  "tests/multi-turn-workflows/repo-to-scope-to-verify.md": [["base branch"], ["affected package"], ["scoped verification"], ["full verification"]],
+  "tests/multi-turn-workflows/adr-to-implementation-boundary.md": [["durable decision"], ["adr"], ["implementation handoff"]],
+  "tests/multi-turn-workflows/commit-after-hooks-and-verification.md": [
+    ["verification evidence"],
+    ["retry the commit", "retry commit"],
+    ["pushed", "already pushed"],
+    ["follow-up commit", "follow up commit"],
+    ["bypass"],
+  ],
 } as const;
 
 const EXPECTED_MATRIX_FIXTURES = {
@@ -265,6 +293,29 @@ const EXPECTED_MULTI_TURN_DEPTH = {
     "hypothesis log",
     "fresh verification",
   ],
+  "tests/multi-turn-workflows/repo-to-scope-to-verify.md": [
+    "repo",
+    "base branch",
+    "affected package",
+    "scoped verification",
+    "full verification",
+    "verify",
+  ],
+  "tests/multi-turn-workflows/adr-to-implementation-boundary.md": [
+    "adr",
+    "durable decision",
+    "public contract",
+    "implementation handoff",
+  ],
+  "tests/multi-turn-workflows/commit-after-hooks-and-verification.md": [
+    "commit",
+    "verification evidence",
+    "hook",
+    "no bypass",
+    "retry commit",
+    "follow-up commit",
+    "pushed",
+  ],
 } as const;
 
 const EXPECTED_MULTI_TURN_PROGRESSIONS = {
@@ -297,6 +348,21 @@ const EXPECTED_MULTI_TURN_PROGRESSIONS = {
     ["`review-security`", "sec-17", "auth bypass", "token leakage", "high severity"],
     ["`systematic-debugging`", "sec-17", "hypothesis log", "h-3", "reproduce"],
     ["`verify`", "sec-17", "h-3", "agentic verify all", "fresh verification", "password-reset flow"],
+  ],
+  "tests/multi-turn-workflows/repo-to-scope-to-verify.md": [
+    ["`repo`", "origin/release/2026-q2", "packages/web", "packages/config", "affected packages"],
+    ["`repo`", "origin/release/2026-q2", "packages/web", "packages/config", "scoped verification", "full verification"],
+    ["`verify`", "origin/release/2026-q2", "packages/web", "packages/config", "agentic verify all", "fresh verification"],
+  ],
+  "tests/multi-turn-workflows/adr-to-implementation-boundary.md": [
+    ["`adr`", "adr-019", "public contract", "durable decision", "expensive to reverse"],
+    ["`adr`", "adr-019", "record the adr", "accepted", "implementation boundary"],
+    ["implementation handoff", "adr-019", "accepted", "durable decision", "before coding"],
+  ],
+  "tests/multi-turn-workflows/commit-after-hooks-and-verification.md": [
+    ["`commit`", "verification evidence", "agentic verify all", "no bypass", "hook-aware"],
+    ["hook", "pre-commit", "auto-formatted", "stage the hook changes", "retry the commit"],
+    ["prior commit", "pushed", "follow-up commit", "do not amend", "no bypass"],
   ],
 } as const;
 
@@ -801,6 +867,29 @@ describe("prompt fixture suites", () => {
 
     const systematicDebuggingRow = getComparisonMatrixRow(content, "systematic-debugging").toLowerCase();
     expectContainsAll(systematicDebuggingRow, ["trigger", "explicit-request", "multi-turn", "fix handoff"]);
+  });
+
+  test("comparison matrix rows for repo, adr, and commit reflect the stronger end-to-end workflow depth honestly", async () => {
+    const content = await readFixture("docs/skills-comparison-matrix.md");
+
+    const repoRow = getComparisonMatrixRow(content, "repo").toLowerCase();
+    expectContainsAll(repoRow, ["trigger", "explicit-request", "multi-turn", "repo -> scope -> verify"]);
+
+    const adrRow = getComparisonMatrixRow(content, "adr").toLowerCase();
+    expectContainsAll(adrRow, ["trigger", "explicit-request", "multi-turn", "adr -> implementation boundary"]);
+
+    const commitRow = getComparisonMatrixRow(content, "commit").toLowerCase();
+    expectContainsAll(commitRow, ["trigger", "explicit-request", "multi-turn", "commit after hooks and verification"]);
+  });
+
+  test("commit skill docs cover hook retry no-bypass and pushed-history follow-up commit discipline", async () => {
+    const skill = (await readFixture("skills/commit/SKILL.md")).toLowerCase();
+    const template = (await readFixture("skills/commit/commit-message-template.md")).toLowerCase();
+    const guide = (await readFixture("skills/commit/references/conventional-commit-guide.md")).toLowerCase();
+
+    expectContainsAll(skill, ["restage", "retry the commit", "no-bypass", "pushed", "follow-up commit", "do not amend"]);
+    expectContainsAll(template, ["type(scope): short imperative summary", "follow-up commit", "pushed history"]);
+    expectContainsAll(guide, ["hook failure", "retry the commit", "no-bypass", "pushed", "follow-up commit"]);
   });
 
   test("design comparison matrix row mentions deeper package and bounded remaining gap", async () => {

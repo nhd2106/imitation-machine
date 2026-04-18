@@ -18,6 +18,7 @@ Expected behavior:
 Expected behavior:
 - interpret this as an explicit `adr` request
 - document alternatives and decision consequences before implementation
+- capture the fallback plan before implementation when the prompt asks for it
 - treat the public contract change as ADR-worthy, not as a quick note
 
 ## Prompt 3
