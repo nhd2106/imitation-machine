@@ -4,7 +4,21 @@ import { resolve } from "node:path";
 type WorktreeRunResult = {
   success: boolean;
   exitCode: number;
+  stdout: string;
+  stderr: string;
   output: string;
+};
+
+type CleanupCandidate = {
+  path: string;
+  branch: string;
+  remote?: string;
+};
+
+type CleanupBlocker = {
+  path: string;
+  branch?: string;
+  reason: string;
 };
 
 export type WorktreeEntry = {
@@ -22,6 +36,7 @@ USAGE
   agentic worktree create --branch <name> [--base <ref>] [--path <dir>] [--cwd <path>]
   agentic worktree list [--cwd <path>] [--json]
   agentic worktree remove --path <dir> [--force] [--delete-branch] [--delete-remote] [--remote <name>] [--cwd <path>]
+  agentic worktree cleanup-merged [--cwd <path>] [--json] [--apply] [--delete-remote] [--remote <name>] [--force]
 `.trim();
 
 export async function worktreeCommand(args: string[]): Promise<void> {
@@ -43,11 +58,117 @@ export async function worktreeCommand(args: string[]): Promise<void> {
     case "remove":
       await removeWorktree(args.slice(1), cwd);
       return;
+    case "cleanup-merged":
+      await cleanupMergedWorktrees(args.slice(1), cwd);
+      return;
     default:
       console.error(`Unknown worktree subcommand: ${subcommand}`);
       process.exit(1);
   }
 }
+
+async function cleanupMergedWorktrees(args: string[], cwd: string): Promise<void> {
+  const asJson = args.includes("--json");
+  const apply = args.includes("--apply");
+  const deleteRemote = args.includes("--delete-remote");
+  const force = args.includes("--force");
+  const remote = getFlag(args, "--remote") ?? "origin";
+
+  if (asJson && apply) {
+    console.error("--json and --apply are mutually exclusive for cleanup-merged.");
+    process.exit(1);
+  }
+
+  const summary = await summarizeMergedWorktrees(cwd, force, deleteRemote ? remote : undefined);
+
+  if (asJson) {
+    console.log(JSON.stringify(summary, null, 2));
+    return;
+  }
+
+  if (!apply) {
+    if (summary.candidates.length === 0) {
+      console.log("No merged cleanup candidates found.");
+    } else {
+      for (const candidate of summary.candidates) {
+        console.log(`candidate ${candidate.path} branch=${candidate.branch}`);
+      }
+    }
+
+    for (const blocker of summary.blockers) {
+      console.log(`blocked ${blocker.path}${blocker.branch ? ` branch=${blocker.branch}` : ""} reason=${blocker.reason}`);
+    }
+    return;
+  }
+
+  for (const candidate of summary.candidates) {
+    await removeWorktree([
+      "--path",
+      candidate.path,
+      "--delete-branch",
+      ...(force ? ["--force"] : []),
+      ...(deleteRemote && candidate.remote ? ["--delete-remote", "--remote", candidate.remote] : []),
+    ], cwd);
+  }
+
+  if (summary.candidates.length === 0) {
+    console.log("No merged cleanup candidates found.");
+  }
+
+  for (const blocker of summary.blockers) {
+    console.log(`blocked ${blocker.path}${blocker.branch ? ` branch=${blocker.branch}` : ""} reason=${blocker.reason}`);
+  }
+}
+
+async function summarizeMergedWorktrees(
+  cwd: string,
+  force: boolean,
+  remote?: string,
+): Promise<{ candidates: CleanupCandidate[]; blockers: CleanupBlocker[] }> {
+  const result = await runGit(["worktree", "list", "--porcelain"], cwd);
+  if (!result.success) outputOrExit(result);
+
+  const currentPath = await canonicalPath(cwd);
+  const candidates: CleanupCandidate[] = [];
+  const blockers: CleanupBlocker[] = [];
+
+  for (const entry of parseWorktreePorcelain(result.output)) {
+    const entryPath = await canonicalPath(entry.worktree);
+    if (entryPath === currentPath) continue;
+
+    if (!entry.branch) {
+      blockers.push({ path: entry.worktree, reason: "detached or bare worktree" });
+      continue;
+    }
+
+    if (!force) {
+      const status = await runGit(["-C", entry.worktree, "status", "--porcelain"], cwd);
+      if (!status.success) outputOrExit(status);
+      if (status.output.trim().length > 0) {
+        blockers.push({ path: entry.worktree, branch: entry.branch, reason: "uncommitted changes" });
+        continue;
+      }
+    }
+
+    const merged = await isBranchMerged(entry.branch, cwd);
+    if (!merged) {
+      blockers.push({ path: entry.worktree, branch: entry.branch, reason: "branch not merged" });
+      continue;
+    }
+
+    const remoteExists = remote ? await branchExistsOnRemote(entry.branch, remote, cwd) : false;
+    candidates.push({ path: entry.worktree, branch: entry.branch, remote: remoteExists ? remote : undefined });
+  }
+
+  return { candidates, blockers };
+}
+
+async function branchExistsOnRemote(branch: string, remote: string, cwd: string): Promise<boolean> {
+  const result = await runGit(["ls-remote", "--heads", remote, branch], cwd);
+  if (!result.success) outputOrExit(result);
+  return result.stdout.trim().length > 0;
+}
+
 
 export function parseWorktreePorcelain(output: string): WorktreeEntry[] {
   const entries: WorktreeEntry[] = [];
@@ -252,12 +373,15 @@ async function runGit(args: string[], cwd: string): Promise<WorktreeRunResult> {
   return {
     success: exitCode === 0,
     exitCode,
+    stdout,
+    stderr,
     output: `${stdout}${stderr}`.trim(),
   };
 }
 
 function outputOrExit(result: WorktreeRunResult): void {
-  if (result.output) console.log(result.output);
+  if (result.stdout.trim()) console.log(result.stdout.trim());
+  if (result.stderr.trim()) console.error(result.stderr.trim());
   if (!result.success) process.exit(result.exitCode || 1);
 }
 

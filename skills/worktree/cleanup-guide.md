@@ -8,6 +8,26 @@
 4. delete the remote branch only when the user explicitly asks for it: add `--delete-remote` and use `--remote <name>` if the remote is not `origin`
 5. keep the cleanup order explicit: dirty-check first, worktree removal second, safe local branch deletion third, optional remote deletion last
 
+## Cleanup command
+
+Preview merged cleanup candidates first:
+
+```sh
+agentic worktree cleanup-merged --json
+```
+
+Apply local cleanup only after reviewing the preview:
+
+```sh
+agentic worktree cleanup-merged --apply
+```
+
+Delete merged remote branches only when explicitly intended:
+
+```sh
+agentic worktree cleanup-merged --apply --delete-remote
+```
+
 ## Notes
 
 - `--delete-branch` is intentionally safe: it only supports merged-branch cleanup

@@ -41,7 +41,7 @@ digraph release_flow {
 
 1. run fresh verification
 2. for follow-on work, check merged PRs and clean stale local branches/worktrees safely
-3. use the cleanup order explicitly when branches are already merged: verify no dirty worktree, remove the worktree, delete the merged local branch, and keep optional remote branch deletion last
+3. use the cleanup order explicitly when branches are already merged: verify no dirty worktree, remove the worktree, delete the merged local branch, and keep optional remote branch deletion last; for multiple merged worktrees, preview candidates with `agentic worktree cleanup-merged --json` before `--apply`
 4. own commit + gh PR creation for delivery units or grouped tasks when requested
 5. determine the semver bump from the actual change history
 6. generate the changelog with traceability where possible

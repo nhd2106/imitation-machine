@@ -199,6 +199,21 @@ describe("core skill content", () => {
       "optional remote",
       "cleanup order",
     ]);
+    expect(content.includes("cleanup-merged --json")).toBe(true);
+    expect(content.includes("cleanup-merged --apply")).toBe(true);
+  });
+
+  test("worktree and release docs mention cleanup-merged preview/apply flow", async () => {
+    const worktree = await Bun.file(join(ROOT, "skills", "worktree", "SKILL.md")).text();
+    const release = await Bun.file(join(ROOT, "skills", "release", "SKILL.md")).text();
+    const finish = await Bun.file(join(ROOT, "skills", "finishing-a-development-branch", "SKILL.md")).text();
+    const readme = await Bun.file(join(ROOT, "README.md")).text();
+
+    expect(worktree.includes("cleanup-merged --json")).toBe(true);
+    expect(worktree.includes("cleanup-merged --apply")).toBe(true);
+    expect(release.includes("cleanup-merged --json")).toBe(true);
+    expect(finish.includes("cleanup-merged --json")).toBe(true);
+    expect(readme.includes("agentic worktree cleanup-merged --json")).toBe(true);
   });
 
   test("gate documents blocker handling and review-stage gates", async () => {

@@ -116,6 +116,7 @@ The bounded OpenCode transcript harness is documented in `tests/opencode/README.
 agentic --help
 agentic verify all
 agentic worktree --help
+agentic worktree cleanup-merged --json
 agentic check-plugin --json
 agentic orchestrate run --plan PLN-xxxx --dry-run
 agentic orchestrate run --plan PLN-xxxx --max-parallel 3 --continue-on-error

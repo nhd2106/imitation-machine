@@ -52,6 +52,9 @@ digraph worktree_flow {
 agentic worktree create --branch feat/req-123 --base main
 agentic worktree list
 agentic worktree list --json
+agentic worktree cleanup-merged --json
+agentic worktree cleanup-merged --apply
+agentic worktree cleanup-merged --apply --delete-remote
 agentic worktree remove --path .worktrees/feat/req-123 --delete-branch
 agentic worktree remove --path .worktrees/feat/req-123 --delete-branch --delete-remote
 ```
@@ -80,6 +83,8 @@ If a plan fans out into independent lanes, create or verify multiple worktrees o
 Before cleanup, confirm whether the branch was already merged and whether local-only commits or uncommitted changes still exist. Removal safety matters more than tidiness.
 
 For the first-class merged cleanup path, prefer `agentic worktree remove --path <path> --delete-branch`. Add `--delete-remote` only when the user explicitly wants the remote branch removed too.
+
+When you want to clean multiple merged worktrees safely, start with `agentic worktree cleanup-merged --json` to preview candidates and blockers. Only use `--apply` after reviewing the preview output.
 
 ## Red Flags
 
