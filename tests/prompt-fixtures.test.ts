@@ -35,6 +35,19 @@ const DEEPENED_FIXTURE_EXPECTATIONS = {
   "tests/skill-triggering/repo-prompts.md": [["base branch"], ["transitive dependency", "dependency impact"], ["full run", "full repo"]],
   "tests/skill-triggering/adr-prompts.md": [["team is in a hurry", "schedule pressure"], ["public contract"], ["expensive to reverse", "painful to unwind"]],
   "tests/skill-triggering/commit-prompts.md": [["hook failure", "hook"], ["no-bypass", "bypass"], ["follow-up commit", "follow up commit"]],
+  "tests/skill-triggering/review-security-prompts.md": [
+    ["auth", "authentication"],
+    ["input handling", "input validation", "untrusted input"],
+    ["secrets", "token", "secret"],
+    ["severity", "critical", "high"],
+    ["block", "blocker", "before merge"],
+  ],
+  "tests/skill-triggering/systematic-debugging-prompts.md": [
+    ["reproduce", "reproducible", "reproduction"],
+    ["hypothesis log", "hypothesis"],
+    ["evidence", "narrow"],
+    ["random fixes", "guessing", "fixes first"],
+  ],
   "tests/explicit-skill-requests/design-prompts.md": [["explicit"], ["`design`"], ["interaction quality", "responsive layout"], ["browser validation", "browser"]],
   "tests/explicit-skill-requests/verify-prompts.md": [["explicit"], ["`verify`"], ["exact reproduction", "exact bug repro"], ["fresh evidence", "evidence"]],
   "tests/explicit-skill-requests/gate-prompts.md": [["explicit"], ["`gate`"], ["coverage"], ["security scan", "security"]],
@@ -43,6 +56,19 @@ const DEEPENED_FIXTURE_EXPECTATIONS = {
   "tests/explicit-skill-requests/repo-prompts.md": [["explicit"], ["`repo`"], ["base branch", "release branch"], ["transitive dependency", "dependency impact"]],
   "tests/explicit-skill-requests/adr-prompts.md": [["explicit"], ["`adr`"], ["public contract"], ["expensive to reverse", "painful to unwind"]],
   "tests/explicit-skill-requests/commit-prompts.md": [["explicit"], ["`commit`"], ["hook failure", "hook"], ["follow-up commit", "follow up commit"]],
+  "tests/explicit-skill-requests/review-security-prompts.md": [
+    ["explicit"],
+    ["`review-security`"],
+    ["security review", "security-focused review"],
+    ["critical", "high", "severity"],
+    ["quality review", "generic quality"],
+  ],
+  "tests/explicit-skill-requests/systematic-debugging-prompts.md": [
+    ["explicit"],
+    ["`systematic-debugging`"],
+    ["reproduce", "reproduction"],
+    ["hypothesis log", "evidence"],
+  ],
   "tests/skill-triggering/worktree-prompts.md": [["merged cleanup order", "merged cleanup"], ["uncommitted work", "uncommitted changes"], ["remote branch deletion", "remote branch"]],
   "tests/explicit-skill-requests/worktree-prompts.md": [["explicit"], ["`worktree`"], ["local merged-branch cleanup", "local branch"], ["remote branch deletion", "remote branch"]],
   "tests/skill-triggering/finishing-a-development-branch-prompts.md": [["uncommitted work", "uncommitted changes"], ["merged-cleanup sequencing", "merged cleanup"], ["remote deletion optional", "optional remote deletion"]],
@@ -60,6 +86,8 @@ const EXPECTED_PRESSURE_MATRIX_FIXTURES = {
   repo: "tests/explicit-skill-requests/repo-prompts.md",
   adr: "tests/explicit-skill-requests/adr-prompts.md",
   commit: "tests/explicit-skill-requests/commit-prompts.md",
+  "review-security": "tests/explicit-skill-requests/review-security-prompts.md",
+  "systematic-debugging": "tests/explicit-skill-requests/systematic-debugging-prompts.md",
 } as const;
 
 const EXPLICIT_PER_PROMPT_FIXTURES = [
@@ -77,12 +105,43 @@ const EXPLICIT_PER_PROMPT_FIXTURES = [
   "tests/explicit-skill-requests/repo-prompts.md",
   "tests/explicit-skill-requests/adr-prompts.md",
   "tests/explicit-skill-requests/commit-prompts.md",
+  "tests/explicit-skill-requests/review-security-prompts.md",
+  "tests/explicit-skill-requests/systematic-debugging-prompts.md",
 ] as const;
 
 const AVOID_JARGON_PHRASES = {
   "tests/skill-triggering/verify-prompts.md": ["confidence-only"],
   "tests/skill-triggering/pr-prompts.md": ["grouped tasks traceability"],
   "tests/skill-triggering/repo-prompts.md": ["comparison base uncertainty", "scoped-vs-full"],
+  "tests/skill-triggering/review-security-prompts.md": ["severity-oriented"],
+  "tests/skill-triggering/systematic-debugging-prompts.md": ["fix-jumping"],
+  "tests/explicit-skill-requests/systematic-debugging-prompts.md": ["fix-jumping"],
+} as const;
+
+const DISTINCT_SCENARIO_EXPECTATIONS = {
+  "tests/skill-triggering/review-security-prompts.md": [
+    [/auth|authorization/, /input|validation|untrusted input/, /block|merge/],
+    [/secret|token/, /severity|high-severity|critical|high/],
+    [/deadline pressure|waved through/, /auth bypass|secret leakage|logs/],
+  ],
+  "tests/explicit-skill-requests/review-security-prompts.md": [
+    [/auth rollout|password-reset endpoint/, /security review/, /generic quality review|style notes/],
+    [/secrets|token/, /untrusted input|validation/, /blocker|blocking/],
+  ],
+  "tests/skill-triggering/systematic-debugging-prompts.md": [
+    [/fails sometimes|intermittent|flaky/, /reproduce|reproduction/],
+    [/hypothesis log/, /evidence-based narrowing|evidence/],
+    [/patch three files|random fixes/, /debug systematically|slow this down/],
+  ],
+  "tests/explicit-skill-requests/systematic-debugging-prompts.md": [
+    [/reproduce|reproducible/, /hypothesis log|logged hypotheses/],
+    [/random patches/, /evidence/, /likely cause|narrows the cause/],
+  ],
+  "tests/multi-turn-workflows/systematic-debugging-to-fix.md": [
+    [/production-only|intermittent/, /reproduce first/],
+    [/hypothesis log/, /evidence/],
+    [/fix handoff|bounded fix plan/, /evidence trail|cause is narrowed/],
+  ],
 } as const;
 
 const EXPECTED_MULTI_TURN_DEPTH = {
@@ -115,6 +174,12 @@ const EXPECTED_MULTI_TURN_DEPTH = {
     "direction lock",
     "implementation handoff",
     "browser validation",
+  ],
+  "tests/multi-turn-workflows/systematic-debugging-to-fix.md": [
+    "systematic-debugging",
+    "reproduce first",
+    "hypothesis log",
+    "fix handoff",
   ],
 } as const;
 
@@ -194,6 +259,17 @@ function assertStructuredSectionsAreCoherent(content: string, sectionLabel: "Pro
 
 function structuredPromptSections(content: string): string[] {
   const headingPattern = /^## Prompt \d+/gm;
+  const matches = [...content.matchAll(headingPattern)];
+
+  return matches.map((match, index) => {
+    const start = match.index ?? 0;
+    const end = matches[index + 1]?.index ?? content.length;
+    return content.slice(start, end);
+  });
+}
+
+function structuredSections(content: string, sectionLabel: "Prompt" | "Turn"): string[] {
+  const headingPattern = new RegExp(`^## ${sectionLabel} \\d+`, "gm");
   const matches = [...content.matchAll(headingPattern)];
 
   return matches.map((match, index) => {
@@ -338,6 +414,32 @@ async function expectMultiTurnFixture(relativePath: string): Promise<void> {
   assertStructuredSectionsAreCoherent(content, "Turn");
 }
 
+function assertDistinctScenarioCoverage(
+  sections: readonly string[],
+  scenarios: readonly (readonly RegExp[])[],
+): void {
+  const candidateSectionIndexes = scenarios.map((scenarioMatchers) =>
+    sections
+      .map((section, index) =>
+        scenarioMatchers.every((matcher) => matcher.test(section.toLowerCase())) ? index : -1,
+      )
+      .filter((index) => index >= 0),
+  );
+
+  for (const candidates of candidateSectionIndexes) {
+    expect(candidates.length).toBeGreaterThan(0);
+  }
+
+  const assignedSections = new Set<number>();
+
+  for (const candidates of [...candidateSectionIndexes].sort((left, right) => left.length - right.length)) {
+    const distinctCandidate = candidates.find((index) => !assignedSections.has(index));
+    assignedSections.add(distinctCandidate ?? candidates[0]!);
+  }
+
+  expect(assignedSections.size).toBeGreaterThanOrEqual(Math.min(scenarios.length, 2));
+}
+
 describe("prompt fixture suites", () => {
   test("rejects prompt fixtures whose prompt sections lack a nearby expected behavior block", () => {
     const content = `# Example\n\n## Prompt 1\n\n"Do the thing."\n\n## Prompt 2\n\n"Do the other thing."\n\nExpected behavior:\n- load the right skill\n`;
@@ -417,7 +519,7 @@ describe("prompt fixture suites", () => {
     }
   });
 
-  test("ships the bounded eval deepening fixtures for design", async () => {
+  test("ships the bounded eval deepening fixtures for the current pressure-wave skills", async () => {
     for (const [fixture, requiredPhrases] of Object.entries(DEEPENED_FIXTURE_EXPECTATIONS)) {
       expect(await exists(fixture), `${fixture} should exist`).toBe(true);
 
@@ -425,6 +527,17 @@ describe("prompt fixture suites", () => {
       for (const theme of requiredPhrases) {
         expectContainsAny(content, theme.map((phrase) => phrase.toLowerCase()));
       }
+    }
+  });
+
+  test("new security and debugging fixtures cover distinct scenarios without collapsing into one repeated case", async () => {
+    for (const [fixture, scenarios] of Object.entries(DISTINCT_SCENARIO_EXPECTATIONS)) {
+      const content = await readFixture(fixture);
+      const sections = fixture.includes("multi-turn-workflows")
+        ? structuredSections(content, "Turn")
+        : structuredSections(content, "Prompt");
+
+      assertDistinctScenarioCoverage(sections, scenarios);
     }
   });
 
@@ -468,6 +581,7 @@ describe("prompt fixture suites", () => {
       "requesting-code-review",
       "receiving-code-review",
       "worktree",
+      "systematic-debugging",
     ] as const) {
       const row = getComparisonMatrixRow(content, skill);
       expect(row.toLowerCase()).toContain("multi-turn");
@@ -514,6 +628,16 @@ describe("prompt fixture suites", () => {
       expect(row).toContain("explicit-request");
       expect(row).toContain("trigger");
     }
+  });
+
+  test("comparison matrix rows for deeper review and debugging coverage stay honest", async () => {
+    const content = await readFixture("docs/skills-comparison-matrix.md");
+
+    const reviewSecurityRow = getComparisonMatrixRow(content, "review-security").toLowerCase();
+    expectContainsAll(reviewSecurityRow, ["trigger", "explicit-request", "severity"]);
+
+    const systematicDebuggingRow = getComparisonMatrixRow(content, "systematic-debugging").toLowerCase();
+    expectContainsAll(systematicDebuggingRow, ["trigger", "explicit-request", "multi-turn", "fix handoff"]);
   });
 
   test("design comparison matrix row mentions deeper package and bounded remaining gap", async () => {
