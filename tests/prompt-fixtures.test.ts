@@ -12,6 +12,13 @@ function expectContainsAll(content: string, fragments: readonly string[]): void 
 
 const DEEPENED_FIXTURE_EXPECTATIONS = {
   "tests/skill-triggering/design-prompts.md": ["visual direction", "interaction quality", "browser validation"],
+  "tests/skill-triggering/verify-prompts.md": ["exact reproduction", "smoke test", "ready for review"],
+  "tests/skill-triggering/gate-prompts.md": ["coverage", "typecheck", "security scan"],
+  "tests/skill-triggering/pr-prompts.md": ["what shipped together", "draft pr", "failing check"],
+  "tests/skill-triggering/release-prompts.md": ["semver", "packaging", "release evidence"],
+  "tests/skill-triggering/repo-prompts.md": ["base branch", "transitive dependency", "full run"],
+  "tests/skill-triggering/adr-prompts.md": ["team is in a hurry", "public contract", "expensive to reverse"],
+  "tests/skill-triggering/commit-prompts.md": ["hook failure", "no-bypass", "follow-up commit"],
   "tests/explicit-skill-requests/design-prompts.md": ["explicit", "`design`", "interaction quality", "browser validation"],
   "tests/skill-triggering/worktree-prompts.md": ["merged cleanup order", "uncommitted work", "remote branch deletion"],
   "tests/explicit-skill-requests/worktree-prompts.md": ["explicit", "`worktree`", "local merged-branch cleanup", "remote branch deletion"],
@@ -20,6 +27,22 @@ const DEEPENED_FIXTURE_EXPECTATIONS = {
 
 const EXPECTED_MATRIX_FIXTURES = {
   design: "tests/skill-triggering/design-prompts.md",
+} as const;
+
+const EXPECTED_PRESSURE_MATRIX_FIXTURES = {
+  verify: "tests/skill-triggering/verify-prompts.md",
+  gate: "tests/skill-triggering/gate-prompts.md",
+  pr: "tests/skill-triggering/pr-prompts.md",
+  release: "tests/skill-triggering/release-prompts.md",
+  repo: "tests/skill-triggering/repo-prompts.md",
+  adr: "tests/skill-triggering/adr-prompts.md",
+  commit: "tests/skill-triggering/commit-prompts.md",
+} as const;
+
+const AVOID_JARGON_PHRASES = {
+  "tests/skill-triggering/verify-prompts.md": ["confidence-only"],
+  "tests/skill-triggering/pr-prompts.md": ["grouped tasks traceability"],
+  "tests/skill-triggering/repo-prompts.md": ["comparison base uncertainty", "scoped-vs-full"],
 } as const;
 
 const EXPECTED_MULTI_TURN_DEPTH = {
@@ -319,6 +342,16 @@ describe("prompt fixture suites", () => {
     }
   });
 
+  test("pressure fixtures avoid brittle repo-internal jargon while keeping realistic phrasing", async () => {
+    for (const [fixture, forbiddenPhrases] of Object.entries(AVOID_JARGON_PHRASES)) {
+      const content = await readFixture(fixture).then((value) => value.toLowerCase());
+
+      for (const phrase of forbiddenPhrases) {
+        expect(content).not.toContain(phrase.toLowerCase());
+      }
+    }
+  });
+
   test("multi-turn fixtures keep user turns explicit", async () => {
     for (const fixture of await fixturePaths("tests/multi-turn-workflows")) {
       const content = await readFixture(fixture);
@@ -343,14 +376,12 @@ describe("prompt fixture suites", () => {
     for (const skill of [
       "using-agentic",
       "tdd",
-      "verify",
       "subagent-driven-development",
       "review-spec",
       "review-quality",
       "requesting-code-review",
       "receiving-code-review",
       "worktree",
-      "release",
     ] as const) {
       const row = getComparisonMatrixRow(content, skill);
       expect(row.toLowerCase()).toContain("multi-turn");
@@ -384,6 +415,16 @@ describe("prompt fixture suites", () => {
       expect(packageDepth).toBe("partial");
       expect(evalCoverage).toBe("partial");
       expectContainsAll(remainingGap, ["browser", "coverage"]);
+    }
+  });
+
+  test("comparison matrix rows for pressure-wave skills point to the refreshed trigger fixtures", async () => {
+    const content = await readFixture("docs/skills-comparison-matrix.md");
+
+    for (const [skill, expectedPath] of Object.entries(EXPECTED_PRESSURE_MATRIX_FIXTURES)) {
+      const row = getComparisonMatrixRow(content, skill).toLowerCase();
+      expect(row).toContain(expectedPath.toLowerCase());
+      expect(row).toContain("pressure");
     }
   });
 

@@ -17,7 +17,7 @@ Comparison between `imitation-machine` and `superpowers`, focused on skill cover
 | `brainstorm` | `brainstorming` | Comparable | Partial | Partial | trigger and explicit-request fixtures now exist, but the package still lacks richer design-pressure examples | `tests/multi-turn-workflows/brainstorm-to-plan.md` |
 | `plan` | `writing-plans` | Partial | Partial | Partial | still thinner than the richest plan packages, but now has serial + grouped example artifacts | `skills/plan/examples/example-parallel-plan.json` |
 | `executing-plans` | `executing-plans` | Comparable | Partial | Low | initial trigger coverage exists, but direct-execution examples and pressure scenarios are still thin | `tests/skill-triggering/executing-plans-prompts.md` |
-| `verify` | `verification-before-completion` | Partial | Partial | Partial | now has multi-turn completion-proof coverage through `using-agentic -> tdd -> verify`, but broader pressure scenarios beyond completion and fix-proof prompts are still thin | `tests/multi-turn-workflows/using-agentic-to-tdd-to-verify.md` |
+| `verify` | `verification-before-completion` | Partial | Partial | Partial | trigger coverage now includes pressure scenarios for exact reproduction reruns, partial-check refusal, and no confidence-only completion claims, but the package still lacks broader explicit-request depth | `tests/skill-triggering/verify-prompts.md` |
 | `subagent-driven-development` | `subagent-driven-development` | Comparable | Comparable | Partial | now has a stricter multi-turn execution-and-review loop, but more task-variation coverage is still needed | `tests/multi-turn-workflows/subagent-review-loop.md` |
 | `tdd` | `test-driven-development` | Comparable | Partial | Partial | now has multi-turn workflow depth via `using-agentic -> tdd -> verify`, but pressure-scenario evals are still lighter than the best-covered skills | `tests/multi-turn-workflows/using-agentic-to-tdd-to-verify.md` |
 | `review-spec` | request/review system pieces | Partial | Partial | Partial | now has multi-turn enforcement that `review-spec` must precede `review-quality`, but review-report depth is still sparse | `tests/multi-turn-workflows/subagent-review-loop.md` |
@@ -29,13 +29,13 @@ Comparison between `imitation-machine` and `superpowers`, focused on skill cover
 | `finishing-a-development-branch` | branch-finishing / release-adjacent flow | Partial | Partial | Partial | merged-branch cleanup is now covered as an explicit handoff path, but broader branch-finish pressure cases are still thin | `tests/skill-triggering/finishing-a-development-branch-prompts.md` |
 | `requesting-code-review` | `requesting-code-review` | Comparable | Partial | Partial | now has multi-turn review-request to response depth, but more PR-state variation is still needed | `tests/multi-turn-workflows/requesting-to-receiving-code-review.md` |
 | `receiving-code-review` | `receiving-code-review` | Comparable | Partial | Partial | now has multi-turn reviewer-feedback response coverage, but defer-vs-fix scenarios are still limited | `tests/multi-turn-workflows/requesting-to-receiving-code-review.md` |
-| `gate` | no strong direct counterpart | Unique | Partial | Partial | still needs failure-heavy scenario depth, but blocker guidance is in place | `tests/skill-triggering/gate-prompts.md` |
-| `pr` | no strong direct counterpart | Unique | Partial | Partial | now has lightweight trigger coverage; still thinner than full end-to-end PR evals | `tests/skill-triggering/pr-prompts.md` |
-| `release` | finishing/release-adjacent flow | Partial | Partial | Partial | merged-branch cleanup is now a supported end-to-end release-adjacent path, but richer semver and packaging pressure cases are still needed | `tests/multi-turn-workflows/worktree-before-coder.md` |
+| `gate` | no strong direct counterpart | Unique | Partial | Partial | trigger coverage now includes pressure scenarios for failing coverage, typecheck, and security blockers plus refusal to wave them through, but explicit-request depth is still thin | `tests/skill-triggering/gate-prompts.md` |
+| `pr` | no strong direct counterpart | Unique | Partial | Partial | trigger coverage now includes pressure scenarios for blocked verification, grouped-task traceability, and ready-vs-draft PR handling, but full end-to-end PR execution coverage is still lighter than the strongest suites | `tests/skill-triggering/pr-prompts.md` |
+| `release` | finishing/release-adjacent flow | Partial | Partial | Partial | trigger coverage now includes pressure scenarios for semver choice, packaging/readiness blockers, and release-evidence handoff, but post-cut release execution depth is still thinner than the best workflow packages | `tests/skill-triggering/release-prompts.md` |
 | `worktree` | `using-git-worktrees` | Partial | Partial | Partial | merged-worktree cleanup now ships as a first-class end-to-end path with safe local deletion and optional remote deletion, but broader branch-shape pressure cases are still lighter than the richest sets | `tests/multi-turn-workflows/worktree-before-coder.md` |
-| `repo` | no strong direct counterpart | Unique | Partial | Partial | now has prompt fixtures for affected-package and dependency-impact reasoning, but scoped verification pressure cases are still lighter than the best-covered workflow skills | `tests/skill-triggering/repo-prompts.md` |
-| `adr` | no strong direct counterpart | Unique | Comparable | Partial | now has prompt fixtures for durable decision triggers, but richer ADR artifact examples and follow-through reviews are still sparse | `tests/skill-triggering/adr-prompts.md` |
-| `commit` | no strong direct counterpart | Unique | Comparable | Partial | now has prompt fixtures for verified conventional commits, but hook-failure and follow-up commit scenarios still need more depth | `tests/skill-triggering/commit-prompts.md` |
+| `repo` | no strong direct counterpart | Unique | Partial | Partial | trigger coverage now includes pressure scenarios for comparison base uncertainty, transitive dependency impact, and scoped-vs-full verification justification, but broader explicit-request depth is still limited | `tests/skill-triggering/repo-prompts.md` |
+| `adr` | no strong direct counterpart | Unique | Comparable | Partial | trigger coverage now includes pressure scenarios for schedule pressure to skip ADRs, public-contract shifts, and expensive-to-reverse decisions before coding, but richer ADR artifact examples and follow-through reviews are still sparse | `tests/skill-triggering/adr-prompts.md` |
+| `commit` | no strong direct counterpart | Unique | Comparable | Partial | trigger coverage now includes pressure scenarios for hook failures, no-bypass behavior, and follow-up commit versus amend discipline, but explicit-request depth is still lighter than the best workflow suites | `tests/skill-triggering/commit-prompts.md` |
 | `writing-skills` | `writing-skills` | Comparable | Comparable | Partial | still lacks a repo-local harness tying skill-writing guidance to explicit eval runs | `skills/writing-skills/testing-skills-with-subagents.md` |
 
 ## Biggest Remaining Differences
@@ -61,13 +61,13 @@ These still lag behind the richest `superpowers` skills:
 - `adr`
 - `commit`
 
-`plan`, `verify`, `gate`, and `worktree` are no longer the thinnest workflow packages after the current fixture/examples wave, and `design` is stronger on direction lock and browser-validation handoff depth. `worktree` now also supports merged-branch cleanup end to end, but all still benefit from more pressure-scenario coverage.
+`plan`, `verify`, `gate`, and `worktree` are no longer the thinnest workflow packages after the current fixture/examples wave, and `design` is stronger on direction lock and browser-validation handoff depth. `verify`, `gate`, `pr`, `release`, `repo`, `adr`, and `commit` now also have bounded pressure-scenario trigger coverage, but all still benefit from more explicit-request and end-to-end evaluation depth.
 
 ## Recommended Next Wave
 
-1. Deepen pressure-scenario coverage for already-triggered skills such as `verify`, `gate`, `pr`, and `release`.
+1. Add explicit-request fixtures to match the new bounded pressure coverage for `verify`, `gate`, `pr`, `release`, `repo`, `adr`, and `commit`.
 2. Add more realistic multi-turn fixtures where workflow stages hand off evidence across turns.
-3. Expand `design`, `repo`, `adr`, and `commit` eval depth with more pressure cases, especially post-implementation browser-validation checks for `design`.
+3. Expand `design` eval depth with more pressure cases, especially post-implementation browser-validation checks.
 
 ## Bottom Line
 
