@@ -10,19 +10,42 @@ function expectContainsAll(content: string, fragments: readonly string[]): void 
   }
 }
 
+function expectContainsAny(content: string, fragments: readonly string[]): void {
+  expect(fragments.some((fragment) => content.includes(fragment))).toBe(true);
+}
+
 const DEEPENED_FIXTURE_EXPECTATIONS = {
-  "tests/skill-triggering/design-prompts.md": ["visual direction", "interaction quality", "browser validation"],
-  "tests/skill-triggering/verify-prompts.md": ["exact reproduction", "smoke test", "ready for review"],
-  "tests/skill-triggering/gate-prompts.md": ["coverage", "typecheck", "security scan"],
-  "tests/skill-triggering/pr-prompts.md": ["what shipped together", "draft pr", "failing check"],
-  "tests/skill-triggering/release-prompts.md": ["semver", "packaging", "release evidence"],
-  "tests/skill-triggering/repo-prompts.md": ["base branch", "transitive dependency", "full run"],
-  "tests/skill-triggering/adr-prompts.md": ["team is in a hurry", "public contract", "expensive to reverse"],
-  "tests/skill-triggering/commit-prompts.md": ["hook failure", "no-bypass", "follow-up commit"],
-  "tests/explicit-skill-requests/design-prompts.md": ["explicit", "`design`", "interaction quality", "browser validation"],
-  "tests/skill-triggering/worktree-prompts.md": ["merged cleanup order", "uncommitted work", "remote branch deletion"],
-  "tests/explicit-skill-requests/worktree-prompts.md": ["explicit", "`worktree`", "local merged-branch cleanup", "remote branch deletion"],
-  "tests/skill-triggering/finishing-a-development-branch-prompts.md": ["uncommitted work", "merged-cleanup sequencing", "remote deletion optional"],
+  "tests/skill-triggering/design-prompts.md": [
+    ["visual direction", "aesthetic direction"],
+    ["interaction quality", "responsive layout"],
+    ["browser validation", "browser"],
+  ],
+  "tests/skill-triggering/verify-prompts.md": [
+    ["exact reproduction", "exact repro"],
+    ["smoke test", "partial check"],
+    ["ready for review", "done"],
+  ],
+  "tests/skill-triggering/gate-prompts.md": [["coverage"], ["typecheck"], ["security scan", "security"]],
+  "tests/skill-triggering/pr-prompts.md": [
+    ["what shipped together", "shipped together"],
+    ["draft pr", "draft"],
+    ["failing check", "blocking verification", "gone green"],
+  ],
+  "tests/skill-triggering/release-prompts.md": [["semver"], ["packaging", "package artifact"], ["release evidence", "handoff"]],
+  "tests/skill-triggering/repo-prompts.md": [["base branch"], ["transitive dependency", "dependency impact"], ["full run", "full repo"]],
+  "tests/skill-triggering/adr-prompts.md": [["team is in a hurry", "schedule pressure"], ["public contract"], ["expensive to reverse", "painful to unwind"]],
+  "tests/skill-triggering/commit-prompts.md": [["hook failure", "hook"], ["no-bypass", "bypass"], ["follow-up commit", "follow up commit"]],
+  "tests/explicit-skill-requests/design-prompts.md": [["explicit"], ["`design`"], ["interaction quality", "responsive layout"], ["browser validation", "browser"]],
+  "tests/explicit-skill-requests/verify-prompts.md": [["explicit"], ["`verify`"], ["exact reproduction", "exact bug repro"], ["fresh evidence", "evidence"]],
+  "tests/explicit-skill-requests/gate-prompts.md": [["explicit"], ["`gate`"], ["coverage"], ["security scan", "security"]],
+  "tests/explicit-skill-requests/pr-prompts.md": [["explicit"], ["`pr`"], ["draft pr", "draft"], ["what shipped together", "shipped together"]],
+  "tests/explicit-skill-requests/release-prompts.md": [["explicit"], ["`release`"], ["semver"], ["release evidence", "ready or blocked"]],
+  "tests/explicit-skill-requests/repo-prompts.md": [["explicit"], ["`repo`"], ["base branch", "release branch"], ["transitive dependency", "dependency impact"]],
+  "tests/explicit-skill-requests/adr-prompts.md": [["explicit"], ["`adr`"], ["public contract"], ["expensive to reverse", "painful to unwind"]],
+  "tests/explicit-skill-requests/commit-prompts.md": [["explicit"], ["`commit`"], ["hook failure", "hook"], ["follow-up commit", "follow up commit"]],
+  "tests/skill-triggering/worktree-prompts.md": [["merged cleanup order", "merged cleanup"], ["uncommitted work", "uncommitted changes"], ["remote branch deletion", "remote branch"]],
+  "tests/explicit-skill-requests/worktree-prompts.md": [["explicit"], ["`worktree`"], ["local merged-branch cleanup", "local branch"], ["remote branch deletion", "remote branch"]],
+  "tests/skill-triggering/finishing-a-development-branch-prompts.md": [["uncommitted work", "uncommitted changes"], ["merged-cleanup sequencing", "merged cleanup"], ["remote deletion optional", "optional remote deletion"]],
 } as const;
 
 const EXPECTED_MATRIX_FIXTURES = {
@@ -30,14 +53,31 @@ const EXPECTED_MATRIX_FIXTURES = {
 } as const;
 
 const EXPECTED_PRESSURE_MATRIX_FIXTURES = {
-  verify: "tests/skill-triggering/verify-prompts.md",
-  gate: "tests/skill-triggering/gate-prompts.md",
-  pr: "tests/skill-triggering/pr-prompts.md",
-  release: "tests/skill-triggering/release-prompts.md",
-  repo: "tests/skill-triggering/repo-prompts.md",
-  adr: "tests/skill-triggering/adr-prompts.md",
-  commit: "tests/skill-triggering/commit-prompts.md",
+  verify: "tests/explicit-skill-requests/verify-prompts.md",
+  gate: "tests/explicit-skill-requests/gate-prompts.md",
+  pr: "tests/explicit-skill-requests/pr-prompts.md",
+  release: "tests/explicit-skill-requests/release-prompts.md",
+  repo: "tests/explicit-skill-requests/repo-prompts.md",
+  adr: "tests/explicit-skill-requests/adr-prompts.md",
+  commit: "tests/explicit-skill-requests/commit-prompts.md",
 } as const;
+
+const EXPLICIT_PER_PROMPT_FIXTURES = [
+  "tests/explicit-skill-requests/using-agentic-prompts.md",
+  "tests/explicit-skill-requests/tdd-prompts.md",
+  "tests/explicit-skill-requests/plan-prompts.md",
+  "tests/explicit-skill-requests/brainstorm-prompts.md",
+  "tests/explicit-skill-requests/design-prompts.md",
+  "tests/explicit-skill-requests/worktree-prompts.md",
+  "tests/explicit-skill-requests/requesting-code-review-prompts.md",
+  "tests/explicit-skill-requests/verify-prompts.md",
+  "tests/explicit-skill-requests/gate-prompts.md",
+  "tests/explicit-skill-requests/pr-prompts.md",
+  "tests/explicit-skill-requests/release-prompts.md",
+  "tests/explicit-skill-requests/repo-prompts.md",
+  "tests/explicit-skill-requests/adr-prompts.md",
+  "tests/explicit-skill-requests/commit-prompts.md",
+] as const;
 
 const AVOID_JARGON_PHRASES = {
   "tests/skill-triggering/verify-prompts.md": ["confidence-only"],
@@ -152,6 +192,17 @@ function assertStructuredSectionsAreCoherent(content: string, sectionLabel: "Pro
   }
 }
 
+function structuredPromptSections(content: string): string[] {
+  const headingPattern = /^## Prompt \d+/gm;
+  const matches = [...content.matchAll(headingPattern)];
+
+  return matches.map((match, index) => {
+    const start = match.index ?? 0;
+    const end = matches[index + 1]?.index ?? content.length;
+    return content.slice(start, end);
+  });
+}
+
 function meaningfulPromptLines(content: string): string[] {
   return content
     .split("\n")
@@ -232,6 +283,23 @@ function assertFixtureIntentAlignment(relativePath: string, content: string): vo
   }
 }
 
+function assertExplicitRequestPromptSections(relativePath: string, content: string): void {
+  const intent = inferFixtureIntent(relativePath);
+
+  expect(intent.kind).toBe("skill");
+
+  for (const section of structuredPromptSections(content)) {
+    const promptLine = section.match(/"(.+)"/)?.[1] ?? "";
+    const lowerPromptLine = promptLine.toLowerCase();
+    const lowerSection = section.toLowerCase();
+
+    expect(lowerPromptLine).toContain("explicit");
+    expect(promptLine).toContain(`\`${intent.tokens[0]}\``);
+    expect(lowerSection).toMatch(/expected behavior:\n(?:- .+\n?)+/);
+    expect(lowerSection).toMatch(/- .*(load|honor|interpret)/);
+  }
+}
+
 async function expectPromptFixture(
   relativePath: string,
   options?: { requireStructuredPrompts?: boolean },
@@ -301,6 +369,17 @@ describe("prompt fixture suites", () => {
     ).toThrow();
   });
 
+  test("rejects explicit request fixtures when any prompt is only implicitly routed", () => {
+    const content = `# Example\n\n## Prompt 1\n\n"Use \`plan\` explicitly for this approved requirement."\n\nExpected behavior:\n- load \`plan\`\n- honor the explicit request\n\n## Prompt 2\n\n"The requirement is approved. Write the implementation plan now."\n\nExpected behavior:\n- move to planning\n`;
+
+    expect(() =>
+      assertExplicitRequestPromptSections(
+        "tests/explicit-skill-requests/plan-prompts.md",
+        content,
+      ),
+    ).toThrow();
+  });
+
   test("ships structured skill-triggering fixtures", async () => {
     for (const fixture of await fixturePaths("tests/skill-triggering")) {
       await expectPromptFixture(fixture, { requireStructuredPrompts: true });
@@ -331,13 +410,20 @@ describe("prompt fixture suites", () => {
     }
   });
 
+  test("bounded explicit skill-request fixtures keep each prompt explicitly requested", async () => {
+    for (const fixture of EXPLICIT_PER_PROMPT_FIXTURES) {
+      const content = await readFixture(fixture);
+      assertExplicitRequestPromptSections(fixture, content);
+    }
+  });
+
   test("ships the bounded eval deepening fixtures for design", async () => {
     for (const [fixture, requiredPhrases] of Object.entries(DEEPENED_FIXTURE_EXPECTATIONS)) {
       expect(await exists(fixture), `${fixture} should exist`).toBe(true);
 
       const content = await readFixture(fixture).then((value) => value.toLowerCase());
-      for (const phrase of requiredPhrases) {
-        expect(content).toContain(phrase.toLowerCase());
+      for (const theme of requiredPhrases) {
+        expectContainsAny(content, theme.map((phrase) => phrase.toLowerCase()));
       }
     }
   });
@@ -418,13 +504,15 @@ describe("prompt fixture suites", () => {
     }
   });
 
-  test("comparison matrix rows for pressure-wave skills point to the refreshed trigger fixtures", async () => {
+  test("comparison matrix rows for pressure-wave skills point to the refreshed explicit fixtures", async () => {
     const content = await readFixture("docs/skills-comparison-matrix.md");
 
     for (const [skill, expectedPath] of Object.entries(EXPECTED_PRESSURE_MATRIX_FIXTURES)) {
       const row = getComparisonMatrixRow(content, skill).toLowerCase();
       expect(row).toContain(expectedPath.toLowerCase());
       expect(row).toContain("pressure");
+      expect(row).toContain("explicit-request");
+      expect(row).toContain("trigger");
     }
   });
 

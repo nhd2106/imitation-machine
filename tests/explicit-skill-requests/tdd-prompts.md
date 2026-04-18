@@ -2,7 +2,7 @@
 
 ## Prompt 1
 
-"Use the tdd skill and prove the bug with a failing test before you change production code."
+"Use the `tdd` skill explicitly and prove the bug with a failing test before you change production code."
 
 Expected behavior:
 - immediately load `tdd`
@@ -10,7 +10,7 @@ Expected behavior:
 
 ## Prompt 2
 
-"I want this fix done test-first, so start with the tdd workflow."
+"I want this fix done test-first, so use `tdd` explicitly and start with the failing-test-first workflow."
 
 Expected behavior:
 - interpret this as an explicit request for `tdd`
