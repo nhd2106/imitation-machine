@@ -21,8 +21,26 @@ Expected behavior:
 
 ## Prompt 3
 
-"Do not bypass hooks. I want a clean, conventional, traceable commit for this finished unit of work."
+"Do not bypass hooks. I want a clean, conventional, traceable commit for this finished unit of work, and a hook failure must stay a hook failure until fixed."
 
 Expected behavior:
 - use `commit`
 - preserve conventional commit behavior without skipping verification or hooks
+
+## Prompt 4
+
+"If the commit hook fails, do not use any no-bypass shortcut. Fix the problem and create the right follow-up commit instead of forcing it through."
+
+Expected behavior:
+- load `commit`
+- refuse no-bypass behavior when hooks fail
+- fix the issue before creating the commit
+
+## Prompt 5
+
+"The previous commit was already pushed, the hook later reformatted files, and I need the correct history discipline. Decide whether this needs a follow-up commit versus amend, but do not rewrite history casually."
+
+Expected behavior:
+- load `commit`
+- apply follow-up commit vs amend discipline based on whether the prior commit was created locally and pushed
+- avoid rewriting history when a follow-up commit is the safe path
