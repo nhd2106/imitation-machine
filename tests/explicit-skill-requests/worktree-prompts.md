@@ -2,7 +2,7 @@
 
 ## Prompt 1
 
-"Use the worktree skill and set up an isolated branch for this multi-file change before coding starts."
+"Use the `worktree` skill explicitly and set up an isolated branch for this multi-file change before coding starts."
 
 Expected behavior:
 - load `worktree`
@@ -10,10 +10,11 @@ Expected behavior:
 
 ## Prompt 2
 
-"Use the worktree skill to clean up this merged branch, but check for uncommitted changes before removing anything."
+"Use the `worktree` skill explicitly to clean up this merged branch, but check for uncommitted changes before removing anything."
 
 Expected behavior:
 - load `worktree`
+- honor the explicit `worktree` request for merged cleanup
 - inspect status and merged-state before cleanup
 - avoid force removal unless the user explicitly accepts data loss
 

@@ -2,7 +2,7 @@
 
 ## Prompt 1
 
-"Use the brainstorm skill first because the feature request is still fuzzy."
+"Use the `brainstorm` skill explicitly first because the feature request is still fuzzy and I do not want you pretending the shape is settled."
 
 Expected behavior:
 - immediately load `brainstorm`
@@ -10,7 +10,7 @@ Expected behavior:
 
 ## Prompt 2
 
-"Start by brainstorming the product shape with me instead of jumping into an implementation plan."
+"Start with `brainstorm` explicitly and work through the product shape with me instead of jumping into an implementation plan."
 
 Expected behavior:
 - interpret this as an explicit request for `brainstorm`
