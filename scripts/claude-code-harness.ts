@@ -8,7 +8,7 @@ export type ClaudeTranscriptResult = {
   issues: string[];
 };
 
-const EXPECTED_VISIBLE_SKILLS = [
+const FAST_HARNESS_VISIBLE_SKILL_SUBSET = [
   "using-agentic",
   "requesting-code-review",
   "review-spec",
@@ -54,7 +54,9 @@ export function evaluateClaudeTranscript(transcript: string): ClaudeTranscriptRe
   const skillsIndex = lines.findIndex((line) => line.startsWith("[skills] visible: "));
   const routingIndex = lines.findIndex((line) => line.startsWith("[route] workflow: "));
   const reviewReadyIndex = lines.findIndex((line) => line === "[state] review-ready");
-  const missingVisibleSkills = EXPECTED_VISIBLE_SKILLS.filter((skill) => !visibleSkills.includes(skill));
+  const missingVisibleSkills = FAST_HARNESS_VISIBLE_SKILL_SUBSET.filter((skill) =>
+    !visibleSkills.includes(skill),
+  );
   const routeSupported =
     workflowRoute !== null &&
     (SUPPORTED_WORKFLOW_ROUTES as readonly string[]).includes(workflowRoute);

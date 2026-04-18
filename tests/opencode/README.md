@@ -1,13 +1,34 @@
 # OpenCode Harness Notes
 
-Lightweight OpenCode harness coverage is split into:
+OpenCode harness coverage is split between a fast bounded check and broader integration-oriented usage.
+
+## Fast bounded coverage
+
+This path stays local and deterministic:
 
 - `scripts/opencode-harness.ts` for bounded command construction and transcript evaluation
 - `tests/opencode-harness.test.ts` for focused unit coverage
-- `tests/opencode-harness-smoke.test.ts` for fixture-backed bootstrap → process-skill → plan-ready progression
+- `tests/opencode-harness-smoke.test.ts` for fixture-backed happy-path and failure-path progression checks
+- `tests/opencode/run-tests.sh fast` to run only the OpenCode-focused bounded tests
 
-Run with:
+Run either:
 
 ```bash
-bun run test:harness
+bash tests/opencode/run-tests.sh fast
 ```
+
+or:
+
+```bash
+bun test tests/opencode-harness.test.ts tests/opencode-harness-smoke.test.ts
+```
+
+## Integration-oriented usage
+
+Use a real OpenCode session when you need to confirm plugin installation, live skill loading, or end-to-end routing behavior:
+
+```bash
+opencode run --print-logs "use skill tool to list skills and load using-agentic"
+```
+
+That path is slower and environment-dependent, so keep it separate from the fast bounded harness checks.

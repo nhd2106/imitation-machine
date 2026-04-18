@@ -69,7 +69,7 @@ Expanded workflow examples to look for in the skill inventory: `systematic-debug
 
 See step-by-step local setup details in `CLAUDE_INSTALL.md`.
 
-Lightweight harness coverage for the new OpenCode and Claude flows lives in:
+Fast bounded harness coverage for the new OpenCode and Claude flows lives in:
 
 - `scripts/opencode-harness.ts`
 - `scripts/claude-code-harness.ts`
@@ -77,6 +77,10 @@ Lightweight harness coverage for the new OpenCode and Claude flows lives in:
 - `tests/claude-harness.test.ts`
 - `tests/opencode-harness-smoke.test.ts`
 - `tests/claude-harness-smoke.test.ts`
+
+Use the fast bounded harness for local transcript/unit coverage with `bun run test:harness`, `bash tests/opencode/run-tests.sh fast`, or `bash tests/claude-code/run-tests.sh fast`.
+
+Use the separate integration-oriented guidance for real OpenCode or Claude Code sessions when you need to verify local plugin install, live skill visibility, and end-to-end workflow routing.
 
 ## OpenCode Session Verification
 
@@ -110,6 +114,17 @@ agentic orchestrate status --plan PLN-xxxx --json
 
 ## Harness verification
 
+Fast bounded suite across both surfaces:
+
 ```bash
 bun run test:harness
 ```
+
+Surface-specific fast runs:
+
+```bash
+bash tests/opencode/run-tests.sh fast
+bash tests/claude-code/run-tests.sh fast
+```
+
+For slower integration-oriented guidance, see `tests/opencode/README.md` and `tests/claude-code/README.md`.

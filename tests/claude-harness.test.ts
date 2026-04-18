@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { evaluateClaudeTranscript } from "../scripts/claude-code-harness";
 
 describe("Claude harness", () => {
-  test("parses a bounded install and verification flow", () => {
+  test("parses a bounded visible-skill subset and review-ready flow", () => {
     const result = evaluateClaudeTranscript(`
 [install] plugin imitation-machine@imitation-machine-dev installed
 [skills] visible: using-agentic, requesting-code-review, review-spec, review-quality
@@ -32,7 +32,7 @@ describe("Claude harness", () => {
     expect(result.issues).toContain("Missing review-ready state");
   });
 
-  test("rejects installs that do not expose the expected workflow skills", () => {
+  test("rejects installs that do not expose the bounded visible-skill subset", () => {
     const result = evaluateClaudeTranscript(`
 [install] plugin imitation-machine@imitation-machine-dev installed
 [skills] visible: using-agentic, plan, review-spec, review-quality

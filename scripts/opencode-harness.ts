@@ -33,6 +33,21 @@ function getLineIndex(lines: string[], predicate: (line: string) => boolean): nu
   return lines.findIndex(predicate);
 }
 
+function parseSelectedProcessSkill(lines: string[]): (typeof PROCESS_SKILLS)[number] | null {
+  const routeLine = lines.find((line) => line.startsWith("[route] selected process skill: "));
+  const selectedProcessSkill = routeLine
+    ?.replace("[route] selected process skill: ", "")
+    .trim();
+
+  if (!selectedProcessSkill) {
+    return null;
+  }
+
+  return (PROCESS_SKILLS as readonly string[]).includes(selectedProcessSkill)
+    ? (selectedProcessSkill as (typeof PROCESS_SKILLS)[number])
+    : null;
+}
+
 export function buildOpenCodeHarnessCommand({ prompt }: { prompt: string }): string {
   const escapedPrompt = prompt.replaceAll(/\\/g, "\\\\").replaceAll(/"/g, '\\"');
   return `opencode run --print-logs "${escapedPrompt}"`;
@@ -49,10 +64,7 @@ export function evaluateOpenCodeTranscript(transcript: string): OpenCodeTranscri
 
   const hasBootstrap = BOOTSTRAP_MARKERS.every((marker) => lines.includes(marker));
 
-  const selectedProcessSkill =
-    PROCESS_SKILLS.find((skill) =>
-      lines.includes(`[route] selected process skill: ${skill}`),
-    ) ?? null;
+  const selectedProcessSkill = parseSelectedProcessSkill(lines);
 
   const hasPlanReady = lines.includes("[state] plan-ready");
 
