@@ -90,6 +90,8 @@ See step-by-step local setup details in `CLAUDE_INSTALL.md`.
 
 For fast bounded transcript/unit coverage across both surfaces, run `bun run test:harness`.
 
+For OpenCode-only live bounded checks that replay a checked-in manifest through `opencode run --print-logs`, run `bash tests/opencode/run-tests.sh live`. Set `OPENCODE_LIVE=1` to execute real sessions; otherwise the live harness skips cleanly.
+
 For surface-specific commands, coverage details, and slower integration-oriented checks, use the per-surface guides in `tests/opencode/README.md` and `tests/claude-code/README.md`.
 
 ## OpenCode Session Verification
@@ -108,7 +110,7 @@ In logs, confirm:
 
 If skills do not appear, use the local install script above rather than the package name.
 
-The bounded OpenCode transcript harness is documented in `tests/opencode/README.md`.
+The bounded OpenCode transcript harness, including the env-gated live runner, is documented in `tests/opencode/README.md`.
 
 ## CLI
 
@@ -126,3 +128,5 @@ agentic orchestrate status --plan PLN-xxxx --json
 ## Harness verification
 
 For fast bounded coverage plus surface-specific and integration-oriented guidance, use `tests/opencode/README.md` and `tests/claude-code/README.md`.
+
+OpenCode also ships a checked-in live scenario manifest at `tests/opencode/live-scenarios.json` and a bounded live runner at `scripts/opencode-live-harness.ts`.
