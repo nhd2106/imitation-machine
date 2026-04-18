@@ -35,6 +35,17 @@ const DEEPENED_FIXTURE_EXPECTATIONS = {
   "tests/skill-triggering/repo-prompts.md": [["base branch"], ["transitive dependency", "dependency impact"], ["full run", "full repo"]],
   "tests/skill-triggering/adr-prompts.md": [["team is in a hurry", "schedule pressure"], ["public contract"], ["expensive to reverse", "painful to unwind"]],
   "tests/skill-triggering/commit-prompts.md": [["hook failure", "hook"], ["no-bypass", "bypass"], ["follow-up commit", "follow up commit"]],
+  "tests/skill-triggering/executing-plans-prompts.md": [
+    ["approved plan", "plan is approved"],
+    ["execute the next task", "work through the plan", "inline"],
+    ["verification evidence", "verification", "proof"],
+    ["stop if", "re-evaluate", "scope grows"],
+  ],
+  "tests/skill-triggering/dispatching-parallel-agents-prompts.md": [
+    ["parallel", "independent", "separate"],
+    ["shared state", "same file", "overlapping ownership"],
+    ["one person", "one place", "bring the results back together"],
+  ],
   "tests/skill-triggering/review-security-prompts.md": [
     ["auth", "authentication"],
     ["input handling", "input validation", "untrusted input"],
@@ -56,6 +67,18 @@ const DEEPENED_FIXTURE_EXPECTATIONS = {
   "tests/explicit-skill-requests/repo-prompts.md": [["explicit"], ["`repo`"], ["base branch", "release branch"], ["transitive dependency", "dependency impact"]],
   "tests/explicit-skill-requests/adr-prompts.md": [["explicit"], ["`adr`"], ["public contract"], ["expensive to reverse", "painful to unwind"]],
   "tests/explicit-skill-requests/commit-prompts.md": [["explicit"], ["`commit`"], ["hook failure", "hook"], ["follow-up commit", "follow up commit"]],
+  "tests/explicit-skill-requests/executing-plans-prompts.md": [
+    ["explicit"],
+    ["`executing-plans`"],
+    ["approved plan", "approved task"],
+    ["work through the plan", "inline", "one planned task at a time"],
+  ],
+  "tests/explicit-skill-requests/dispatching-parallel-agents-prompts.md": [
+    ["explicit"],
+    ["`dispatching-parallel-agents`"],
+    ["parallel", "independent", "split this up"],
+    ["shared state", "same file", "bring the results back together"],
+  ],
   "tests/explicit-skill-requests/review-security-prompts.md": [
     ["explicit"],
     ["`review-security`"],
@@ -86,6 +109,8 @@ const EXPECTED_PRESSURE_MATRIX_FIXTURES = {
   repo: "tests/explicit-skill-requests/repo-prompts.md",
   adr: "tests/explicit-skill-requests/adr-prompts.md",
   commit: "tests/explicit-skill-requests/commit-prompts.md",
+  "executing-plans": "tests/explicit-skill-requests/executing-plans-prompts.md",
+  "dispatching-parallel-agents": "tests/explicit-skill-requests/dispatching-parallel-agents-prompts.md",
   "review-security": "tests/explicit-skill-requests/review-security-prompts.md",
   "systematic-debugging": "tests/explicit-skill-requests/systematic-debugging-prompts.md",
 } as const;
@@ -105,6 +130,8 @@ const EXPLICIT_PER_PROMPT_FIXTURES = [
   "tests/explicit-skill-requests/repo-prompts.md",
   "tests/explicit-skill-requests/adr-prompts.md",
   "tests/explicit-skill-requests/commit-prompts.md",
+  "tests/explicit-skill-requests/executing-plans-prompts.md",
+  "tests/explicit-skill-requests/dispatching-parallel-agents-prompts.md",
   "tests/explicit-skill-requests/review-security-prompts.md",
   "tests/explicit-skill-requests/systematic-debugging-prompts.md",
 ] as const;
@@ -116,6 +143,11 @@ const AVOID_JARGON_PHRASES = {
   "tests/skill-triggering/review-security-prompts.md": ["severity-oriented"],
   "tests/skill-triggering/systematic-debugging-prompts.md": ["fix-jumping"],
   "tests/explicit-skill-requests/systematic-debugging-prompts.md": ["fix-jumping"],
+  "tests/skill-triggering/executing-plans-prompts.md": ["direct lane"],
+  "tests/explicit-skill-requests/executing-plans-prompts.md": ["direct lane"],
+  "tests/skill-triggering/dispatching-parallel-agents-prompts.md": ["safe parallelism", "safe parallel fanout", "merge coordinator"],
+  "tests/explicit-skill-requests/dispatching-parallel-agents-prompts.md": ["safe parallel fanout", "merge coordinator"],
+  "tests/multi-turn-workflows/dispatching-parallel-agents-safe-fanout.md": ["safe parallel fanout", "merge coordinator"],
 } as const;
 
 const DISTINCT_SCENARIO_EXPECTATIONS = {
@@ -136,6 +168,16 @@ const DISTINCT_SCENARIO_EXPECTATIONS = {
   "tests/explicit-skill-requests/systematic-debugging-prompts.md": [
     [/reproduce|reproducible/, /hypothesis log|logged hypotheses/],
     [/random patches/, /evidence/, /likely cause|narrows the cause/],
+  ],
+  "tests/skill-triggering/dispatching-parallel-agents-prompts.md": [
+    [/parallel|split/, /independent|independence/],
+    [/shared state|same file|overlapping ownership/, /refuse|do not split|not parallel/],
+    [/bring the results back together|one place|one person/, /conflict|contradiction|final answer|synthesis/],
+  ],
+  "tests/explicit-skill-requests/dispatching-parallel-agents-prompts.md": [
+    [/`dispatching-parallel-agents`/, /parallel|split this up|independent/],
+    [/shared state|same file/, /refuse|keep together|not independent/],
+    [/bring the results back together|one place|one person/, /resolve contradictions|contradiction|conflict/],
   ],
   "tests/multi-turn-workflows/systematic-debugging-to-fix.md": [
     [/production-only|intermittent/, /reproduce first/],
@@ -201,6 +243,20 @@ const EXPECTED_MULTI_TURN_DEPTH = {
     "affected package",
     "task by task",
   ],
+  "tests/multi-turn-workflows/plan-to-executing-plans.md": [
+    "plan",
+    "executing-plans",
+    "approved plan",
+    "verification evidence",
+    "task",
+  ],
+  "tests/multi-turn-workflows/dispatching-parallel-agents-safe-fanout.md": [
+    "dispatching-parallel-agents",
+    "parallel",
+    "shared state",
+    "bring the results back together",
+    "contradiction",
+  ],
   "tests/multi-turn-workflows/review-security-to-systematic-debugging-to-verify.md": [
     "review-security",
     "systematic-debugging",
@@ -227,6 +283,16 @@ const EXPECTED_MULTI_TURN_PROGRESSIONS = {
     ["`plan`", "pln-742", "tsk-201", "tsk-202", "packages/build-utils"],
     ["`subagent-driven-development`", "pln-742", "tsk-201", "tsk-202", "fresh workers", "review gates"],
   ],
+  "tests/multi-turn-workflows/plan-to-executing-plans.md": [
+    ["`plan`", "approved", "task", "verification evidence"],
+    ["`executing-plans`", "approved plan", "next task", "verification evidence"],
+    ["`executing-plans`", "carry forward", "verification evidence", "stop if"],
+  ],
+  "tests/multi-turn-workflows/dispatching-parallel-agents-safe-fanout.md": [
+    ["`dispatching-parallel-agents`", "independent checks", "parallel", "safety check"],
+    ["shared state", "same file", "keep together", "not safe to split", "contradiction"],
+    ["bring the results back together", "resolve contradictions", "single synthesis", "verification evidence"],
+  ],
   "tests/multi-turn-workflows/review-security-to-systematic-debugging-to-verify.md": [
     ["`review-security`", "sec-17", "auth bypass", "token leakage", "high severity"],
     ["`systematic-debugging`", "sec-17", "hypothesis log", "h-3", "reproduce"],
@@ -240,6 +306,7 @@ const STRONG_INTENT_PHRASES = {
   adr: ["architectural decision", "expensive to reverse", "public contract"],
   commit: ["conventional commit", "traceability", "verified"],
   "subagent-driven-development": ["task by task", "fresh workers", "review gates"],
+  "executing-plans": ["approved plan", "one planned task at a time", "work through the plan"],
   "review-quality": ["review quality", "maintainability", "severity calibration"],
   "review-security": ["review security", "security finding", "severity"],
   "review-spec": ["review spec", "spec review", "compliance"],
@@ -667,16 +734,18 @@ describe("prompt fixture suites", () => {
       "release",
       "finishing-a-development-branch",
       "repo",
-      "plan",
-      "subagent-driven-development",
+        "plan",
+        "executing-plans",
+        "subagent-driven-development",
       "review-spec",
       "review-quality",
       "review-security",
-      "requesting-code-review",
-      "receiving-code-review",
-      "worktree",
-      "systematic-debugging",
-    ] as const) {
+        "requesting-code-review",
+        "receiving-code-review",
+        "worktree",
+        "systematic-debugging",
+        "dispatching-parallel-agents",
+      ] as const) {
       const row = getComparisonMatrixRow(content, skill);
       expect(row.toLowerCase()).toContain("multi-turn");
     }
