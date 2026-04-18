@@ -22,9 +22,9 @@ Comparison between `imitation-machine` and `superpowers`, focused on skill cover
 | `tdd` | `test-driven-development` | Comparable | Partial | Partial | now has multi-turn workflow depth via `using-agentic -> tdd -> verify`, but pressure-scenario evals are still lighter than the best-covered skills | `tests/multi-turn-workflows/using-agentic-to-tdd-to-verify.md` |
 | `review-spec` | request/review system pieces | Partial | Partial | Partial | now has multi-turn enforcement that `review-spec` must precede `review-quality`, but review-report depth is still sparse | `tests/multi-turn-workflows/subagent-review-loop.md` |
 | `review-quality` | request/review system pieces | Partial | Partial | Partial | now has multi-turn coverage for quality review after spec approval, but severity calibration scenarios remain light | `tests/multi-turn-workflows/subagent-review-loop.md` |
-| `review-security` | no exact match; related security review patterns | Unique | Comparable | Low | needs stronger behavioral/eval scenarios for real findings | `tests/skill-triggering/review-security-prompts.md` |
+| `review-security` | no exact match; related security review patterns | Unique | Comparable | Partial | trigger + explicit-request pressure coverage now includes auth, untrusted input, secrets, severity, and blocking review-security cases, but deeper multi-turn security-review handoffs are still thin | `tests/explicit-skill-requests/review-security-prompts.md` |
 | `design` | partially overlaps brainstorming + design guidance | Unique | Partial | Partial | stronger direction-lock guidance, companion docs, and a bounded multi-turn browser-validation workflow now ship; the remaining bounded gap is more pressure-scenario browser-validation coverage | `tests/skill-triggering/design-prompts.md` |
-| `systematic-debugging` | `systematic-debugging` | Comparable | Partial | Low | needs deeper debugging prompt fixtures and decision-pressure evals | `tests/skill-triggering/systematic-debugging-prompts.md` |
+| `systematic-debugging` | `systematic-debugging` | Comparable | Partial | Partial | trigger + explicit-request pressure coverage now includes reproduce-first, hypothesis-log, evidence-based narrowing, anti-fix-jumping prompts, plus a multi-turn fix handoff; broader debugging-to-verification chains are still thin | `tests/explicit-skill-requests/systematic-debugging-prompts.md` |
 | `dispatching-parallel-agents` | `dispatching-parallel-agents` | Comparable | Partial | Low | needs explicit safe-parallelism prompt fixtures | `tests/skill-triggering/dispatching-parallel-agents-prompts.md` |
 | `finishing-a-development-branch` | branch-finishing / release-adjacent flow | Partial | Partial | Partial | merged-branch cleanup is now covered as an explicit handoff path, but broader branch-finish pressure cases are still thin | `tests/skill-triggering/finishing-a-development-branch-prompts.md` |
 | `requesting-code-review` | `requesting-code-review` | Comparable | Partial | Partial | now has multi-turn review-request to response depth, but more PR-state variation is still needed | `tests/multi-turn-workflows/requesting-to-receiving-code-review.md` |
@@ -61,13 +61,13 @@ These still lag behind the richest `superpowers` skills:
 - `adr`
 - `commit`
 
-`plan`, `verify`, `gate`, and `worktree` are no longer the thinnest workflow packages after the current fixture/examples wave, and `design` is stronger on direction lock and browser-validation handoff depth. `verify`, `gate`, `pr`, `release`, `repo`, `adr`, and `commit` now also have bounded pressure-scenario trigger and explicit-request coverage, but all still benefit from more end-to-end evaluation depth.
+`plan`, `verify`, and `worktree` are no longer the thinnest workflow packages after the current fixture/examples wave, and `design` is stronger on direction lock and browser-validation handoff depth. `verify`, `gate`, `pr`, `release`, `repo`, `adr`, `commit`, `review-security`, and `systematic-debugging` now also have bounded pressure-scenario trigger and explicit-request coverage, with `systematic-debugging` gaining one bounded multi-turn fix-handoff workflow, but all still benefit from more end-to-end evaluation depth.
 
 ## Recommended Next Wave
 
 1. Add more realistic multi-turn fixtures where workflow stages hand off evidence across turns.
 2. Expand `design` eval depth with more pressure cases, especially post-implementation browser-validation checks.
-3. Deepen end-to-end execution fixtures for `verify`, `gate`, `pr`, `release`, `repo`, `adr`, and `commit` beyond bounded prompt coverage.
+3. Deepen end-to-end execution fixtures for `verify`, `gate`, `pr`, `release`, `repo`, `adr`, `commit`, and `review-security`, plus broader debugging-to-verification chains for `systematic-debugging`.
 
 ## Bottom Line
 
