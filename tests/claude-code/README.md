@@ -34,7 +34,7 @@ The fast harness does **not** try to prove the full documented Claude skill inve
 - `review-spec`
 - `review-quality`
 
-Use the manual checks below when you need confidence in the broader installed inventory and orchestration behavior.
+Use the manual checks below when you need confidence in the broader installed inventory and orchestration behavior. Treat the fast harness as a safety net for bounded transcript behavior, not as a substitute for real-session verification.
 
 ## Preconditions
 

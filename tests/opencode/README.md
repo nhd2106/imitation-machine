@@ -4,7 +4,7 @@ OpenCode harness coverage is split between a fast bounded check and broader inte
 
 ## Fast bounded coverage
 
-This path stays local and deterministic:
+This path stays local, deterministic, and intentionally narrow:
 
 - `scripts/opencode-harness.ts` for bounded command construction and transcript evaluation
 - `tests/opencode-harness.test.ts` for focused unit coverage
@@ -31,4 +31,4 @@ Use a real OpenCode session when you need to confirm plugin installation, live s
 opencode run --print-logs "use skill tool to list skills and load using-agentic"
 ```
 
-That path is slower and environment-dependent, so keep it separate from the fast bounded harness checks.
+That path is slower and environment-dependent, so keep it separate from the fast bounded harness checks. The fast runner is meant to protect bounded transcript behavior, not to replace real-session validation.
