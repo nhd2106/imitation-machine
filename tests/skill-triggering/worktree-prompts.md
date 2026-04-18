@@ -16,3 +16,12 @@ Expected behavior:
 - load `worktree`
 - verify merged-branch cleanup conditions before removal
 - check for uncommitted work and avoid unsafe cleanup shortcuts
+
+## Prompt 3
+
+"This branch is merged and I want the full cleanup path: remove the worktree, delete the local branch, and only delete the origin branch if I explicitly confirm it."
+
+Expected behavior:
+- load `worktree`
+- use the merged cleanup order instead of treating cleanup as a blind delete
+- keep remote branch deletion optional and explicit

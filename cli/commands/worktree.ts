@@ -1,3 +1,6 @@
+import { realpath } from "node:fs/promises";
+import { resolve } from "node:path";
+
 type WorktreeRunResult = {
   success: boolean;
   exitCode: number;
@@ -18,7 +21,7 @@ agentic worktree — Git worktree workflow
 USAGE
   agentic worktree create --branch <name> [--base <ref>] [--path <dir>] [--cwd <path>]
   agentic worktree list [--cwd <path>] [--json]
-  agentic worktree remove --path <dir> [--force] [--cwd <path>]
+  agentic worktree remove --path <dir> [--force] [--delete-branch] [--delete-remote] [--remote <name>] [--cwd <path>]
 `.trim();
 
 export async function worktreeCommand(args: string[]): Promise<void> {
@@ -132,18 +135,105 @@ async function listWorktrees(args: string[], cwd: string): Promise<void> {
 async function removeWorktree(args: string[], cwd: string): Promise<void> {
   const path = getFlag(args, "--path");
   const force = args.includes("--force");
+  const deleteRemote = args.includes("--delete-remote");
+  const deleteBranch = args.includes("--delete-branch");
+  const remote = getFlag(args, "--remote") ?? "origin";
 
   if (!path) {
     console.error("Required: --path <dir>");
     process.exit(1);
   }
 
+  if (deleteRemote && !deleteBranch) {
+    console.error("--delete-remote requires --delete-branch so cleanup order stays explicit.");
+    process.exit(1);
+  }
+
+  const absolutePath = resolve(cwd, path);
+  const branch = deleteBranch ? await prepareBranchCleanup(absolutePath, cwd, force) : undefined;
+
   const gitArgs = ["worktree", "remove"];
   if (force) gitArgs.push("--force");
   gitArgs.push(path);
 
   const result = await runGit(gitArgs, cwd);
+  if (!result.success) outputOrExit(result);
+
+  if (branch) {
+    outputOrExit(await runGit(["branch", "-d", branch], cwd));
+
+    if (deleteRemote) {
+      outputOrExit(await runGit(["push", remote, "--delete", branch], cwd));
+    }
+  }
+
   outputOrExit(result);
+}
+
+async function prepareBranchCleanup(path: string, cwd: string, force: boolean): Promise<string> {
+  const worktree = await findWorktree(path, cwd);
+
+  if (!worktree) {
+    console.error(`No worktree found for path: ${path}`);
+    process.exit(1);
+  }
+
+  if (!worktree.branch) {
+    console.error("Cannot delete a branch for a detached worktree.");
+    process.exit(1);
+  }
+
+  if (!force) {
+    await assertWorktreeClean(path, cwd);
+  }
+
+  const merged = await isBranchMerged(worktree.branch, cwd);
+  if (!merged) {
+    console.error(`Refusing to remove ${path}: branch '${worktree.branch}' is not merged yet.`);
+    process.exit(1);
+  }
+
+  return worktree.branch;
+}
+
+async function findWorktree(path: string, cwd: string): Promise<WorktreeEntry | undefined> {
+  const result = await runGit(["worktree", "list", "--porcelain"], cwd);
+  if (!result.success) outputOrExit(result);
+
+  const target = await canonicalPath(path);
+
+  for (const entry of parseWorktreePorcelain(result.output)) {
+    if ((await canonicalPath(entry.worktree)) === target) {
+      return entry;
+    }
+  }
+
+  return undefined;
+}
+
+async function assertWorktreeClean(path: string, cwd: string): Promise<void> {
+  const result = await runGit(["-C", path, "status", "--porcelain"], cwd);
+  if (!result.success) outputOrExit(result);
+
+  if (result.output.trim().length > 0) {
+    console.error(`Refusing to remove ${path}: uncommitted changes detected. Commit, stash, or use --force.`);
+    process.exit(1);
+  }
+}
+
+async function isBranchMerged(branch: string, cwd: string): Promise<boolean> {
+  const result = await runGit(["merge-base", "--is-ancestor", branch, "HEAD"], cwd);
+  return result.success;
+}
+
+async function canonicalPath(path: string): Promise<string> {
+  const absolutePath = resolve(path);
+
+  try {
+    return await realpath(absolutePath);
+  } catch {
+    return absolutePath;
+  }
 }
 
 async function runGit(args: string[], cwd: string): Promise<WorktreeRunResult> {

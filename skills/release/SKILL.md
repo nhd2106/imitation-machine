@@ -41,11 +41,12 @@ digraph release_flow {
 
 1. run fresh verification
 2. for follow-on work, check merged PRs and clean stale local branches/worktrees safely
-3. own commit + gh PR creation for delivery units or grouped tasks when requested
-4. determine the semver bump from the actual change history
-5. generate the changelog with traceability where possible
-6. tag and publish using the agreed release process
-7. update follow-up records like changelog or requirement status
+3. use the cleanup order explicitly when branches are already merged: verify no dirty worktree, remove the worktree, delete the merged local branch, and keep optional remote branch deletion last
+4. own commit + gh PR creation for delivery units or grouped tasks when requested
+5. determine the semver bump from the actual change history
+6. generate the changelog with traceability where possible
+7. tag and publish using the agreed release process
+8. update follow-up records like changelog or requirement status
 
 ## Rules
 
@@ -54,6 +55,7 @@ digraph release_flow {
 - do not skip changelog clarity just because the diff is small
 - do not tag until the release notes and version intent are understood
 - keep grouped delivery units together when preparing commit + gh PR creation
+- do not delete a remote branch as part of cleanup unless that remote deletion was explicitly requested
 
 ## Red Flags
 

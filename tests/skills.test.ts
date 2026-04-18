@@ -182,7 +182,23 @@ describe("core skill content", () => {
     expect(content.includes("multiple worktrees")).toBe(true);
     expect(content.includes("clean stale local branches/worktrees safely")).toBe(true);
     expect(content.includes("merged branch") || content.includes("merged PR")).toBe(true);
+    expect(content.includes("--delete-branch")).toBe(true);
+    expect(content.includes("--delete-remote")).toBe(true);
+    expect(content.includes("optional remote deletion")).toBe(true);
     expect(content.includes("force removal")).toBe(true);
+  });
+
+  test("worktree cleanup guide documents ordered merged cleanup", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "worktree", "cleanup-guide.md")).text();
+    const lowerContent = content.toLowerCase();
+
+    expectContainsAll(lowerContent, [
+      "uncommitted changes",
+      "--delete-branch",
+      "--delete-remote",
+      "optional remote",
+      "cleanup order",
+    ]);
   });
 
   test("gate documents blocker handling and review-stage gates", async () => {
@@ -202,10 +218,23 @@ describe("core skill content", () => {
     expect(release.includes("commit + gh PR creation")).toBe(true);
     expect(release.includes("delivery units or grouped tasks")).toBe(true);
     expect(release.includes("check merged PRs")).toBe(true);
+    expect(release.includes("optional remote branch")).toBe(true);
     expect(pr.includes("delivery unit")).toBe(true);
     expect(pr.includes("grouped tasks")).toBe(true);
     expect(sdd.includes("independent planned task groups")).toBe(true);
     expect(sdd.includes("shared groups stay together")).toBe(true);
+  });
+
+  test("finishing-a-development-branch documents merged cleanup handoff", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "finishing-a-development-branch", "SKILL.md")).text();
+    const lowerContent = content.toLowerCase();
+
+    expectContainsAll(lowerContent, [
+      "already merged",
+      "uncommitted changes",
+      "delete the merged local branch",
+      "remote branch only if explicitly requested",
+    ]);
   });
 
   test("rewritten discipline skills include workflow and red flags", async () => {

@@ -16,3 +16,12 @@ Expected behavior:
 - load `worktree`
 - inspect status and merged-state before cleanup
 - avoid force removal unless the user explicitly accepts data loss
+
+## Prompt 3
+
+"Use the `worktree` skill explicitly for merged cleanup: remove the worktree, delete the local branch, and ask before deleting the remote branch too."
+
+Expected behavior:
+- load `worktree`
+- keep the local merged-branch cleanup path first-class
+- treat remote branch deletion as optional and explicit

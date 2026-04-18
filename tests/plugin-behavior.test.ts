@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-// @ts-expect-error JS plugin module is loaded directly for behavior tests.
 import ImitationMachinePlugin from "../.opencode/plugins/imitation-machine.js";
 
 type MessagePart = { type: string; text: string };
