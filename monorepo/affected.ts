@@ -1,5 +1,5 @@
 import { buildWorkspaceInfo, type PackageDirs } from "./graph";
-import { join } from "node:path";
+import { isAbsolute, join, normalize, relative } from "node:path";
 
 /**
  * Returns package names that were touched by commits since `sinceRef`,
@@ -42,7 +42,13 @@ async function getChangedFiles(cwd: string, sinceRef: string): Promise<string[]>
     ["git", "diff", "--name-only", `${sinceRef}...HEAD`],
     { cwd, stdout: "pipe", stderr: "pipe" }
   );
-  await proc.exited;
+  const exitCode = await proc.exited;
+  const stderr = (await new Response(proc.stderr).text()).trim();
+
+  if (exitCode !== 0) {
+    throw new Error(stderr || `git diff failed for ${sinceRef}...HEAD`);
+  }
+
   const output = (await new Response(proc.stdout).text()).trim();
   return output ? output.split("\n") : [];
 }
@@ -64,13 +70,18 @@ function fileToPackage(
   file: string,
   packageDirs: PackageDirs
 ): string | undefined {
-  const absFile = join(rootDir, file);
+  const normalizedRoot = normalize(rootDir);
+  const absFile = normalize(isAbsolute(file) ? file : join(normalizedRoot, file));
   let bestMatch: { pkg: string; dir: string } | undefined;
 
   for (const [pkg, dir] of Object.entries(packageDirs)) {
-    if (absFile === dir || absFile.startsWith(`${dir}/`)) {
+    const normalizedDir = normalize(dir);
+    const rel = relative(normalizedDir, absFile);
+    const isInsidePackage = rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
+
+    if (isInsidePackage) {
       if (!bestMatch || dir.length > bestMatch.dir.length) {
-        bestMatch = { pkg, dir };
+        bestMatch = { pkg, dir: normalizedDir };
       }
     }
   }

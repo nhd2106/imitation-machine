@@ -1,5 +1,6 @@
 import { test, expect, describe } from "bun:test";
 import { buildGraph } from "../monorepo/graph";
+import { getAffected } from "../monorepo/affected";
 import { mkdtemp, writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -29,6 +30,16 @@ async function setupWorkspace(root: string, packages: Array<{ name: string; deps
       join(pkgDir, "package.json"),
       JSON.stringify({ name: pkg.name, dependencies: deps })
     );
+  }
+}
+
+async function git(args: string[], cwd: string): Promise<void> {
+  const proc = Bun.spawn(["git", ...args], { cwd, stdout: "pipe", stderr: "pipe" });
+  const exitCode = await proc.exited;
+
+  if (exitCode !== 0) {
+    const stderr = await new Response(proc.stderr).text();
+    throw new Error(stderr.trim() || `git ${args.join(" ")} failed`);
   }
 }
 
@@ -78,5 +89,38 @@ describe("monorepo graph", () => {
     expect(graph["@test/b"]).toContain("@test/a");
     expect(graph["@test/c"]).toContain("@test/b");
     expect(graph["@test/c"]).not.toContain("@test/a"); // Direct deps only
+  });
+
+  test("throws when git diff fails instead of silently treating it as no changes", async () => {
+    const dir = await makeTempDir();
+    await setupWorkspace(dir, [{ name: "@test/app" }]);
+
+    await expect(getAffected(dir, "origin/main")).rejects.toThrow();
+  });
+
+  test("maps changed files to the owning package even when package paths share a prefix", async () => {
+    const dir = await makeTempDir();
+    await setupWorkspace(dir, [
+      { name: "@test/app" },
+      { name: "@test/app-tools" },
+      { name: "@test/consumer", deps: ["@test/app-tools"] },
+    ]);
+
+    await writeFile(join(dir, "packages", "app", "index.ts"), "export const app = true;\n");
+    await writeFile(join(dir, "packages", "app-tools", "index.ts"), "export const tools = true;\n");
+    await writeFile(join(dir, "packages", "consumer", "index.ts"), "export const consumer = true;\n");
+
+    await git(["init"], dir);
+    await git(["config", "user.name", "Test User"], dir);
+    await git(["config", "user.email", "test@example.com"], dir);
+    await git(["add", "."], dir);
+    await git(["commit", "-m", "chore: baseline"], dir);
+
+    await writeFile(join(dir, "packages", "app-tools", "src.ts"), "export const changed = true;\n");
+    await git(["add", "."], dir);
+    await git(["commit", "-m", "feat: change app-tools"], dir);
+
+    const affected = await getAffected(dir, "HEAD~1");
+    expect(affected).toEqual(["@test/app-tools", "@test/consumer"]);
   });
 });
