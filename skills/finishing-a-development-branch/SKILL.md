@@ -14,7 +14,7 @@ Finish the branch by proving it is handoff-ready, not by assuming recent progres
 1. Confirm the intended scope and what is explicitly deferred.
 2. Run the branch through `references/branch-finish-checklist.md`.
 3. Summarize what changed, how it was verified, and any open concerns in `branch-hand-off-template.md`.
-4. If the branch is already merged, use the safe cleanup order: check for uncommitted changes, remove the worktree, delete the merged local branch, and delete the remote branch only if explicitly requested.
+4. If the branch is already merged, use the safe cleanup order: check for uncommitted changes, remove the worktree, delete the merged local branch, and delete the remote branch only if explicitly requested. For multiple merged worktrees, preview with `agentic worktree cleanup-merged --json` before using `--apply`.
 5. Remove obvious loose ends that belong to this branch only.
 6. Hand off with evidence, not memory.
 

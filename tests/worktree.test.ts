@@ -241,4 +241,184 @@ describe("worktree command", () => {
     const remoteHeads = await runOk(["git", "ls-remote", "--heads", "origin", branch], repoDir);
     expect(remoteHeads.stdout.trim()).toBe("");
   });
+
+  test("cleanup-merged --json previews merged cleanup candidates without deleting anything", async () => {
+    const { tempDir, repoDir } = await createRepoFixture("agentic-worktree-cleanup-preview-");
+    const branch = "feat/cleanup-preview";
+    const worktreeDir = join(repoDir, ".worktrees", "cleanup-preview");
+
+    await createFeatureWorktree(repoDir, branch, worktreeDir, { mergeIntoMain: true });
+
+    const result = await runWorktreeCli(
+      ["cleanup-merged", "--cwd", repoDir, "--json"],
+      join(tempDir, "state.db"),
+    );
+
+    expect(result.exitCode).toBe(0);
+    expect(await pathExists(worktreeDir)).toBe(true);
+
+    const payload = JSON.parse(result.stdout) as {
+      candidates: Array<{ path: string; branch: string }>;
+      blockers: Array<{ path: string; reason: string }>;
+    };
+
+    expect(
+      payload.candidates.some(
+        (entry) => entry.path.endsWith("/.worktrees/cleanup-preview") && entry.branch === branch,
+      ),
+    ).toBe(true);
+    expect(payload.blockers).toHaveLength(0);
+  });
+
+  test("cleanup-merged --apply removes only clean merged worktrees and their local branches", async () => {
+    const { tempDir, repoDir } = await createRepoFixture("agentic-worktree-cleanup-apply-");
+    const mergedBranch = "feat/cleanup-merged";
+    const unmergedBranch = "feat/cleanup-unmerged";
+    const mergedWorktreeDir = join(repoDir, ".worktrees", "cleanup-merged");
+    const unmergedWorktreeDir = join(repoDir, ".worktrees", "cleanup-unmerged");
+
+    await createFeatureWorktree(repoDir, mergedBranch, mergedWorktreeDir, { mergeIntoMain: true });
+    await createFeatureWorktree(repoDir, unmergedBranch, unmergedWorktreeDir);
+
+    const result = await runWorktreeCli(
+      ["cleanup-merged", "--cwd", repoDir, "--apply"],
+      join(tempDir, "state.db"),
+    );
+
+    expect(result.exitCode).toBe(0);
+    expect(await pathExists(mergedWorktreeDir)).toBe(false);
+    expect(await pathExists(unmergedWorktreeDir)).toBe(true);
+
+    const mergedBranchList = await runOk(["git", "branch", "--list", mergedBranch], repoDir);
+    const unmergedBranchList = await runOk(["git", "branch", "--list", unmergedBranch], repoDir);
+    expect(mergedBranchList.stdout.trim()).toBe("");
+    expect(unmergedBranchList.stdout).toContain(unmergedBranch);
+  });
+
+  test("cleanup-merged --apply --delete-remote deletes remote branches only when explicitly requested", async () => {
+    const { tempDir, repoDir } = await createRepoFixture("agentic-worktree-cleanup-remote-");
+    const keptBranch = "feat/cleanup-remote-kept";
+    const keptWorktreeDir = join(repoDir, ".worktrees", "cleanup-remote-kept");
+    const deletedBranch = "feat/cleanup-remote-deleted";
+    const deletedWorktreeDir = join(repoDir, ".worktrees", "cleanup-remote-deleted");
+
+    await createFeatureWorktree(repoDir, keptBranch, keptWorktreeDir, { push: true, mergeIntoMain: true });
+
+    const previewOnly = await runWorktreeCli(
+      ["cleanup-merged", "--cwd", repoDir, "--apply"],
+      join(tempDir, "state-preview.db"),
+    );
+
+    expect(previewOnly.exitCode).toBe(0);
+    const remoteStillThere = await runOk(["git", "ls-remote", "--heads", "origin", keptBranch], repoDir);
+    expect(remoteStillThere.stdout).toContain(`refs/heads/${keptBranch}`);
+
+    await createFeatureWorktree(repoDir, deletedBranch, deletedWorktreeDir, { push: true, mergeIntoMain: true });
+
+    const deleteRemote = await runWorktreeCli(
+      ["cleanup-merged", "--cwd", repoDir, "--apply", "--delete-remote"],
+      join(tempDir, "state-delete.db"),
+    );
+
+    expect(deleteRemote.exitCode).toBe(0);
+    const remoteGone = await runOk(["git", "ls-remote", "--heads", "origin", deletedBranch], repoDir);
+    expect(remoteGone.stdout.trim()).toBe("");
+  });
+
+  test("cleanup-merged --apply --delete-remote fails fast on remote probe errors", async () => {
+    const { tempDir, repoDir } = await createRepoFixture("agentic-worktree-cleanup-bad-remote-");
+    const branch = "feat/bad-remote-merged";
+    const worktreeDir = join(repoDir, ".worktrees", "bad-remote-merged");
+
+    await createFeatureWorktree(repoDir, branch, worktreeDir, { mergeIntoMain: true });
+
+    const result = await runWorktreeCli(
+      ["cleanup-merged", "--cwd", repoDir, "--apply", "--delete-remote", "--remote", "does-not-exist"],
+      join(tempDir, "state.db"),
+    );
+
+    expect(result.exitCode).toBe(128);
+    expect(result.stderr.toLowerCase()).toContain("does-not-exist");
+    expect(await pathExists(worktreeDir)).toBe(true);
+  });
+
+  test("cleanup-merged --apply --delete-remote skips local-only merged branches safely", async () => {
+    const { tempDir, repoDir } = await createRepoFixture("agentic-worktree-cleanup-local-only-");
+    const branch = "feat/local-only-merged";
+    const worktreeDir = join(repoDir, ".worktrees", "local-only-merged");
+
+    await createFeatureWorktree(repoDir, branch, worktreeDir, { mergeIntoMain: true });
+
+    const result = await runWorktreeCli(
+      ["cleanup-merged", "--cwd", repoDir, "--apply", "--delete-remote"],
+      join(tempDir, "state.db"),
+    );
+
+    expect(result.exitCode).toBe(0);
+    expect(await pathExists(worktreeDir)).toBe(false);
+    const branchList = await runOk(["git", "branch", "--list", branch], repoDir);
+    expect(branchList.stdout.trim()).toBe("");
+  });
+
+  test("cleanup-merged does not treat pushed but unmerged branches as merged candidates", async () => {
+    const { tempDir, repoDir } = await createRepoFixture("agentic-worktree-cleanup-unmerged-");
+    const branch = "feat/cleanup-pushed-unmerged";
+    const worktreeDir = join(repoDir, ".worktrees", "cleanup-pushed-unmerged");
+
+    await createFeatureWorktree(repoDir, branch, worktreeDir, { push: true });
+
+    const result = await runWorktreeCli(
+      ["cleanup-merged", "--cwd", repoDir, "--json"],
+      join(tempDir, "state.db"),
+    );
+
+    expect(result.exitCode).toBe(0);
+    const payload = JSON.parse(result.stdout) as {
+      candidates: Array<{ path: string; branch: string }>;
+      blockers: Array<{ path: string; branch?: string; reason: string }>;
+    };
+
+    expect(payload.candidates.some((entry) => entry.branch === branch)).toBe(false);
+    expect(
+      payload.blockers.some(
+        (entry) => entry.path.endsWith("/.worktrees/cleanup-pushed-unmerged") && entry.reason.includes("not merged"),
+      ),
+    ).toBe(true);
+    expect(await pathExists(worktreeDir)).toBe(true);
+  });
+
+  test("cleanup-merged refuses conflicting --json and --apply modes", async () => {
+    const { tempDir, repoDir } = await createRepoFixture("agentic-worktree-cleanup-conflict-");
+
+    const result = await runWorktreeCli(
+      ["cleanup-merged", "--cwd", repoDir, "--json", "--apply"],
+      join(tempDir, "state.db"),
+    );
+
+    expect(result.exitCode).toBe(1);
+    expect(`${result.stdout}${result.stderr}`).toContain("mutually exclusive");
+  });
+
+  test("cleanup-merged --apply still reports blockers after successful cleanup", async () => {
+    const { tempDir, repoDir } = await createRepoFixture("agentic-worktree-cleanup-blockers-");
+    const mergedBranch = "feat/cleanup-blockers-merged";
+    const mergedWorktreeDir = join(repoDir, ".worktrees", "cleanup-blockers-merged");
+    const dirtyBranch = "feat/cleanup-blockers-dirty";
+    const dirtyWorktreeDir = join(repoDir, ".worktrees", "cleanup-blockers-dirty");
+
+    await createFeatureWorktree(repoDir, mergedBranch, mergedWorktreeDir, { mergeIntoMain: true });
+    await createFeatureWorktree(repoDir, dirtyBranch, dirtyWorktreeDir, { mergeIntoMain: true });
+    await writeFile(join(dirtyWorktreeDir, "dirty.txt"), "dirty\n");
+
+    const result = await runWorktreeCli(
+      ["cleanup-merged", "--cwd", repoDir, "--apply"],
+      join(tempDir, "state.db"),
+    );
+
+    expect(result.exitCode).toBe(0);
+    expect(await pathExists(mergedWorktreeDir)).toBe(false);
+    expect(await pathExists(dirtyWorktreeDir)).toBe(true);
+    expect(`${result.stdout}${result.stderr}`).toContain("blocked");
+    expect(`${result.stdout}${result.stderr}`).toContain("uncommitted changes");
+  });
 });

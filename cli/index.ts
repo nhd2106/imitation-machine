@@ -29,7 +29,7 @@ COMMANDS
   pr        Pull request operations (open, approve)
   release   Release operations (tag)
   verify    Verification before completion (gates + typecheck + tests)
-  worktree  Worktree lifecycle (create, list, remove)
+  worktree  Worktree lifecycle (create, list, remove, cleanup-merged)
   orchestrate  Persona orchestration (run, status)
   check-plugin  Validate OpenCode and Claude plugin setup
 
