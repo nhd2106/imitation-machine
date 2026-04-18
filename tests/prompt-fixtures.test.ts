@@ -13,6 +13,9 @@ function expectContainsAll(content: string, fragments: readonly string[]): void 
 const DEEPENED_FIXTURE_EXPECTATIONS = {
   "tests/skill-triggering/design-prompts.md": ["visual direction", "interaction quality", "browser validation"],
   "tests/explicit-skill-requests/design-prompts.md": ["explicit", "`design`", "interaction quality", "browser validation"],
+  "tests/skill-triggering/worktree-prompts.md": ["merged cleanup order", "uncommitted work", "remote branch deletion"],
+  "tests/explicit-skill-requests/worktree-prompts.md": ["explicit", "`worktree`", "local merged-branch cleanup", "remote branch deletion"],
+  "tests/skill-triggering/finishing-a-development-branch-prompts.md": ["uncommitted work", "merged-cleanup sequencing", "remote deletion optional"],
 } as const;
 
 const EXPECTED_MATRIX_FIXTURES = {
@@ -391,5 +394,12 @@ describe("prompt fixture suites", () => {
     const remainingGap = (columns[5] ?? "").toLowerCase();
 
     expectContainsAll(remainingGap, ["direction", "browser", "gap"]);
+  });
+
+  test("worktree comparison matrix row reflects end-to-end merged cleanup support", async () => {
+    const content = await readFixture("docs/skills-comparison-matrix.md");
+    const row = getComparisonMatrixRow(content, "worktree").toLowerCase();
+
+    expectContainsAll(row, ["end-to-end", "optional remote deletion", "merged-worktree cleanup"]);
   });
 });

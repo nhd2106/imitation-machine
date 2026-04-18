@@ -26,13 +26,13 @@ Comparison between `imitation-machine` and `superpowers`, focused on skill cover
 | `design` | partially overlaps brainstorming + design guidance | Unique | Partial | Partial | stronger direction-lock guidance, companion docs, and a bounded multi-turn browser-validation workflow now ship; the remaining bounded gap is more pressure-scenario browser-validation coverage | `tests/skill-triggering/design-prompts.md` |
 | `systematic-debugging` | `systematic-debugging` | Comparable | Partial | Low | needs deeper debugging prompt fixtures and decision-pressure evals | `tests/skill-triggering/systematic-debugging-prompts.md` |
 | `dispatching-parallel-agents` | `dispatching-parallel-agents` | Comparable | Partial | Low | needs explicit safe-parallelism prompt fixtures | `tests/skill-triggering/dispatching-parallel-agents-prompts.md` |
-| `finishing-a-development-branch` | branch-finishing / release-adjacent flow | Partial | Partial | Low | needs branch-handoff prompt fixtures and final-cleanup examples | `tests/skill-triggering/finishing-a-development-branch-prompts.md` |
+| `finishing-a-development-branch` | branch-finishing / release-adjacent flow | Partial | Partial | Partial | merged-branch cleanup is now covered as an explicit handoff path, but broader branch-finish pressure cases are still thin | `tests/skill-triggering/finishing-a-development-branch-prompts.md` |
 | `requesting-code-review` | `requesting-code-review` | Comparable | Partial | Partial | now has multi-turn review-request to response depth, but more PR-state variation is still needed | `tests/multi-turn-workflows/requesting-to-receiving-code-review.md` |
 | `receiving-code-review` | `receiving-code-review` | Comparable | Partial | Partial | now has multi-turn reviewer-feedback response coverage, but defer-vs-fix scenarios are still limited | `tests/multi-turn-workflows/requesting-to-receiving-code-review.md` |
 | `gate` | no strong direct counterpart | Unique | Partial | Partial | still needs failure-heavy scenario depth, but blocker guidance is in place | `tests/skill-triggering/gate-prompts.md` |
 | `pr` | no strong direct counterpart | Unique | Partial | Partial | now has lightweight trigger coverage; still thinner than full end-to-end PR evals | `tests/skill-triggering/pr-prompts.md` |
-| `release` | finishing/release-adjacent flow | Partial | Partial | Partial | now has multi-turn `worktree -> coder -> release` routing coverage, but richer semver and packaging pressure cases are still needed | `tests/multi-turn-workflows/worktree-before-coder.md` |
-| `worktree` | `using-git-worktrees` | Partial | Partial | Partial | stronger cleanup/removal-safety coverage landed, and multi-turn `worktree -> coder -> release` routing now exists; removal and branch-shape scenarios are still lighter than the richest sets | `tests/multi-turn-workflows/worktree-before-coder.md` |
+| `release` | finishing/release-adjacent flow | Partial | Partial | Partial | merged-branch cleanup is now a supported end-to-end release-adjacent path, but richer semver and packaging pressure cases are still needed | `tests/multi-turn-workflows/worktree-before-coder.md` |
+| `worktree` | `using-git-worktrees` | Partial | Partial | Partial | merged-worktree cleanup now ships as a first-class end-to-end path with safe local deletion and optional remote deletion, but broader branch-shape pressure cases are still lighter than the richest sets | `tests/multi-turn-workflows/worktree-before-coder.md` |
 | `repo` | no strong direct counterpart | Unique | Partial | Partial | now has prompt fixtures for affected-package and dependency-impact reasoning, but scoped verification pressure cases are still lighter than the best-covered workflow skills | `tests/skill-triggering/repo-prompts.md` |
 | `adr` | no strong direct counterpart | Unique | Comparable | Partial | now has prompt fixtures for durable decision triggers, but richer ADR artifact examples and follow-through reviews are still sparse | `tests/skill-triggering/adr-prompts.md` |
 | `commit` | no strong direct counterpart | Unique | Comparable | Partial | now has prompt fixtures for verified conventional commits, but hook-failure and follow-up commit scenarios still need more depth | `tests/skill-triggering/commit-prompts.md` |
@@ -61,7 +61,7 @@ These still lag behind the richest `superpowers` skills:
 - `adr`
 - `commit`
 
-`plan`, `verify`, `gate`, and `worktree` are no longer the thinnest workflow packages after the current fixture/examples wave, and `design` is stronger on direction lock and browser-validation handoff depth, but all still benefit from more pressure-scenario coverage.
+`plan`, `verify`, `gate`, and `worktree` are no longer the thinnest workflow packages after the current fixture/examples wave, and `design` is stronger on direction lock and browser-validation handoff depth. `worktree` now also supports merged-branch cleanup end to end, but all still benefit from more pressure-scenario coverage.
 
 ## Recommended Next Wave
 

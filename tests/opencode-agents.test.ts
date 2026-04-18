@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
+import ImitationMachinePlugin from "../.opencode/plugins/imitation-machine.js";
 
 const ROOT = join(import.meta.dir, "..");
 
@@ -29,10 +30,19 @@ describe("OpenCode agents", () => {
   });
 
   test("plugin-backed agent descriptions stay in sync with checked-in frontmatter", async () => {
+    const plugin = await ImitationMachinePlugin();
+    const config: {
+      agent?: Record<string, { description?: string }>;
+      skills?: { paths?: string[] };
+    } = {};
+
+    await plugin.config(config);
+
     for (const agent of ["architect", "po", "planner", "worktree", "coder", "qa", "security", "reviewer-spec", "reviewer-quality", "docs", "release"] as const) {
       const content = await readAgent(agent);
       const description = extractFrontmatterDescription(content);
       expect(description.length).toBeGreaterThan(0);
+      expect(config.agent?.[agent]?.description).toBe(description);
     }
   });
 

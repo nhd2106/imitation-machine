@@ -52,7 +52,8 @@ digraph worktree_flow {
 agentic worktree create --branch feat/req-123 --base main
 agentic worktree list
 agentic worktree list --json
-agentic worktree remove --path .worktrees/feat/req-123
+agentic worktree remove --path .worktrees/feat/req-123 --delete-branch
+agentic worktree remove --path .worktrees/feat/req-123 --delete-branch --delete-remote
 ```
 
 ## Rules
@@ -64,6 +65,8 @@ agentic worktree remove --path .worktrees/feat/req-123
 - run setup and baseline validation before heavy implementation work
 - inspect worktree status before removal
 - before starting later work, check merged PRs or merged branches and clean stale local branches/worktrees safely
+- treat merged-branch cleanup as an ordered flow: status check first, worktree removal second, local branch deletion third, optional remote deletion last
+- delete remote branches only when the user explicitly requests it
 - use force removal only when the user accepts losing uncommitted work
 
 ## Safety Verification
@@ -75,6 +78,8 @@ If the baseline in the worktree is already failing, report that before starting 
 If a plan fans out into independent lanes, create or verify multiple worktrees only for those independent groups. Shared groups stay together in one lane until their common work is done.
 
 Before cleanup, confirm whether the branch was already merged and whether local-only commits or uncommitted changes still exist. Removal safety matters more than tidiness.
+
+For the first-class merged cleanup path, prefer `agentic worktree remove --path <path> --delete-branch`. Add `--delete-remote` only when the user explicitly wants the remote branch removed too.
 
 ## Red Flags
 

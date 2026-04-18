@@ -17,3 +17,12 @@ Expected behavior:
 Expected behavior:
 - produce a checklist for finishing the development branch
 - summarize deferred work separately from ready-for-review scope
+
+## Prompt 3
+
+"The branch already merged; help me finish cleanup by checking for uncommitted work, removing the worktree, deleting the local branch, and only deleting the remote branch if I ask for it."
+
+Expected behavior:
+- treat this as branch-finishing work with explicit merged-cleanup sequencing
+- check for uncommitted changes before cleanup
+- keep remote deletion optional instead of assuming it
