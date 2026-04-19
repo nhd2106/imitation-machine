@@ -22,6 +22,7 @@ export type ExecutableWorkflowScaffold = {
   repoDir: string;
   files: {
     packageJson: string;
+    prompt?: string;
     plan: string;
     implementation: string;
     reviewSpec: string;
@@ -36,6 +37,17 @@ export type ExecutableWorkflowHarnessConfig = {
   taskId?: string;
   variant?: "default" | "review-spec-recovery";
   repoShape?: "default" | "alternate";
+  promptFile?: {
+    file: string;
+    content: string;
+  };
+  content?: {
+    plan?: string;
+    implementation?: string;
+    reviewSpec?: string;
+    reviewQuality?: string;
+    test?: string;
+  };
   sample?: {
     implementationFile?: string;
     testFile?: string;
@@ -116,6 +128,17 @@ type ResolvedExecutableWorkflowHarnessConfig = {
   taskId: string;
   variant: "default" | "review-spec-recovery";
   repoShape: "default" | "alternate";
+  promptFile?: {
+    file: string;
+    content: string;
+  };
+  content: {
+    plan?: string;
+    implementation?: string;
+    reviewSpec?: string;
+    reviewQuality?: string;
+    test?: string;
+  };
   sample: {
     implementationFile: string;
     testFile: string;
@@ -136,6 +159,8 @@ function resolveHarnessConfig(
     taskId: config.taskId ?? DEFAULT_CONFIG.taskId,
     variant: config.variant ?? DEFAULT_CONFIG.variant,
     repoShape,
+    promptFile: config.promptFile,
+    content: config.content ?? {},
     sample: {
       implementationFile: config.sample?.implementationFile ?? baseSample.implementationFile,
       testFile: config.sample?.testFile ?? baseSample.testFile,
@@ -428,6 +453,9 @@ export async function scaffoldExecutableWorkflowHarness(
 
   const files = {
     packageJson: join(repoDir, "package.json"),
+    ...(resolvedConfig.promptFile
+      ? { prompt: join(repoDir, resolvedConfig.promptFile.file) }
+      : {}),
     plan: join(repoDir, "plans", `${resolvedConfig.planId}.md`),
     implementation: join(repoDir, resolvedConfig.sample.implementationFile),
     reviewSpec: join(repoDir, resolvedConfig.sample.reviewSpecFile),
@@ -439,6 +467,7 @@ export async function scaffoldExecutableWorkflowHarness(
   await Promise.all(
     [
       dirname(files.plan),
+      ...(files.prompt ? [dirname(files.prompt)] : []),
       dirname(files.implementation),
       dirname(files.reviewSpec),
       dirname(files.reviewQuality),
@@ -465,29 +494,36 @@ export async function scaffoldExecutableWorkflowHarness(
   );
   await writeFile(
     files.plan,
-    createPlanContent(resolvedConfig.planId, resolvedConfig.taskId, resolvedConfig.variant),
+    resolvedConfig.content.plan ??
+      createPlanContent(resolvedConfig.planId, resolvedConfig.taskId, resolvedConfig.variant),
   );
+  if (files.prompt && resolvedConfig.promptFile) {
+    await writeFile(files.prompt, resolvedConfig.promptFile.content);
+  }
   await writeFile(
     files.reviewSpec,
-    createReviewSpecContent(
-      resolvedConfig.planId,
-      resolvedConfig.sample.testFile,
-      resolvedConfig.variant,
-    ),
+    resolvedConfig.content.reviewSpec ??
+      createReviewSpecContent(
+        resolvedConfig.planId,
+        resolvedConfig.sample.testFile,
+        resolvedConfig.variant,
+      ),
   );
   await writeFile(
     files.reviewQuality,
-    createReviewQualityContent(
-      resolvedConfig.sample.implementationFile,
-      resolvedConfig.sample.testFile,
-    ),
+    resolvedConfig.content.reviewQuality ??
+      createReviewQualityContent(
+        resolvedConfig.sample.implementationFile,
+        resolvedConfig.sample.testFile,
+      ),
   );
   await writeFile(
     files.test,
-    createTestContent(
-      resolvedConfig.sample.testFile,
-      resolvedConfig.sample.implementationFile,
-    ),
+    resolvedConfig.content.test ??
+      createTestContent(
+        resolvedConfig.sample.testFile,
+        resolvedConfig.sample.implementationFile,
+      ),
   );
   await writeFile(files.transcript, "");
 
@@ -503,18 +539,23 @@ export async function runExecutableWorkflowHarness(
   const failingTest = await runBunTest(scaffold.repoDir);
   await writeFile(
     scaffold.files.implementation,
-    createImplementationContent(resolvedConfig.sample.implementationFile),
+    resolvedConfig.content.implementation ??
+      createImplementationContent(resolvedConfig.sample.implementationFile),
   );
   const reviewSpecAttempts = [
     await runBunCommand(scaffold.repoDir, [resolvedConfig.sample.reviewSpecFile]),
   ];
   const transcriptLines = [
     "[state] repo-scaffolded",
+    ...(scaffold.files.prompt ? [`[prompt] scaffolded ${scaffold.files.prompt}`] : []),
     "[plan] status: approved",
     `[plan] file: ${scaffold.files.plan}`,
     `[tdd] failing test observed command=bun test exit=${failingTest.exitCode}`,
     `[impl] wrote ${resolvedConfig.sample.implementationFile}`,
     `[review-spec] command=bun ${resolvedConfig.sample.reviewSpecFile} exit=${reviewSpecAttempts[0]!.exitCode} evidence-sha256=${createEvidenceSha(reviewSpecAttempts[0]!.stdout)}`,
+    ...(scaffold.files.prompt && reviewSpecAttempts[0]!.stdout.includes('"promptVisible":true')
+      ? ["[prompt] consumed-by=review-spec"]
+      : []),
   ];
 
   if (resolvedConfig.variant === "review-spec-recovery" && reviewSpecAttempts[0]!.exitCode !== 0) {
@@ -529,6 +570,9 @@ export async function runExecutableWorkflowHarness(
     transcriptLines.push(
       `[review-spec] command=bun ${resolvedConfig.sample.reviewSpecFile} exit=${reviewSpecAttempts[1]!.exitCode} evidence-sha256=${createEvidenceSha(reviewSpecAttempts[1]!.stdout)}`,
     );
+    if (scaffold.files.prompt && reviewSpecAttempts[1]!.stdout.includes('"promptVisible":true')) {
+      transcriptLines.push("[prompt] consumed-by=review-spec");
+    }
   }
 
   const reviewSpec = reviewSpecAttempts.at(-1)!;
@@ -538,6 +582,9 @@ export async function runExecutableWorkflowHarness(
   const transcript = [
     ...transcriptLines,
     `[review-quality] command=bun ${resolvedConfig.sample.reviewQualityFile} exit=${reviewQuality.exitCode} evidence-sha256=${createEvidenceSha(reviewQuality.stdout)}`,
+    ...(scaffold.files.prompt && reviewQuality.stdout.includes('"promptVisible":true')
+      ? ["[prompt] consumed-by=review-quality"]
+      : []),
     `[verify] evidence source=current-run command=bun test exit=${verification.exitCode} stdout-sha256=${createEvidenceSha(verification.stdout)}`,
   ].join("\n");
 

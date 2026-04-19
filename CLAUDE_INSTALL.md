@@ -55,9 +55,16 @@ and confirm `imitation-machine@imitation-machine-dev` is installed.
 For the bounded repo-local Claude harness, see:
 
 - `scripts/claude-code-harness.ts`
+- `tests/claude-executable-harness.test.ts`
 - `tests/claude-harness.test.ts`
 - `tests/claude-harness-smoke.test.ts`
 - `tests/claude-code/README.md`
+
+The executable Claude harness lane is covered directly with:
+
+```bash
+bun test tests/claude-executable-harness.test.ts
+```
 
 ## Mandatory workflow (Claude + OpenCode parity)
 

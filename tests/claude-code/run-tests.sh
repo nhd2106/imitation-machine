@@ -6,7 +6,7 @@ mode="${1:-fast}"
 
 case "$mode" in
   fast)
-    bun test tests/claude-harness.test.ts tests/claude-harness-smoke.test.ts
+    bun test tests/claude-harness.test.ts tests/claude-harness-smoke.test.ts tests/claude-executable-harness.test.ts
     ;;
   *)
     printf 'Unsupported mode: %s\n' "$mode" >&2
