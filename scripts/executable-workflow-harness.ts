@@ -35,6 +35,7 @@ export type ExecutableWorkflowHarnessConfig = {
   planId?: string;
   taskId?: string;
   variant?: "default" | "review-spec-recovery";
+  repoShape?: "default" | "alternate";
   sample?: {
     implementationFile?: string;
     testFile?: string;
@@ -92,6 +93,7 @@ const DEFAULT_CONFIG = {
   planId: "PLN-PR29",
   taskId: "TSK-PR29-1",
   variant: "default",
+  repoShape: "default",
   sample: {
     implementationFile: "src/math.ts",
     testFile: "tests/math.test.ts",
@@ -101,10 +103,19 @@ const DEFAULT_CONFIG = {
   },
 } as const;
 
+const ALTERNATE_REPO_SHAPE_SAMPLE = {
+  implementationFile: "lib/numbers/add.ts",
+  testFile: "specs/numbers/add.spec.ts",
+  reviewSpecFile: "tools/reviewers/review-spec.ts",
+  reviewQualityFile: "tools/reviewers/review-quality.ts",
+  transcriptFile: "tmp/artifacts/workflow-transcript.log",
+} as const;
+
 type ResolvedExecutableWorkflowHarnessConfig = {
   planId: string;
   taskId: string;
   variant: "default" | "review-spec-recovery";
+  repoShape: "default" | "alternate";
   sample: {
     implementationFile: string;
     testFile: string;
@@ -117,18 +128,20 @@ type ResolvedExecutableWorkflowHarnessConfig = {
 function resolveHarnessConfig(
   config: ExecutableWorkflowHarnessConfig = {},
 ): ResolvedExecutableWorkflowHarnessConfig {
+  const repoShape = config.repoShape ?? DEFAULT_CONFIG.repoShape;
+  const baseSample = repoShape === "alternate" ? ALTERNATE_REPO_SHAPE_SAMPLE : DEFAULT_CONFIG.sample;
+
   return {
     planId: config.planId ?? DEFAULT_CONFIG.planId,
     taskId: config.taskId ?? DEFAULT_CONFIG.taskId,
     variant: config.variant ?? DEFAULT_CONFIG.variant,
+    repoShape,
     sample: {
-      implementationFile:
-        config.sample?.implementationFile ?? DEFAULT_CONFIG.sample.implementationFile,
-      testFile: config.sample?.testFile ?? DEFAULT_CONFIG.sample.testFile,
-      reviewSpecFile: config.sample?.reviewSpecFile ?? DEFAULT_CONFIG.sample.reviewSpecFile,
-      reviewQualityFile:
-        config.sample?.reviewQualityFile ?? DEFAULT_CONFIG.sample.reviewQualityFile,
-      transcriptFile: config.sample?.transcriptFile ?? DEFAULT_CONFIG.sample.transcriptFile,
+      implementationFile: config.sample?.implementationFile ?? baseSample.implementationFile,
+      testFile: config.sample?.testFile ?? baseSample.testFile,
+      reviewSpecFile: config.sample?.reviewSpecFile ?? baseSample.reviewSpecFile,
+      reviewQualityFile: config.sample?.reviewQualityFile ?? baseSample.reviewQualityFile,
+      transcriptFile: config.sample?.transcriptFile ?? baseSample.transcriptFile,
     },
   };
 }
