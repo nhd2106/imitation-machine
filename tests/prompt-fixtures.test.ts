@@ -128,6 +128,12 @@ const DEEPENED_FIXTURE_EXPECTATIONS = {
     ["follow-up commit", "follow up commit"],
     ["bypass"],
   ],
+  "tests/multi-turn-workflows/plan-to-subagent-review-to-verify.md": [
+    ["plan id", "pln-903", "pln-"],
+    ["task id", "tsk-410", "tsk-"],
+    ["review outcome", "spec passed", "quality passed"],
+    ["verification evidence", "agentic verify all", "fresh verification"],
+  ],
 } as const;
 
 const EXPECTED_MATRIX_FIXTURES = {
@@ -356,6 +362,17 @@ const EXPECTED_MULTI_TURN_DEPTH = {
     "same transcript",
     "fix",
   ],
+  "tests/multi-turn-workflows/plan-to-subagent-review-to-verify.md": [
+    "plan",
+    "subagent-driven-development",
+    "review-spec",
+    "review-quality",
+    "verify",
+    "plan id",
+    "task id",
+    "review outcome",
+    "verification evidence",
+  ],
 } as const;
 
 const EXPECTED_MULTI_TURN_PROGRESSIONS = {
@@ -409,6 +426,26 @@ const EXPECTED_MULTI_TURN_PROGRESSIONS = {
     [/`writing-skills`/, /same transcript|same failure/, /test prompts|dry run|try it/, /validate|check/],
     [/`writing-skills`/, /same transcript|same notes|same examples/, /fix|repair|tighten/, /rewrite|rewriting|update/],
   ],
+  "tests/multi-turn-workflows/plan-to-subagent-review-to-verify.md": [
+    ["`plan`", "pln-903", "tsk-410", "approved", "single task chain"],
+    ["`subagent-driven-development`", "pln-903", "tsk-410", "review-spec", "review-quality"],
+    ["`review-spec`", "tsk-410", "spec passed", "review outcome"],
+    ["`review-quality`", "tsk-410", "passed", "review outcome", "ready for verify"],
+    [
+      "`verify`",
+      "pln-903",
+      "tsk-410",
+      "spec passed",
+      "quality passed",
+      "agentic verify all",
+      "fresh verification",
+      "verification evidence",
+    ],
+  ],
+} as const;
+
+const MULTI_TURN_SINGLE_TASK_CHAIN_FIXTURES = {
+  "tests/multi-turn-workflows/plan-to-subagent-review-to-verify.md": "tsk-410",
 } as const;
 
 const STRONG_INTENT_PHRASES = {
@@ -690,6 +727,18 @@ function assertTurnLevelProgression(content: string, turnExpectations: readonly 
   }
 }
 
+function assertSingleTaskChain(content: string, expectedTaskId: string): void {
+  const turns = structuredSections(content, "Turn");
+  const taskIds = [...content.matchAll(/tsk-\d+/g)].map((match) => match[0]);
+  const distinctTaskIds = [...new Set(taskIds)];
+
+  expect(distinctTaskIds).toEqual([expectedTaskId]);
+
+  for (const [index, turn] of turns.entries()) {
+    expect(turn.toLowerCase(), `turn ${index + 1} should carry ${expectedTaskId}`).toContain(expectedTaskId);
+  }
+}
+
 describe("prompt fixture suites", () => {
   test("rejects prompt fixtures whose prompt sections lack a nearby expected behavior block", () => {
     const content = `# Example\n\n## Prompt 1\n\n"Do the thing."\n\n## Prompt 2\n\n"Do the other thing."\n\nExpected behavior:\n- load the right skill\n`;
@@ -840,6 +889,13 @@ describe("prompt fixture suites", () => {
     }
   });
 
+  test("bounded workflow fixtures keep exactly one task chain when the scenario models one concrete path", async () => {
+    for (const [fixture, taskId] of Object.entries(MULTI_TURN_SINGLE_TASK_CHAIN_FIXTURES)) {
+      const content = await readFixture(fixture).then((value) => value.toLowerCase());
+      assertSingleTaskChain(content, taskId);
+    }
+  });
+
   test("comparison matrix reflects deeper multi-turn workflow coverage honestly", async () => {
     const content = await readFixture("docs/skills-comparison-matrix.md");
 
@@ -937,6 +993,15 @@ describe("prompt fixture suites", () => {
     const writingSkillsRow = getComparisonMatrixRow(content, "writing-skills").toLowerCase();
     expectContainsAll(writingSkillsRow, ["trigger", "explicit-request", "multi-turn", "validate", "fix"]);
     expect(writingSkillsRow).not.toContain("pressure");
+  });
+
+  test("comparison matrix rows for plan through verify mention the scaffolded executable review workflow", async () => {
+    const content = await readFixture("docs/skills-comparison-matrix.md");
+
+    for (const skill of ["plan", "subagent-driven-development", "review-spec", "review-quality", "verify"] as const) {
+      const row = getComparisonMatrixRow(content, skill).toLowerCase();
+      expectContainsAll(row, ["multi-turn", "plan -> subagent-driven-development -> review-spec -> review-quality -> verify"]);
+    }
   });
 
   test("writing-skills docs avoid contradictory force-load links and keep deep testing guidance in the companion reference", async () => {
