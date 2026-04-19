@@ -90,7 +90,7 @@ See step-by-step local setup details in `CLAUDE_INSTALL.md`.
 
 For fast bounded transcript/unit coverage across both surfaces, run `bun run test:harness`.
 
-For OpenCode-only live bounded checks that replay a checked-in manifest through `opencode run --print-logs`, run `bash tests/opencode/run-tests.sh live`. Set `OPENCODE_LIVE=1` to execute real sessions; otherwise the live harness skips cleanly.
+For OpenCode-only live bounded checks that replay a checked-in manifest through `opencode run --print-logs`, including continued multi-turn scenarios that use `--continue`, run `bash tests/opencode/run-tests.sh live`. Set `OPENCODE_LIVE=1` to execute real sessions; otherwise the live harness skips cleanly.
 
 For surface-specific commands, coverage details, and slower integration-oriented checks, use the per-surface guides in `tests/opencode/README.md` and `tests/claude-code/README.md`.
 

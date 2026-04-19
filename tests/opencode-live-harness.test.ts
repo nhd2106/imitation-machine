@@ -18,7 +18,7 @@ describe("OpenCode live harness", () => {
   test("loads the checked-in live scenario manifest", async () => {
     const manifest = await loadLiveScenarioManifest(manifestPath);
 
-    expect(manifest.scenarios.length).toBeGreaterThanOrEqual(6);
+    expect(manifest.scenarios.length).toBeGreaterThanOrEqual(8);
     expect(manifest.scenarios.map((scenario) => scenario.id)).toEqual([
       "bootstrap-plan-ready",
       "missing-process-skill",
@@ -26,13 +26,22 @@ describe("OpenCode live harness", () => {
       "wrong-process-skill",
       "stale-verification-evidence",
       "contradictory-agent-outputs",
+      "continuation-happy-path",
+      "continuation-stale-verification",
     ]);
   });
 
   test("builds direct opencode argv rather than a shell command string", () => {
     expect(buildLiveHarnessCommand({ prompt: "hello" })).toEqual({
       executable: "opencode",
-      args: ["run", "--print-logs", "hello"],
+        args: ["run", "--print-logs", "hello"],
+      });
+  });
+
+  test("builds continuation commands with --continue for follow-up turns", () => {
+    expect(buildLiveHarnessCommand({ prompt: "continue", continueSession: true })).toEqual({
+      executable: "opencode",
+      args: ["run", "--print-logs", "--continue", "continue"],
     });
   });
 
@@ -55,11 +64,36 @@ describe("OpenCode live harness", () => {
     expect(executed).toBe(false);
   });
 
-  test("constructs opencode run commands with --print-logs", async () => {
+  test("constructs opencode run commands with --print-logs and continuation flags", async () => {
+    const customManifestPath = await writeManifest({
+      scenarios: [
+        {
+          id: "continuation",
+          turns: [
+            {
+              prompt: "bootstrap",
+              expect: {
+                valid: true,
+                selectedProcessSkill: "plan",
+                stages: ["bootstrap", "process-skill", "plan-ready"],
+              },
+            },
+            {
+              prompt: "continue",
+              expect: {
+                valid: true,
+                selectedProcessSkill: "plan",
+                stages: ["bootstrap", "process-skill", "plan-ready"],
+              },
+            },
+          ],
+        },
+      ],
+    });
     const commands: LiveHarnessCommand[] = [];
 
     await runLiveHarness({
-      manifestPath,
+      manifestPath: customManifestPath,
       env: { OPENCODE_LIVE: "1" },
       exec: async (command) => {
         commands.push(command);
@@ -71,13 +105,16 @@ describe("OpenCode live harness", () => {
       },
     });
 
-    expect(commands[0]).toEqual(
-      expect.objectContaining({
+    expect(commands).toEqual([
+      {
         executable: "opencode",
-        args: expect.arrayContaining(["run", "--print-logs"]),
-      }),
-    );
-    expect(commands[0]?.args.at(-1)).toContain("bootstrap");
+        args: ["run", "--print-logs", "bootstrap"],
+      },
+      {
+        executable: "opencode",
+        args: ["run", "--print-logs", "--continue", "continue"],
+      },
+    ]);
   });
 
   test("evaluates live transcripts with existing OpenCode harness semantics", async () => {
@@ -92,6 +129,12 @@ describe("OpenCode live harness", () => {
     ).text();
     const contradictoryAgentOutputsTranscript = await Bun.file(
       "tests/harness-fixtures/opencode-contradictory-agent-outputs.log",
+    ).text();
+    const continuationHappyTranscript = await Bun.file(
+      "tests/harness-fixtures/opencode-continuation-happy.log",
+    ).text();
+    const continuationStaleVerificationTranscript = await Bun.file(
+      "tests/harness-fixtures/opencode-continuation-stale-verification.log",
     ).text();
     const transcripts = new Map([
       [
@@ -118,15 +161,25 @@ describe("OpenCode live harness", () => {
         "contradictory-agent-outputs",
         contradictoryAgentOutputsTranscript,
       ],
+      [
+        "continuation-happy-path:0",
+        `[bootstrap] plugin=.opencode/plugins/imitation-machine.js\n[bootstrap] service=skill initialized\n[skill] using-agentic loaded\n[route] selected process skill: plan\n[state] plan-ready\n`,
+      ],
+      ["continuation-happy-path:1", continuationHappyTranscript],
+      [
+        "continuation-stale-verification:0",
+        `[bootstrap] plugin=.opencode/plugins/imitation-machine.js\n[bootstrap] service=skill initialized\n[skill] using-agentic loaded\n[route] selected process skill: plan\n[state] plan-ready\n`,
+      ],
+      ["continuation-stale-verification:1", continuationStaleVerificationTranscript],
     ]);
 
     const result = await runLiveHarness({
       manifestPath,
       env: { OPENCODE_LIVE: "1" },
-      exec: async (_command, scenario) => {
+      exec: async (_command, scenario, turn) => {
 
         return {
-          stdout: transcripts.get(scenario.id) ?? "",
+          stdout: transcripts.get(`${scenario.id}:${turn.index}`) ?? transcripts.get(scenario.id) ?? "",
           stderr: "",
           exitCode: 0,
         };
@@ -134,76 +187,136 @@ describe("OpenCode live harness", () => {
     });
 
     expect(result.skipped).toBe(false);
-    expect(result.summary.passed).toBe(6);
+    expect(result.summary.passed).toBe(8);
     expect(result.summary.failed).toBe(0);
-    expect(result.results).toEqual([
-      expect.objectContaining({
-        id: "bootstrap-plan-ready",
-        ok: true,
-        evaluation: expect.objectContaining({
-          valid: true,
-          selectedProcessSkill: "plan",
-          stages: ["bootstrap", "process-skill", "plan-ready"],
-        }),
-      }),
-      expect.objectContaining({
-        id: "missing-process-skill",
-        ok: true,
-        command: expect.objectContaining({
-          executable: "opencode",
-          args: expect.arrayContaining(["run", "--print-logs"]),
-        }),
-        evaluation: expect.objectContaining({
-          valid: false,
-          selectedProcessSkill: null,
-          issues: expect.arrayContaining(["Missing process-skill selection"]),
-        }),
-      }),
-      expect.objectContaining({
-        id: "missing-bootstrap",
-        ok: true,
-        evaluation: expect.objectContaining({
-          valid: false,
-          selectedProcessSkill: "plan",
-          issues: expect.arrayContaining([
-            "Missing bootstrap evidence: [bootstrap] plugin=.opencode/plugins/imitation-machine.js; [bootstrap] service=skill initialized; [skill] using-agentic loaded",
-          ]),
-        }),
-      }),
-      expect.objectContaining({
-        id: "wrong-process-skill",
-        ok: true,
-        evaluation: expect.objectContaining({
-          valid: false,
-          selectedProcessSkill: "plan",
-          issues: expect.arrayContaining([
-            "Wrong process skill loaded: expected plan, loaded brainstorm",
-          ]),
-        }),
-      }),
-      expect.objectContaining({
-        id: "stale-verification-evidence",
-        ok: true,
-        evaluation: expect.objectContaining({
-          valid: false,
-          selectedProcessSkill: "plan",
-          issues: expect.arrayContaining([
-            "Stale verification evidence: [verify] evidence source=previous-run age=2h command=bun test",
-          ]),
-        }),
-      }),
-      expect.objectContaining({
-        id: "contradictory-agent-outputs",
-        ok: true,
-        evaluation: expect.objectContaining({
-          valid: false,
-          selectedProcessSkill: "plan",
-          issues: expect.arrayContaining([
-            "Contradictory agent outputs: [agent:coder] status: DONE; [agent:reviewer] status: BLOCKED",
-          ]),
-        }),
-      }),
+    expect(result.results.map((scenario) => scenario.id)).toEqual([
+      "bootstrap-plan-ready",
+      "missing-process-skill",
+      "missing-bootstrap",
+      "wrong-process-skill",
+      "stale-verification-evidence",
+      "contradictory-agent-outputs",
+      "continuation-happy-path",
+      "continuation-stale-verification",
     ]);
+    expect(result.results[0]).toMatchObject({
+      id: "bootstrap-plan-ready",
+      ok: true,
+      evaluation: {
+        valid: true,
+        selectedProcessSkill: "plan",
+        stages: ["bootstrap", "process-skill", "plan-ready"],
+      },
+    });
+    expect(result.results[1]).toMatchObject({
+      id: "missing-process-skill",
+      ok: true,
+      evaluation: {
+        valid: false,
+        selectedProcessSkill: null,
+        issues: ["Missing process-skill selection"],
+      },
+    });
+    expect(result.results[2]).toMatchObject({
+      id: "missing-bootstrap",
+      ok: true,
+      evaluation: {
+        valid: false,
+        selectedProcessSkill: "plan",
+        issues: [
+          "Missing bootstrap evidence: [bootstrap] plugin=.opencode/plugins/imitation-machine.js; [bootstrap] service=skill initialized; [skill] using-agentic loaded",
+        ],
+      },
+    });
+    expect(result.results[3]).toMatchObject({
+      id: "wrong-process-skill",
+      ok: true,
+      evaluation: {
+        valid: false,
+        selectedProcessSkill: "plan",
+        issues: ["Wrong process skill loaded: expected plan, loaded brainstorm"],
+      },
+    });
+    expect(result.results[4]).toMatchObject({
+      id: "stale-verification-evidence",
+      ok: true,
+      evaluation: {
+        valid: false,
+        selectedProcessSkill: "plan",
+        issues: [
+          "Stale verification evidence: [verify] evidence source=previous-run age=2h command=bun test",
+        ],
+      },
+    });
+    expect(result.results[5]).toMatchObject({
+      id: "contradictory-agent-outputs",
+      ok: true,
+      evaluation: {
+        valid: false,
+        selectedProcessSkill: "plan",
+        issues: [
+          "Contradictory agent outputs: [agent:coder] status: DONE; [agent:reviewer] status: BLOCKED",
+        ],
+      },
+    });
+    expect(result.results[6]).toMatchObject({
+      id: "continuation-happy-path",
+      ok: true,
+      turns: [
+        {
+          index: 0,
+          ok: true,
+          command: {
+            args: [
+              "run",
+              "--print-logs",
+              "Start from bootstrap, route through the right process skill, and end at a plan-ready state.",
+            ],
+          },
+        },
+        {
+          index: 1,
+          ok: true,
+          command: {
+            args: [
+              "run",
+              "--print-logs",
+              "--continue",
+              "Continue the same session, keep the prior plan context carried forward, and show fresh current-run verification while staying plan-ready.",
+            ],
+          },
+          evaluation: {
+            valid: true,
+            selectedProcessSkill: "plan",
+            stages: ["bootstrap", "process-skill", "plan-ready"],
+          },
+        },
+      ],
+    });
+    expect(result.results[7]).toMatchObject({
+      id: "continuation-stale-verification",
+      ok: true,
+      turns: [
+        {
+          index: 0,
+          ok: true,
+        },
+        {
+          index: 1,
+          ok: true,
+          evaluation: {
+            valid: false,
+            selectedProcessSkill: "plan",
+            issues: [
+              "Stale verification evidence: [verify] evidence source=previous-run age=2h command=bun test",
+            ],
+          },
+        },
+      ],
+      evaluation: {
+        valid: false,
+      },
+    });
   });
 
   test("marks executions that time out as failures", async () => {
@@ -218,9 +331,63 @@ describe("OpenCode live harness", () => {
     });
 
     expect(result.skipped).toBe(false);
-    expect(result.summary.failed).toBe(6);
+    expect(result.summary.failed).toBe(8);
     expect(result.results[0]?.failureReasons).toEqual(
       expect.arrayContaining([expect.stringContaining("code 124")]),
+    );
+  });
+
+  test("reports continuation failures with turn-specific prefixes", async () => {
+    const customManifestPath = await writeManifest({
+      scenarios: [
+        {
+          id: "continuation-failure",
+          turns: [
+            {
+              prompt: "bootstrap",
+              expect: {
+                valid: true,
+                selectedProcessSkill: "plan",
+                stages: ["bootstrap", "process-skill", "plan-ready"],
+              },
+            },
+            {
+              prompt: "continue",
+              expect: {
+                valid: false,
+                selectedProcessSkill: "plan",
+                stages: ["bootstrap", "process-skill", "plan-ready"],
+                issues: [
+                  "Stale verification evidence: [verify] evidence source=previous-run age=2h command=bun test",
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const result = await runLiveHarness({
+      manifestPath: customManifestPath,
+      env: { OPENCODE_LIVE: "1" },
+      exec: async (_command, _scenario, turn) => ({
+        stdout:
+          turn.index === 0
+            ? `[bootstrap] plugin=.opencode/plugins/imitation-machine.js\n[bootstrap] service=skill initialized\n[skill] using-agentic loaded\n[route] selected process skill: plan\n[state] plan-ready\n`
+            : `[state] plan-ready\n`,
+        stderr: "",
+        exitCode: 0,
+      }),
+    });
+
+    expect(result.summary.failed).toBe(1);
+    expect(result.results[0]?.failureReasons).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("Turn 2: Expected valid=false, received valid=true"),
+        expect.stringContaining(
+          "Turn 2: Missing expected issue: Stale verification evidence: [verify] evidence source=previous-run age=2h command=bun test",
+        ),
+      ]),
     );
   });
 

@@ -75,4 +75,32 @@ describe("OpenCode harness smoke", () => {
       "Contradictory agent outputs: [agent:coder] status: DONE; [agent:reviewer] status: BLOCKED",
     );
   });
+
+  test("continuation happy fixture stays valid when carried forward from a prior turn", async () => {
+    const initialTranscript = await Bun.file("tests/harness-fixtures/opencode-plan-session.log").text();
+    const continuationTranscript = await Bun.file(
+      "tests/harness-fixtures/opencode-continuation-happy.log",
+    ).text();
+    const result = evaluateOpenCodeTranscript(`${initialTranscript}\n${continuationTranscript}`);
+
+    expect(result.valid).toBe(true);
+    expect(result.selectedProcessSkill).toBe("plan");
+    expect(result.stages).toEqual(["bootstrap", "process-skill", "plan-ready"]);
+    expect(result.issues).toEqual([]);
+  });
+
+  test("continuation stale verification fixture reports a carried stale-evidence issue", async () => {
+    const initialTranscript = await Bun.file("tests/harness-fixtures/opencode-plan-session.log").text();
+    const continuationTranscript = await Bun.file(
+      "tests/harness-fixtures/opencode-continuation-stale-verification.log",
+    ).text();
+    const result = evaluateOpenCodeTranscript(`${initialTranscript}\n${continuationTranscript}`);
+
+    expect(result.valid).toBe(false);
+    expect(result.selectedProcessSkill).toBe("plan");
+    expect(result.stages).toEqual(["bootstrap", "process-skill", "plan-ready"]);
+    expect(result.issues).toContain(
+      "Stale verification evidence: [verify] evidence source=previous-run age=2h command=bun test",
+    );
+  });
 });
