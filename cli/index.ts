@@ -10,6 +10,7 @@ import { verifyCommand } from "./commands/verify";
 import { worktreeCommand } from "./commands/worktree";
 import { orchestrateCommand } from "./commands/orchestrate";
 import { checkPluginCommand } from "./commands/check-plugin";
+import { modeCommand } from "./commands/mode";
 import { migrate } from "../db/migrate";
 
 const VERSION = "0.1.0";
@@ -32,6 +33,7 @@ COMMANDS
   worktree  Worktree lifecycle (create, list, remove, cleanup-merged)
   orchestrate  Persona orchestration (run, status)
   check-plugin  Validate OpenCode and Claude plugin setup
+  mode      Resolve or override project mode
 
 FLAGS
   --help, -h     Show help
@@ -92,6 +94,9 @@ async function main(): Promise<void> {
       break;
     case "check-plugin":
       await checkPluginCommand(rest);
+      break;
+    case "mode":
+      await modeCommand(rest);
       break;
     default:
       console.error(`Unknown command: ${command}\n`);

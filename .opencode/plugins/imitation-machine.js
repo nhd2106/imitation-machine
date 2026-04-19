@@ -10,6 +10,7 @@
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import { getModePolicy, resolveProjectMode } from "../../cli/mode";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const skillsDir = path.resolve(__dirname, "../../skills");
@@ -42,7 +43,8 @@ const PACKAGED_AGENT_CONFIGS = {
   release: { mode: "subagent", permission: { edit: "ask", bash: "ask", webfetch: "deny" } },
 };
 
-function buildBootstrap(projectSkills = []) {
+function buildBootstrap(modeResolution, projectSkills = []) {
+  const modePolicy = getModePolicy(modeResolution.mode);
   const projectSkillsSection = projectSkills.length > 0
     ? [
         "",
@@ -59,6 +61,11 @@ function buildBootstrap(projectSkills = []) {
   return [
     "<EXTREMELY_IMPORTANT>",
     "You have Imitation Machine workflow skills installed.",
+    "",
+    "## Resolved Policy Mode",
+    `Resolved mode: ${modeResolution.mode}`,
+    `Source: ${modeResolution.source}`,
+    modePolicy.summary,
     "",
     "## YOU ARE AN ORCHESTRATOR, NOT AN IMPLEMENTER",
     "",
@@ -282,11 +289,14 @@ function extractSkillName(input, output) {
   );
 }
 
-function enforceToolPolicy(input, output) {
+async function enforceToolPolicy(input, output) {
   if (!shouldActivate(input, output)) return;
 
   const tool = input?.tool;
   if (!tool) return;
+  const projectRoot = getProjectRoot(input, output);
+  const modeResolution = await resolveProjectMode({ projectRoot });
+  const modePolicy = getModePolicy(modeResolution.mode);
 
   const { state } = getState(input, output);
 
@@ -320,12 +330,17 @@ function enforceToolPolicy(input, output) {
     );
   }
 
-  // After usingLoaded: if no workflow skill yet, only block edit/write
+  // After usingLoaded: mode-specific pre-workflow safeguards apply.
   if (!state.workflowLoaded) {
-    if (tool === "edit" || tool === "write") {
+    if ((tool === "edit" || tool === "write") && !modePolicy.allowWriteWithoutWorkflowSkill) {
         throw new Error(
           "Policy blocked: load an implementation workflow skill before writing files. Examples: brainstorm/plan/executing-plans/tdd/systematic-debugging.",
         );
+    }
+    if (tool === "bash" && !modePolicy.allowBashWithoutWorkflowSkill) {
+      throw new Error(
+        "Policy blocked: load an implementation workflow skill before running bash in strict mode. Examples: brainstorm/plan/executing-plans/tdd/systematic-debugging.",
+      );
     }
     return;
   }
@@ -379,7 +394,8 @@ const ImitationMachinePlugin = async () => {
 
       const projectRoot = getProjectRoot(input, output);
       const projectSkills = discoverProjectSkills(projectRoot);
-      const bootstrap = buildBootstrap(projectSkills);
+      const modeResolution = await resolveProjectMode({ projectRoot });
+      const bootstrap = buildBootstrap(modeResolution, projectSkills);
       if (!bootstrap || !output.messages.length) return;
 
       const { state } = getState(input, output);
@@ -400,7 +416,7 @@ const ImitationMachinePlugin = async () => {
     },
 
     "tool.execute.before": async (input, output) => {
-      enforceToolPolicy(input, output);
+      await enforceToolPolicy(input, output);
     },
   };
 };
