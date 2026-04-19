@@ -28,6 +28,7 @@
     "dev": "bun --hot cli/index.ts",
     "test": "bun test",
     "test:harness": "bun test tests/opencode-harness.test.ts tests/claude-harness.test.ts tests/opencode-harness-smoke.test.ts tests/claude-harness-smoke.test.ts",
+    "test:workflow-harness": "bun test tests/executable-workflow-harness.test.ts",
     "test:opencode": "bash tests/opencode/run-tests.sh fast",
     "test:opencode:live": "bash tests/opencode/run-tests.sh live",
     "typecheck": "bunx tsc --noEmit",
