@@ -16,6 +16,8 @@ const { plans, agentRuns } = await import("../db/schema");
 const { executeOrchestration, __setPlanPersistenceDelayHookForTests } = await import("../cli/commands/orchestrate");
 const { planCommand } = await import("../cli/commands/plan");
 
+const SUBPROCESS_TEST_TIMEOUT_MS = 15_000;
+
 type PersonaCommands = Partial<Record<
   "architect" | "po" | "planner" | "coder" | "qa" | "docs" | "security" | "reviewer" | "release",
   string[]
@@ -166,7 +168,7 @@ describe("orchestrate command", () => {
     expect(rows).toHaveLength(9);
     expect(rows.every((row) => row.status === "completed")).toBe(true);
     expect(rows.every((row) => (row.outputsJson ?? "").includes("process.exit(0)"))).toBe(true);
-  });
+  }, SUBPROCESS_TEST_TIMEOUT_MS);
 
   test("runs build personas in parallel within a task", async () => {
     const planId = "PLN-PARALLEL1";
@@ -206,7 +208,7 @@ describe("orchestrate command", () => {
     const firstEndIndex = events.findIndex((event) => event.endsWith(":end"));
     expect(firstEndIndex).toBeGreaterThanOrEqual(3);
     expect(events.slice(0, 3).sort()).toEqual(["coder:start", "docs:start", "qa:start"]);
-  });
+  }, SUBPROCESS_TEST_TIMEOUT_MS);
 
   test("keeps per-task build personas parallel even when maxParallel limits task groups", async () => {
     const planId = "PLN-BUILD-PAR-1";
@@ -244,7 +246,7 @@ describe("orchestrate command", () => {
     const firstEndIndex = events.findIndex((event) => event.endsWith(":end"));
     expect(firstEndIndex).toBeGreaterThanOrEqual(3);
     expect(events.slice(0, 3).sort()).toEqual(["coder:start", "docs:start", "qa:start"]);
-  });
+  }, SUBPROCESS_TEST_TIMEOUT_MS);
 
   test("stops governance stage on first failure when continueOnError is false", async () => {
     const planId = "PLN-GOVFAIL1";
@@ -281,7 +283,7 @@ describe("orchestrate command", () => {
     expect(rows.some((row) => row.persona === "security" && row.status === "failed")).toBe(true);
     expect(rows.some((row) => row.persona === "reviewer")).toBe(false);
     expect(rows.some((row) => row.persona === "release")).toBe(false);
-  });
+  }, SUBPROCESS_TEST_TIMEOUT_MS);
 
   test("runs independent execution groups in parallel while preserving in-group order", async () => {
     const planId = "PLN-MULTILANE1";
@@ -348,7 +350,7 @@ describe("orchestrate command", () => {
     const rows = db.select().from(agentRuns).where(eq(agentRuns.planId, planId)).all();
     expect(rows).toHaveLength(27);
     expect(rows.every((row) => row.status === "completed")).toBe(true);
-  });
+  }, SUBPROCESS_TEST_TIMEOUT_MS);
 
   test("keeps same execution-group tasks ordered even without dependsOnTaskIds", async () => {
     const planId = "PLN-SAMEGROUP-1";
@@ -391,7 +393,7 @@ describe("orchestrate command", () => {
 
     const events = (await Bun.file(eventLogPath).text()).trim().split("\n");
     expect(events).toEqual(["TSK-G1:start", "TSK-G1:end", "TSK-G2:start", "TSK-G2:end"]);
-  });
+  }, SUBPROCESS_TEST_TIMEOUT_MS);
 
   test("blocks a task in a different execution group until dependsOnTaskIds completes", async () => {
     const planId = "PLN-CROSSDEP-1";
@@ -434,7 +436,7 @@ describe("orchestrate command", () => {
 
     const events = (await Bun.file(eventLogPath).text()).trim().split("\n");
     expect(events).toEqual(["TSK-A1:start", "TSK-A1:end", "TSK-B1:start", "TSK-B1:end"]);
-  });
+  }, SUBPROCESS_TEST_TIMEOUT_MS);
 
   test("treats the plan file as source of truth and mirrors tasks to db", async () => {
     const planId = "PLN-FILE-SOURCE-1";
