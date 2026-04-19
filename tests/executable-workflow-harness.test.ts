@@ -133,6 +133,27 @@ describe("executable workflow harness", () => {
     expect(testFile).toContain('from "./math"');
   });
 
+  test("scaffolds the alternate repo-shape variant with bounded path overrides", async () => {
+    const scaffold = await scaffoldExecutableWorkflowHarness({
+      repoShape: "alternate",
+    });
+    cleanupDirs.add(scaffold.repoDir);
+
+    expect(scaffold.files).toEqual({
+      packageJson: join(scaffold.repoDir, "package.json"),
+      plan: join(scaffold.repoDir, "plans", "PLN-PR29.md"),
+      implementation: join(scaffold.repoDir, "lib", "numbers", "add.ts"),
+      reviewSpec: join(scaffold.repoDir, "tools", "reviewers", "review-spec.ts"),
+      reviewQuality: join(scaffold.repoDir, "tools", "reviewers", "review-quality.ts"),
+      test: join(scaffold.repoDir, "specs", "numbers", "add.spec.ts"),
+      transcript: join(scaffold.repoDir, "tmp", "artifacts", "workflow-transcript.log"),
+    });
+
+    const testFile = await readFile(scaffold.files.test, "utf8");
+
+    expect(testFile).toContain('import { addValues } from "../../lib/numbers/add"');
+  });
+
   test("runs the reusable workflow harness end to end", async () => {
     const result = await runExecutableWorkflowHarness();
     cleanupDirs.add(result.repoDir);
@@ -231,6 +252,48 @@ describe("executable workflow harness", () => {
       result.transcript.indexOf("[review-quality]"),
     );
     expect(verifyLine).toBeDefined();
+  });
+
+  test("runs the alternate repo-shape variant end to end", async () => {
+    const result = await runExecutableWorkflowHarness({
+      repoShape: "alternate",
+    });
+    cleanupDirs.add(result.repoDir);
+
+    const reviewSpecReport = JSON.parse(result.reviewSpec.stdout) as {
+      testFile: string;
+    };
+    const reviewQualityReport = JSON.parse(result.reviewQuality.stdout) as {
+      implementationFile: string;
+      testFile: string;
+    };
+
+    expect(result.failingTest.exitCode).not.toBe(0);
+    expect(result.reviewSpec.exitCode).toBe(0);
+    expect(result.reviewQuality.exitCode).toBe(0);
+    expect(result.verification.exitCode).toBe(0);
+    expect(result.validation.valid).toBe(true);
+    expect(result.createdFiles).toEqual(
+      expect.arrayContaining([
+        join(result.repoDir, "lib", "numbers", "add.ts"),
+        join(result.repoDir, "tools", "reviewers", "review-spec.ts"),
+        join(result.repoDir, "tools", "reviewers", "review-quality.ts"),
+        join(result.repoDir, "specs", "numbers", "add.spec.ts"),
+        join(result.repoDir, "tmp", "artifacts", "workflow-transcript.log"),
+      ]),
+    );
+    expect(reviewSpecReport.testFile).toEndWith(join("specs", "numbers", "add.spec.ts"));
+    expect(reviewQualityReport.implementationFile).toEndWith(
+      join("lib", "numbers", "add.ts"),
+    );
+    expect(reviewQualityReport.testFile).toEndWith(join("specs", "numbers", "add.spec.ts"));
+    expect(result.transcript).toContain("[impl] wrote lib/numbers/add.ts");
+    expect(result.transcript).toContain(
+      "[review-spec] command=bun tools/reviewers/review-spec.ts exit=0",
+    );
+    expect(result.transcript).toContain(
+      "[review-quality] command=bun tools/reviewers/review-quality.ts exit=0",
+    );
   });
 
   test("accepts transcript ordering for review-spec recovery evidence", () => {
