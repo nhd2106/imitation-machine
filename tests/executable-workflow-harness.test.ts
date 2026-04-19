@@ -27,7 +27,7 @@ describe("executable workflow harness", () => {
 
     expect(scaffold.files).toEqual({
       packageJson: join(scaffold.repoDir, "package.json"),
-      plan: join(scaffold.repoDir, "plans", "PLN-PR28.md"),
+      plan: join(scaffold.repoDir, "plans", "PLN-PR29.md"),
       implementation: join(scaffold.repoDir, "src", "math.ts"),
       reviewSpec: join(scaffold.repoDir, "scripts", "review-spec.ts"),
       reviewQuality: join(scaffold.repoDir, "scripts", "review-quality.ts"),
@@ -173,11 +173,11 @@ describe("executable workflow harness", () => {
         join(result.repoDir, "scripts", "review-spec.ts"),
         join(result.repoDir, "scripts", "review-quality.ts"),
         join(result.repoDir, "tests", "math.test.ts"),
-        join(result.repoDir, "plans", "PLN-PR28.md"),
+        join(result.repoDir, "plans", "PLN-PR29.md"),
         join(result.repoDir, "artifacts", "workflow-transcript.log"),
       ]),
     );
-    expect(reviewSpecReport.planFile).toEndWith(join("plans", "PLN-PR28.md"));
+    expect(reviewSpecReport.planFile).toEndWith(join("plans", "PLN-PR29.md"));
     expect(reviewSpecReport.testFile).toEndWith(join("tests", "math.test.ts"));
     expect(reviewQualityReport.implementationFile).toEndWith(join("src", "math.ts"));
     expect(reviewQualityReport.testFile).toEndWith(join("tests", "math.test.ts"));
@@ -195,6 +195,67 @@ describe("executable workflow harness", () => {
 
     const transcriptFile = await readFile(result.files.transcript, "utf8");
     expect(transcriptFile).toBe(result.transcript);
+  });
+
+  test("runs the review-spec failure recovery variant end to end", async () => {
+    const result = await runExecutableWorkflowHarness({
+      variant: "review-spec-recovery",
+    });
+    cleanupDirs.add(result.repoDir);
+
+    const reviewSpecLines = result.transcript
+      .trim()
+      .split("\n")
+      .filter((line) => line.startsWith("[review-spec]"));
+    const verifyLine = result.transcript
+      .trim()
+      .split("\n")
+      .find((line) => line.startsWith("[verify] evidence source=current-run"));
+
+    expect(result.failingTest.exitCode).not.toBe(0);
+    expect(result.reviewSpec.exitCode).toBe(0);
+    expect(result.reviewQuality.exitCode).toBe(0);
+    expect(result.verification.exitCode).toBe(0);
+    expect(result.validation.valid).toBe(true);
+    expect(reviewSpecLines).toHaveLength(2);
+    expect(reviewSpecLines[0]).toContain("exit=1");
+    expect(reviewSpecLines[1]).toContain("exit=0");
+    expect(result.transcript).toContain("[fix] applied review-spec-recovery");
+    expect(result.transcript.indexOf(reviewSpecLines[0]!)).toBeLessThan(
+      result.transcript.indexOf("[fix] applied review-spec-recovery"),
+    );
+    expect(result.transcript.indexOf("[fix] applied review-spec-recovery")).toBeLessThan(
+      result.transcript.indexOf(reviewSpecLines[1]!),
+    );
+    expect(result.transcript.indexOf(reviewSpecLines[1]!)).toBeLessThan(
+      result.transcript.indexOf("[review-quality]"),
+    );
+    expect(verifyLine).toBeDefined();
+  });
+
+  test("accepts transcript ordering for review-spec recovery evidence", () => {
+    const validation = evaluateExecutableWorkflowTranscript(`
+[state] repo-scaffolded
+[plan] status: approved
+[tdd] failing test observed command=bun test exit=1
+[impl] wrote src/math.ts
+[review-spec] command=bun scripts/review-spec.ts exit=1 evidence-sha256=spec-fail
+[fix] applied review-spec-recovery
+[review-spec] command=bun scripts/review-spec.ts exit=0 evidence-sha256=spec-pass
+[review-quality] command=bun scripts/review-quality.ts exit=0 evidence-sha256=quality
+[verify] evidence source=current-run command=bun test exit=0 stdout-sha256=verify
+`);
+
+    expect(validation.valid).toBe(true);
+    expect(validation.stages).toEqual([
+      "repo-scaffolded",
+      "plan-approved",
+      "failing-test-observed",
+      "implementation-written",
+      "review-spec-passed",
+      "review-quality-passed",
+      "verification-fresh",
+    ]);
   });
 
   test("rejects out-of-order transcript stages", () => {
