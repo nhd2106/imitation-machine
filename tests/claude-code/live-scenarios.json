@@ -1,0 +1,45 @@
+{
+  "scenarios": [
+    {
+      "id": "continuation-happy-path",
+      "turns": [
+        {
+          "prompt": "Start a bounded Claude review session, route into requesting-code-review, and reach review-ready.",
+          "expect": {
+            "valid": true,
+            "stages": ["install-visible-skills", "workflow-routing", "review-ready"]
+          }
+        },
+        {
+          "prompt": "Continue the same Claude session with --continue, preserve the routed review context, and keep the transcript review-ready.",
+          "expect": {
+            "valid": true,
+            "stages": ["install-visible-skills", "workflow-routing", "review-ready"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "continuation-stale-verification",
+      "turns": [
+        {
+          "prompt": "Start a bounded Claude review session, route into requesting-code-review, and reach review-ready.",
+          "expect": {
+            "valid": true,
+            "stages": ["install-visible-skills", "workflow-routing", "review-ready"]
+          }
+        },
+        {
+          "prompt": "Continue the same Claude session with --continue but surface stale previous-run verification evidence in the follow-up turn.",
+          "expect": {
+            "valid": false,
+            "stages": ["install-visible-skills", "workflow-routing", "review-ready"],
+            "issues": [
+              "Stale verification evidence: [verify] evidence source=previous-run age=2h command=bun test tests/claude-harness.test.ts"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
