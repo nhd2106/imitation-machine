@@ -4,6 +4,8 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { buildDefaultChecks, runVerificationChecklist, type VerificationCheck } from "../cli/commands/verify";
 
+const SUBPROCESS_TEST_TIMEOUT_MS = 15_000;
+
 describe("verify command", () => {
   test("buildDefaultChecks returns expected check IDs", () => {
     const checks = buildDefaultChecks("/tmp/workspace", "abc123");
@@ -108,5 +110,5 @@ exit 1
     expect(`${stdout}${stderr}`).toContain("$ bun cli/index.ts gate all --cwd");
     expect(`${stdout}${stderr}`).toContain("✓ All gates passed");
     expect(`${stdout}${stderr}`).toContain("✓ Verification passed");
-  });
+  }, SUBPROCESS_TEST_TIMEOUT_MS);
 });
