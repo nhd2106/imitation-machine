@@ -8,14 +8,24 @@ import {
 
 const manifestPath = new URL("./opencode/live-scenarios.json", import.meta.url).pathname;
 
+async function writeManifest(contents: object): Promise<string> {
+  const path = `/tmp/opencode-live-harness-${crypto.randomUUID()}.json`;
+  await Bun.write(path, JSON.stringify(contents));
+  return path;
+}
+
 describe("OpenCode live harness", () => {
   test("loads the checked-in live scenario manifest", async () => {
     const manifest = await loadLiveScenarioManifest(manifestPath);
 
-    expect(manifest.scenarios.length).toBeGreaterThanOrEqual(2);
+    expect(manifest.scenarios.length).toBeGreaterThanOrEqual(6);
     expect(manifest.scenarios.map((scenario) => scenario.id)).toEqual([
       "bootstrap-plan-ready",
       "missing-process-skill",
+      "missing-bootstrap",
+      "wrong-process-skill",
+      "stale-verification-evidence",
+      "contradictory-agent-outputs",
     ]);
   });
 
@@ -71,6 +81,18 @@ describe("OpenCode live harness", () => {
   });
 
   test("evaluates live transcripts with existing OpenCode harness semantics", async () => {
+    const missingBootstrapTranscript = await Bun.file(
+      "tests/harness-fixtures/opencode-missing-bootstrap.log",
+    ).text();
+    const wrongProcessSkillTranscript = await Bun.file(
+      "tests/harness-fixtures/opencode-wrong-process-skill.log",
+    ).text();
+    const staleVerificationTranscript = await Bun.file(
+      "tests/harness-fixtures/opencode-stale-verification-evidence.log",
+    ).text();
+    const contradictoryAgentOutputsTranscript = await Bun.file(
+      "tests/harness-fixtures/opencode-contradictory-agent-outputs.log",
+    ).text();
     const transcripts = new Map([
       [
         "bootstrap-plan-ready",
@@ -80,19 +102,31 @@ describe("OpenCode live harness", () => {
         "missing-process-skill",
         `[bootstrap] plugin=.opencode/plugins/imitation-machine.js\n[bootstrap] service=skill initialized\n[skill] using-agentic loaded\n[state] plan-ready\n`,
       ],
+      [
+        "missing-bootstrap",
+        missingBootstrapTranscript,
+      ],
+      [
+        "wrong-process-skill",
+        wrongProcessSkillTranscript,
+      ],
+      [
+        "stale-verification-evidence",
+        staleVerificationTranscript,
+      ],
+      [
+        "contradictory-agent-outputs",
+        contradictoryAgentOutputsTranscript,
+      ],
     ]);
 
     const result = await runLiveHarness({
       manifestPath,
       env: { OPENCODE_LIVE: "1" },
-      exec: async (command) => {
-        const prompt = command.args.at(-1) ?? "";
-        const scenario = prompt.includes("ambiguous")
-          ? "missing-process-skill"
-          : "bootstrap-plan-ready";
+      exec: async (_command, scenario) => {
 
         return {
-          stdout: transcripts.get(scenario) ?? "",
+          stdout: transcripts.get(scenario.id) ?? "",
           stderr: "",
           exitCode: 0,
         };
@@ -100,7 +134,7 @@ describe("OpenCode live harness", () => {
     });
 
     expect(result.skipped).toBe(false);
-    expect(result.summary.passed).toBe(2);
+    expect(result.summary.passed).toBe(6);
     expect(result.summary.failed).toBe(0);
     expect(result.results).toEqual([
       expect.objectContaining({
@@ -125,6 +159,50 @@ describe("OpenCode live harness", () => {
           issues: expect.arrayContaining(["Missing process-skill selection"]),
         }),
       }),
+      expect.objectContaining({
+        id: "missing-bootstrap",
+        ok: true,
+        evaluation: expect.objectContaining({
+          valid: false,
+          selectedProcessSkill: "plan",
+          issues: expect.arrayContaining([
+            "Missing bootstrap evidence: [bootstrap] plugin=.opencode/plugins/imitation-machine.js; [bootstrap] service=skill initialized; [skill] using-agentic loaded",
+          ]),
+        }),
+      }),
+      expect.objectContaining({
+        id: "wrong-process-skill",
+        ok: true,
+        evaluation: expect.objectContaining({
+          valid: false,
+          selectedProcessSkill: "plan",
+          issues: expect.arrayContaining([
+            "Wrong process skill loaded: expected plan, loaded brainstorm",
+          ]),
+        }),
+      }),
+      expect.objectContaining({
+        id: "stale-verification-evidence",
+        ok: true,
+        evaluation: expect.objectContaining({
+          valid: false,
+          selectedProcessSkill: "plan",
+          issues: expect.arrayContaining([
+            "Stale verification evidence: [verify] evidence source=previous-run age=2h command=bun test",
+          ]),
+        }),
+      }),
+      expect.objectContaining({
+        id: "contradictory-agent-outputs",
+        ok: true,
+        evaluation: expect.objectContaining({
+          valid: false,
+          selectedProcessSkill: "plan",
+          issues: expect.arrayContaining([
+            "Contradictory agent outputs: [agent:coder] status: DONE; [agent:reviewer] status: BLOCKED",
+          ]),
+        }),
+      }),
     ]);
   });
 
@@ -140,9 +218,114 @@ describe("OpenCode live harness", () => {
     });
 
     expect(result.skipped).toBe(false);
-    expect(result.summary.failed).toBe(2);
+    expect(result.summary.failed).toBe(6);
     expect(result.results[0]?.failureReasons).toEqual(
       expect.arrayContaining([expect.stringContaining("code 124")]),
     );
+  });
+
+  test("fails when evaluation reports unexpected extra issues", async () => {
+    const customManifestPath = await writeManifest({
+      scenarios: [
+        {
+          id: "extra-issues",
+          prompt: "check recovery path",
+          expect: {
+            valid: false,
+            stages: ["bootstrap"],
+            issues: ["Missing process-skill selection"],
+          },
+        },
+      ],
+    });
+
+    const result = await runLiveHarness({
+      manifestPath: customManifestPath,
+      env: { OPENCODE_LIVE: "1" },
+      exec: async () => ({
+        stdout:
+          `[bootstrap] plugin=.opencode/plugins/imitation-machine.js\n` +
+          `[bootstrap] service=skill initialized\n` +
+          `[skill] using-agentic loaded\n` +
+          `[state] plan-ready\n` +
+          `[agent:coder] status: DONE\n` +
+          `[agent:reviewer] status: BLOCKED\n`,
+        stderr: "",
+        exitCode: 0,
+      }),
+    });
+
+    expect(result.summary.failed).toBe(1);
+    expect(result.results[0]?.failureReasons).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining(
+          "Unexpected issues: Contradictory agent outputs: [agent:coder] status: DONE; [agent:reviewer] status: BLOCKED",
+        ),
+      ]),
+    );
+  });
+
+  test("clears the timeout when the process exits before it fires", async () => {
+    const customManifestPath = await writeManifest({
+      scenarios: [
+        {
+          id: "fast-exit",
+          prompt: "bootstrap",
+          expect: {
+            valid: true,
+            selectedProcessSkill: "plan",
+            stages: ["bootstrap", "process-skill", "plan-ready"],
+          },
+        },
+      ],
+    });
+
+    const originalSpawn = Bun.spawn;
+    const originalSetTimeout = globalThis.setTimeout;
+    const originalClearTimeout = globalThis.clearTimeout;
+    const timerToken = { id: "timer" };
+    const clearTimeoutCalls: unknown[] = [];
+
+    try {
+      globalThis.setTimeout = ((_: TimerHandler) => timerToken) as typeof setTimeout;
+      globalThis.clearTimeout = ((timer: unknown) => {
+        clearTimeoutCalls.push(timer);
+      }) as typeof clearTimeout;
+      Bun.spawn = (() => ({
+        stdout: new ReadableStream({
+          start(controller) {
+            controller.enqueue(
+              new TextEncoder().encode(
+                `[bootstrap] plugin=.opencode/plugins/imitation-machine.js\n` +
+                  `[bootstrap] service=skill initialized\n` +
+                  `[skill] using-agentic loaded\n` +
+                  `[route] selected process skill: plan\n` +
+                  `[state] plan-ready\n`,
+              ),
+            );
+            controller.close();
+          },
+        }),
+        stderr: new ReadableStream({
+          start(controller) {
+            controller.close();
+          },
+        }),
+        exited: Promise.resolve(0),
+        kill() {},
+      })) as typeof Bun.spawn;
+
+      const result = await runLiveHarness({
+        manifestPath: customManifestPath,
+        env: { OPENCODE_LIVE: "1" },
+      });
+
+      expect(result.summary.passed).toBe(1);
+      expect(clearTimeoutCalls).toEqual([timerToken]);
+    } finally {
+      Bun.spawn = originalSpawn;
+      globalThis.setTimeout = originalSetTimeout;
+      globalThis.clearTimeout = originalClearTimeout;
+    }
   });
 });

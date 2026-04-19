@@ -8,7 +8,7 @@ This path stays local, deterministic, and intentionally narrow:
 
 - `scripts/opencode-harness.ts` for bounded command construction and transcript evaluation
 - `tests/opencode-harness.test.ts` for focused unit coverage
-- `tests/opencode-harness-smoke.test.ts` for fixture-backed happy-path and failure-path progression checks
+- `tests/opencode-harness-smoke.test.ts` for fixture-backed happy-path and failure-path progression checks, including recovery issues for missing bootstrap markers, wrong process skill loads, stale verification evidence lines, and contradictory agent status lines
 - `tests/opencode/run-tests.sh fast` to run only the OpenCode-focused bounded tests
 
 Run either:
@@ -40,6 +40,21 @@ The live harness stays OpenCode-only and reuses the existing bounded transcript 
 - `tests/opencode/live-scenarios.json` defines the checked-in live scenarios
 - `scripts/opencode-live-harness.ts` loads the manifest, runs `opencode run --print-logs`, and evaluates the returned transcript text
 - `tests/opencode-live-harness.test.ts` covers manifest loading, env gating, command construction, and transcript evaluation wiring
+
+The checked-in live manifest now exercises both the happy path and recovery realism cases:
+
+- `bootstrap-plan-ready`
+- `missing-process-skill`
+- `missing-bootstrap`
+- `wrong-process-skill`
+- `stale-verification-evidence`
+- `contradictory-agent-outputs`
+
+The recovery fixtures intentionally preserve the transcript lines that explain each failure so evaluator output stays actionable:
+
+- missing bootstrap reports which bootstrap markers never appeared
+- stale verification reports the stale `[verify] evidence ...` lines verbatim
+- contradictory outputs report the conflicting `[agent:...] status: ...` lines verbatim
 
 By default, live mode skips cleanly unless `OPENCODE_LIVE=1` is set:
 

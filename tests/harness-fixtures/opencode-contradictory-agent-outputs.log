@@ -1,0 +1,9 @@
+[bootstrap] plugin=.opencode/plugins/imitation-machine.js
+[bootstrap] service=skill initialized
+[skill] using-agentic loaded
+[dispatch] reviewer joined recovery path
+[route] selected process skill: plan
+[agent:coder] status: DONE
+[agent:reviewer] status: BLOCKED
+[summary] merged agent outputs into recovery transcript
+[state] plan-ready

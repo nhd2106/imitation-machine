@@ -75,7 +75,9 @@ describe("OpenCode harness", () => {
 `);
 
     expect(result.valid).toBe(false);
-    expect(result.issues).toContain("Missing bootstrap evidence");
+    expect(result.issues).toContain(
+      "Missing bootstrap evidence: [bootstrap] plugin=.opencode/plugins/imitation-machine.js; [bootstrap] service=skill initialized; [skill] using-agentic loaded",
+    );
     expect(result.issues).toContain("Missing plan-ready state");
   });
 
@@ -90,5 +92,73 @@ describe("OpenCode harness", () => {
 
     expect(result.valid).toBe(false);
     expect(result.issues).toContain("Out-of-order progression: bootstrap -> process-skill -> plan-ready");
+  });
+
+  test("rejects transcripts that load a process skill contradicting the selected route", () => {
+    const result = evaluateOpenCodeTranscript(`
+[bootstrap] plugin=.opencode/plugins/imitation-machine.js
+[bootstrap] service=skill initialized
+[skill] using-agentic loaded
+[route] selected process skill: plan
+[skill] process skill loaded: brainstorm
+[state] plan-ready
+`);
+
+    expect(result.valid).toBe(false);
+    expect(result.selectedProcessSkill).toBe("plan");
+    expect(result.stages).toEqual(["bootstrap", "process-skill", "plan-ready"]);
+    expect(result.issues).toContain("Wrong process skill loaded: expected plan, loaded brainstorm");
+  });
+
+  test("rejects transcripts with stale verification evidence", () => {
+    const result = evaluateOpenCodeTranscript(`
+[bootstrap] plugin=.opencode/plugins/imitation-machine.js
+[bootstrap] service=skill initialized
+[skill] using-agentic loaded
+[route] selected process skill: plan
+[verify] evidence source=previous-run age=2h command=bun test
+[state] plan-ready
+`);
+
+    expect(result.valid).toBe(false);
+    expect(result.selectedProcessSkill).toBe("plan");
+    expect(result.stages).toEqual(["bootstrap", "process-skill", "plan-ready"]);
+    expect(result.issues).toContain(
+      "Stale verification evidence: [verify] evidence source=previous-run age=2h command=bun test",
+    );
+  });
+
+  test("rejects transcripts with contradictory agent outputs", () => {
+    const result = evaluateOpenCodeTranscript(`
+[bootstrap] plugin=.opencode/plugins/imitation-machine.js
+[bootstrap] service=skill initialized
+[skill] using-agentic loaded
+[route] selected process skill: plan
+[agent:coder] status: DONE
+[agent:reviewer] status: BLOCKED
+[state] plan-ready
+`);
+
+    expect(result.valid).toBe(false);
+    expect(result.selectedProcessSkill).toBe("plan");
+    expect(result.stages).toEqual(["bootstrap", "process-skill", "plan-ready"]);
+    expect(result.issues).toContain(
+      "Contradictory agent outputs: [agent:coder] status: DONE; [agent:reviewer] status: BLOCKED",
+    );
+  });
+
+  test("reports which bootstrap markers are missing in recovery transcripts", () => {
+    const result = evaluateOpenCodeTranscript(`
+[bootstrap] plugin=.opencode/plugins/imitation-machine.js
+[route] selected process skill: plan
+[state] plan-ready
+`);
+
+    expect(result.valid).toBe(false);
+    expect(result.selectedProcessSkill).toBe("plan");
+    expect(result.stages).toEqual(["process-skill", "plan-ready"]);
+    expect(result.issues).toContain(
+      "Missing bootstrap evidence: [bootstrap] service=skill initialized; [skill] using-agentic loaded",
+    );
   });
 });
