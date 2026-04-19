@@ -34,6 +34,7 @@ export type ExecutableWorkflowScaffold = {
 export type ExecutableWorkflowHarnessConfig = {
   planId?: string;
   taskId?: string;
+  variant?: "default" | "review-spec-recovery";
   sample?: {
     implementationFile?: string;
     testFile?: string;
@@ -88,8 +89,9 @@ const STAGE_MARKERS: Array<[ExecutableWorkflowStage, (line: string) => boolean]>
 ];
 
 const DEFAULT_CONFIG = {
-  planId: "PLN-PR28",
-  taskId: "TSK-PR28-1",
+  planId: "PLN-PR29",
+  taskId: "TSK-PR29-1",
+  variant: "default",
   sample: {
     implementationFile: "src/math.ts",
     testFile: "tests/math.test.ts",
@@ -102,6 +104,7 @@ const DEFAULT_CONFIG = {
 type ResolvedExecutableWorkflowHarnessConfig = {
   planId: string;
   taskId: string;
+  variant: "default" | "review-spec-recovery";
   sample: {
     implementationFile: string;
     testFile: string;
@@ -117,6 +120,7 @@ function resolveHarnessConfig(
   return {
     planId: config.planId ?? DEFAULT_CONFIG.planId,
     taskId: config.taskId ?? DEFAULT_CONFIG.taskId,
+    variant: config.variant ?? DEFAULT_CONFIG.variant,
     sample: {
       implementationFile:
         config.sample?.implementationFile ?? DEFAULT_CONFIG.sample.implementationFile,
@@ -170,8 +174,13 @@ function getImplementationRelativeImport(testFile: string, implementationFile: s
   return relativePath.startsWith(".") ? relativePath : `./${relativePath}`;
 }
 
-function createPlanContent(planId: string, taskId: string): string {
-  return `# ${planId}\n\nStatus: approved\nTask count: 1\n\n## Task ${taskId}\n- Outcome: add numbers via Bun-tested workflow harness sample\n- Scope: single task only\n- Verification: bun test\n`;
+function createPlanContent(
+  planId: string,
+  taskId: string,
+  variant: ResolvedExecutableWorkflowHarnessConfig["variant"],
+): string {
+  const recoveryMarker = variant === "review-spec-recovery" ? "" : "- Recovery marker: review-spec-ready\n";
+  return `# ${planId}\n\nStatus: approved\nTask count: 1\n\n## Task ${taskId}\n- Outcome: add numbers via Bun-tested workflow harness sample\n- Scope: single task only\n- Verification: bun test\n${recoveryMarker}`;
 }
 
 function createTestContent(testFile: string, implementationFile: string): string {
@@ -186,9 +195,17 @@ function createImplementationContent(implementationFile: string): string {
   return `export function ${exportName}(left: number, right: number): number {\n  return left + right;\n}\n`;
 }
 
-function createReviewSpecContent(planId: string, testFile: string): string {
+function createReviewSpecContent(
+  planId: string,
+  testFile: string,
+  variant: ResolvedExecutableWorkflowHarnessConfig["variant"],
+): string {
   const testFileParts = testFile.split("/");
-  return `import { readFile } from "node:fs/promises";\nimport { join } from "node:path";\n\nconst repoDir = process.cwd();\nconst planFile = join(repoDir, "plans", "${planId}.md");\nconst testFile = join(repoDir, ${testFileParts.map((part) => `"${part}"`).join(", ")});\nconst [plan, test] = await Promise.all([readFile(planFile, "utf8"), readFile(testFile, "utf8")]);\nconst report = {\n  review: "spec",\n  planFile,\n  testFile,\n  approvedPlan: plan.includes("Status: approved"),\n  singleTaskPlan: plan.includes("Task count: 1"),\n  usesBunTest: test.includes('from "bun:test"'),\n};\nconsole.log(JSON.stringify(report));\nprocess.exitCode = Object.values(report).every((value) => typeof value !== "boolean" || value) ? 0 : 1;\n`;
+  const recoveryCheck =
+    variant === "review-spec-recovery"
+      ? '  recoveryMarkerPresent: plan.includes("Recovery marker: review-spec-ready"),\n'
+      : "";
+  return `import { readFile } from "node:fs/promises";\nimport { join } from "node:path";\n\nconst repoDir = process.cwd();\nconst planFile = join(repoDir, "plans", "${planId}.md");\nconst testFile = join(repoDir, ${testFileParts.map((part) => `"${part}"`).join(", ")});\nconst [plan, test] = await Promise.all([readFile(planFile, "utf8"), readFile(testFile, "utf8")]);\nconst report = {\n  review: "spec",\n  planFile,\n  testFile,\n  approvedPlan: plan.includes("Status: approved"),\n  singleTaskPlan: plan.includes("Task count: 1"),\n  usesBunTest: test.includes('from "bun:test"'),\n${recoveryCheck}};\nconsole.log(JSON.stringify(report));\nprocess.exitCode = Object.values(report).every((value) => typeof value !== "boolean" || value) ? 0 : 1;\n`;
 }
 
 function createReviewQualityContent(
@@ -343,11 +360,30 @@ export function evaluateExecutableWorkflowTranscript(
     (line) =>
       line.startsWith("[review-spec] command=bun ") && /\bexit=0\b/.test(line) && line.includes(" evidence-sha256="),
   );
+  const failedReviewSpecIndex = lines.findIndex(
+    (line) =>
+      line.startsWith("[review-spec] command=bun ") && NON_ZERO_EXIT_PATTERN.test(line) && line.includes(" evidence-sha256="),
+  );
+  const fixIndex = lines.findIndex((line) => line.startsWith("[fix] applied review-spec-recovery"));
   const reviewQualityIndex = lines.findIndex((line) =>
     line.startsWith("[review-quality] command=bun ") && /\bexit=0\b/.test(line) && line.includes(" evidence-sha256="),
   );
   if (reviewSpecIndex >= 0 && reviewQualityIndex >= 0 && reviewSpecIndex > reviewQualityIndex) {
     issues.push("Review sequence violated: review-spec must precede review-quality");
+  }
+  if (failedReviewSpecIndex >= 0 || fixIndex >= 0) {
+    if (failedReviewSpecIndex < 0) {
+      issues.push("Recovery sequence violated: missing failed review-spec evidence before fix");
+    }
+    if (fixIndex < 0) {
+      issues.push("Recovery sequence violated: missing deterministic fix marker before review-spec rerun");
+    }
+    if (failedReviewSpecIndex >= 0 && fixIndex >= 0 && failedReviewSpecIndex > fixIndex) {
+      issues.push("Recovery sequence violated: failed review-spec must precede deterministic fix");
+    }
+    if (fixIndex >= 0 && reviewSpecIndex >= 0 && fixIndex > reviewSpecIndex) {
+      issues.push("Recovery sequence violated: deterministic fix must precede passing review-spec rerun");
+    }
   }
 
   const failingTestStageLine = lines.find((line) =>
@@ -414,10 +450,17 @@ export async function scaffoldExecutableWorkflowHarness(
       2,
     ),
   );
-  await writeFile(files.plan, createPlanContent(resolvedConfig.planId, resolvedConfig.taskId));
+  await writeFile(
+    files.plan,
+    createPlanContent(resolvedConfig.planId, resolvedConfig.taskId, resolvedConfig.variant),
+  );
   await writeFile(
     files.reviewSpec,
-    createReviewSpecContent(resolvedConfig.planId, resolvedConfig.sample.testFile),
+    createReviewSpecContent(
+      resolvedConfig.planId,
+      resolvedConfig.sample.testFile,
+      resolvedConfig.variant,
+    ),
   );
   await writeFile(
     files.reviewQuality,
@@ -449,17 +492,38 @@ export async function runExecutableWorkflowHarness(
     scaffold.files.implementation,
     createImplementationContent(resolvedConfig.sample.implementationFile),
   );
-  const reviewSpec = await runBunCommand(scaffold.repoDir, [resolvedConfig.sample.reviewSpecFile]);
-  const reviewQuality = await runBunCommand(scaffold.repoDir, [resolvedConfig.sample.reviewQualityFile]);
-  const verification = await runBunTest(scaffold.repoDir);
-
-  const transcript = [
+  const reviewSpecAttempts = [
+    await runBunCommand(scaffold.repoDir, [resolvedConfig.sample.reviewSpecFile]),
+  ];
+  const transcriptLines = [
     "[state] repo-scaffolded",
     "[plan] status: approved",
     `[plan] file: ${scaffold.files.plan}`,
     `[tdd] failing test observed command=bun test exit=${failingTest.exitCode}`,
     `[impl] wrote ${resolvedConfig.sample.implementationFile}`,
-    `[review-spec] command=bun ${resolvedConfig.sample.reviewSpecFile} exit=${reviewSpec.exitCode} evidence-sha256=${createEvidenceSha(reviewSpec.stdout)}`,
+    `[review-spec] command=bun ${resolvedConfig.sample.reviewSpecFile} exit=${reviewSpecAttempts[0]!.exitCode} evidence-sha256=${createEvidenceSha(reviewSpecAttempts[0]!.stdout)}`,
+  ];
+
+  if (resolvedConfig.variant === "review-spec-recovery" && reviewSpecAttempts[0]!.exitCode !== 0) {
+    await writeFile(
+      scaffold.files.plan,
+      `${await Bun.file(scaffold.files.plan).text()}- Recovery marker: review-spec-ready\n`,
+    );
+    transcriptLines.push("[fix] applied review-spec-recovery");
+    reviewSpecAttempts.push(
+      await runBunCommand(scaffold.repoDir, [resolvedConfig.sample.reviewSpecFile]),
+    );
+    transcriptLines.push(
+      `[review-spec] command=bun ${resolvedConfig.sample.reviewSpecFile} exit=${reviewSpecAttempts[1]!.exitCode} evidence-sha256=${createEvidenceSha(reviewSpecAttempts[1]!.stdout)}`,
+    );
+  }
+
+  const reviewSpec = reviewSpecAttempts.at(-1)!;
+  const reviewQuality = await runBunCommand(scaffold.repoDir, [resolvedConfig.sample.reviewQualityFile]);
+  const verification = await runBunTest(scaffold.repoDir);
+
+  const transcript = [
+    ...transcriptLines,
     `[review-quality] command=bun ${resolvedConfig.sample.reviewQualityFile} exit=${reviewQuality.exitCode} evidence-sha256=${createEvidenceSha(reviewQuality.stdout)}`,
     `[verify] evidence source=current-run command=bun test exit=${verification.exitCode} stdout-sha256=${createEvidenceSha(verification.stdout)}`,
   ].join("\n");
