@@ -62,6 +62,51 @@
           "Contradictory agent outputs: [agent:coder] status: DONE; [agent:reviewer] status: BLOCKED"
         ]
       }
+    },
+    {
+      "id": "continuation-happy-path",
+      "turns": [
+        {
+          "prompt": "Start from bootstrap, route through the right process skill, and end at a plan-ready state.",
+          "expect": {
+            "valid": true,
+            "selectedProcessSkill": "plan",
+            "stages": ["bootstrap", "process-skill", "plan-ready"]
+          }
+        },
+        {
+          "prompt": "Continue the same session, keep the prior plan context carried forward, and show fresh current-run verification while staying plan-ready.",
+          "expect": {
+            "valid": true,
+            "selectedProcessSkill": "plan",
+            "stages": ["bootstrap", "process-skill", "plan-ready"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "continuation-stale-verification",
+      "turns": [
+        {
+          "prompt": "Start from bootstrap, route through the right process skill, and end at a plan-ready state.",
+          "expect": {
+            "valid": true,
+            "selectedProcessSkill": "plan",
+            "stages": ["bootstrap", "process-skill", "plan-ready"]
+          }
+        },
+        {
+          "prompt": "Continue the same session but carry forward stale previous-run verification evidence instead of fresh current-run verification.",
+          "expect": {
+            "valid": false,
+            "selectedProcessSkill": "plan",
+            "stages": ["bootstrap", "process-skill", "plan-ready"],
+            "issues": [
+              "Stale verification evidence: [verify] evidence source=previous-run age=2h command=bun test"
+            ]
+          }
+        }
+      ]
     }
   ]
 }

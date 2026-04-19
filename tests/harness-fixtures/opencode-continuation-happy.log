@@ -1,0 +1,3 @@
+[continue] session resumed
+[verify] evidence source=current-run command=bun test tests/opencode-harness.test.ts
+[state] plan-ready

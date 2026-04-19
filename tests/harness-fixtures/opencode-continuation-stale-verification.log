@@ -1,0 +1,3 @@
+[continue] session resumed
+[verify] evidence source=previous-run age=2h command=bun test
+[state] plan-ready

@@ -147,6 +147,44 @@ describe("OpenCode harness", () => {
     );
   });
 
+  test("accepts continuation transcripts when prior bootstrap and routing evidence are carried forward", () => {
+    const result = evaluateOpenCodeTranscript(`
+[bootstrap] plugin=.opencode/plugins/imitation-machine.js
+[bootstrap] service=skill initialized
+[skill] using-agentic loaded
+[route] selected process skill: plan
+[state] plan-ready
+[continue] session resumed
+[verify] evidence source=current-run command=bun test tests/opencode-harness.test.ts
+[state] plan-ready
+`);
+
+    expect(result.valid).toBe(true);
+    expect(result.selectedProcessSkill).toBe("plan");
+    expect(result.stages).toEqual(["bootstrap", "process-skill", "plan-ready"]);
+    expect(result.issues).toEqual([]);
+  });
+
+  test("rejects continuation transcripts that carry stale verification evidence into a later turn", () => {
+    const result = evaluateOpenCodeTranscript(`
+[bootstrap] plugin=.opencode/plugins/imitation-machine.js
+[bootstrap] service=skill initialized
+[skill] using-agentic loaded
+[route] selected process skill: plan
+[state] plan-ready
+[continue] session resumed
+[verify] evidence source=previous-run age=2h command=bun test
+[state] plan-ready
+`);
+
+    expect(result.valid).toBe(false);
+    expect(result.selectedProcessSkill).toBe("plan");
+    expect(result.stages).toEqual(["bootstrap", "process-skill", "plan-ready"]);
+    expect(result.issues).toContain(
+      "Stale verification evidence: [verify] evidence source=previous-run age=2h command=bun test",
+    );
+  });
+
   test("reports which bootstrap markers are missing in recovery transcripts", () => {
     const result = evaluateOpenCodeTranscript(`
 [bootstrap] plugin=.opencode/plugins/imitation-machine.js

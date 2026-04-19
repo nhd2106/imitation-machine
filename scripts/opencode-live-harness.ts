@@ -7,10 +7,16 @@ export type LiveScenarioExpectation = {
   issues?: string[];
 };
 
-export type LiveScenario = {
-  id: string;
+export type LiveScenarioTurn = {
   prompt: string;
   expect: LiveScenarioExpectation;
+};
+
+export type LiveScenario = {
+  id: string;
+  prompt?: string;
+  expect?: LiveScenarioExpectation;
+  turns?: LiveScenarioTurn[];
 };
 
 export type LiveScenarioManifest = {
@@ -30,6 +36,15 @@ export type LiveHarnessCommand = {
 
 export type LiveHarnessScenarioResult = {
   id: string;
+  ok: boolean;
+  evaluation: OpenCodeTranscriptResult;
+  failureReasons: string[];
+  turns: LiveHarnessTurnResult[];
+};
+
+export type LiveHarnessTurnResult = {
+  index: number;
+  prompt: string;
   command: LiveHarnessCommand;
   ok: boolean;
   evaluation: OpenCodeTranscriptResult;
@@ -52,7 +67,16 @@ export type LiveHarnessRunResult = {
 type RunLiveHarnessOptions = {
   manifestPath?: string;
   env?: Record<string, string | undefined>;
-  exec?: (command: LiveHarnessCommand, scenario: LiveScenario) => Promise<LiveHarnessExecResult>;
+  exec?: (
+    command: LiveHarnessCommand,
+    scenario: LiveScenario,
+    turn: LiveScenarioExecutionTurn,
+  ) => Promise<LiveHarnessExecResult>;
+};
+
+type LiveScenarioExecutionTurn = LiveScenarioTurn & {
+  index: number;
+  continueSession: boolean;
 };
 
 const DEFAULT_MANIFEST_PATH = new URL("../tests/opencode/live-scenarios.json", import.meta.url)
@@ -106,10 +130,39 @@ function compareExpectations(
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
-export function buildLiveHarnessCommand({ prompt }: { prompt: string }): LiveHarnessCommand {
+function getScenarioTurns(scenario: LiveScenario): LiveScenarioExecutionTurn[] {
+  if (scenario.turns && scenario.turns.length > 0) {
+    return scenario.turns.map((turn, index) => ({
+      ...turn,
+      index,
+      continueSession: index > 0,
+    }));
+  }
+
+  if (!scenario.prompt || !scenario.expect) {
+    throw new Error(`Scenario ${scenario.id} must provide either prompt/expect or turns[].`);
+  }
+
+  return [
+    {
+      index: 0,
+      prompt: scenario.prompt,
+      expect: scenario.expect,
+      continueSession: false,
+    },
+  ];
+}
+
+export function buildLiveHarnessCommand({
+  prompt,
+  continueSession = false,
+}: {
+  prompt: string;
+  continueSession?: boolean;
+}): LiveHarnessCommand {
   return {
     executable: "opencode",
-    args: ["run", "--print-logs", prompt],
+    args: ["run", "--print-logs", ...(continueSession ? ["--continue"] : []), prompt],
   };
 }
 
@@ -183,24 +236,48 @@ export async function runLiveHarness({
   const results: LiveHarnessScenarioResult[] = [];
 
   for (const scenario of manifest.scenarios) {
-    const command = buildLiveHarnessCommand({ prompt: scenario.prompt });
-    const execution = await exec(command, scenario);
-    const evaluation = evaluateOpenCodeTranscript(execution.stdout);
-    const failureReasons = [
-      ...(execution.exitCode === 0
-        ? []
-        : [`Command exited with code ${execution.exitCode}`]),
-      ...compareExpectations(evaluation, scenario.expect),
-    ];
+    let transcript = "";
+    const turns = getScenarioTurns(scenario);
+    const turnResults: LiveHarnessTurnResult[] = [];
+
+    for (const turn of turns) {
+      const command = buildLiveHarnessCommand({
+        prompt: turn.prompt,
+        continueSession: turn.continueSession,
+      });
+      const execution = await exec(command, scenario, turn);
+      transcript = transcript ? `${transcript}\n${execution.stdout}` : execution.stdout;
+      const evaluation = evaluateOpenCodeTranscript(transcript);
+      const failureReasons = [
+        ...(execution.exitCode === 0
+          ? []
+          : [`Command exited with code ${execution.exitCode}`]),
+        ...compareExpectations(evaluation, turn.expect),
+      ];
+
+      turnResults.push({
+        index: turn.index,
+        prompt: turn.prompt,
+        command,
+        ok: failureReasons.length === 0,
+        evaluation,
+        failureReasons,
+        exitCode: execution.exitCode,
+        stderr: execution.stderr,
+      });
+    }
+
+    const failureReasons = turnResults.flatMap((turn) =>
+      turn.failureReasons.map((reason) => `Turn ${turn.index + 1}: ${reason}`),
+    );
+    const evaluation = turnResults.at(-1)?.evaluation ?? evaluateOpenCodeTranscript("");
 
     results.push({
       id: scenario.id,
-      command,
       ok: failureReasons.length === 0,
       evaluation,
       failureReasons,
-      exitCode: execution.exitCode,
-      stderr: execution.stderr,
+      turns: turnResults,
     });
   }
 
@@ -225,9 +302,11 @@ async function main() {
 
   for (const scenario of result.results) {
     console.log(`[opencode-live] ${scenario.ok ? "PASS" : "FAIL"} ${scenario.id}`);
-    console.log(
-      `[opencode-live]   command: ${scenario.command.executable} ${scenario.command.args.join(" ")}`,
-    );
+    for (const turn of scenario.turns) {
+      console.log(
+        `[opencode-live]   turn ${turn.index + 1}: ${turn.command.executable} ${turn.command.args.join(" ")}`,
+      );
+    }
 
     if (!scenario.ok) {
       for (const reason of scenario.failureReasons) {
