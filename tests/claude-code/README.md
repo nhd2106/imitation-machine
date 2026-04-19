@@ -34,6 +34,14 @@ The fast harness does **not** try to prove the full documented Claude skill inve
 - `review-spec`
 - `review-quality`
 
+Recovery-path coverage in the fast harness now also checks that Claude transcripts:
+
+- include explicit install evidence before bounded skill visibility is trusted
+- do not load a workflow skill that contradicts the routed workflow
+- do not rely on stale verification evidence from a previous run
+- do not report contradictory agent statuses
+- preserve actionable transcript lines in failure messages for recovery debugging
+
 Use the manual checks below when you need confidence in the broader installed inventory and orchestration behavior. Treat the fast harness as a safety net for bounded transcript behavior, not as a substitute for real-session verification.
 
 ## Preconditions

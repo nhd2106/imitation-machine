@@ -56,6 +56,72 @@ describe("Claude harness", () => {
     expect(result.issues).toContain("Unsupported workflow route: made-up-review-flow");
   });
 
+  test("reports exactly which install/bootstrap lines are missing", () => {
+    const result = evaluateClaudeTranscript(`
+[skills] visible: using-agentic, requesting-code-review, review-spec, review-quality
+[route] workflow: requesting-code-review
+[state] review-ready
+`);
+
+    expect(result.valid).toBe(false);
+    expect(result.stages).toEqual(["workflow-routing", "review-ready"]);
+    expect(result.issues).toContain(
+      "Missing install evidence: [install] plugin imitation-machine@imitation-machine-dev installed",
+    );
+  });
+
+  test("rejects transcripts that load a workflow skill contradicting the selected route", () => {
+    const result = evaluateClaudeTranscript(`
+[install] plugin imitation-machine@imitation-machine-dev installed
+[skills] visible: using-agentic, requesting-code-review, review-spec, review-quality
+[route] workflow: requesting-code-review
+[skill] workflow skill loaded: receiving-code-review
+[state] review-ready
+`);
+
+    expect(result.valid).toBe(false);
+    expect(result.workflowRoute).toBe("requesting-code-review");
+    expect(result.stages).toEqual(["install-visible-skills", "workflow-routing", "review-ready"]);
+    expect(result.issues).toContain(
+      "Wrong workflow skill loaded: [route] workflow: requesting-code-review; [skill] workflow skill loaded: receiving-code-review",
+    );
+  });
+
+  test("rejects transcripts with stale verification evidence", () => {
+    const result = evaluateClaudeTranscript(`
+[install] plugin imitation-machine@imitation-machine-dev installed
+[skills] visible: using-agentic, requesting-code-review, review-spec, review-quality
+[route] workflow: requesting-code-review
+[verify] evidence source=previous-run age=2h command=bun test tests/claude-harness.test.ts
+[state] review-ready
+`);
+
+    expect(result.valid).toBe(false);
+    expect(result.workflowRoute).toBe("requesting-code-review");
+    expect(result.stages).toEqual(["install-visible-skills", "workflow-routing", "review-ready"]);
+    expect(result.issues).toContain(
+      "Stale verification evidence: [verify] evidence source=previous-run age=2h command=bun test tests/claude-harness.test.ts",
+    );
+  });
+
+  test("rejects transcripts with contradictory agent outputs", () => {
+    const result = evaluateClaudeTranscript(`
+[install] plugin imitation-machine@imitation-machine-dev installed
+[skills] visible: using-agentic, requesting-code-review, review-spec, review-quality
+[route] workflow: requesting-code-review
+[agent:coder] status: DONE
+[agent:reviewer] status: BLOCKED
+[state] review-ready
+`);
+
+    expect(result.valid).toBe(false);
+    expect(result.workflowRoute).toBe("requesting-code-review");
+    expect(result.stages).toEqual(["install-visible-skills", "workflow-routing", "review-ready"]);
+    expect(result.issues).toContain(
+      "Contradictory agent outputs: [agent:coder] status: DONE; [agent:reviewer] status: BLOCKED",
+    );
+  });
+
   test("rejects transcripts with out-of-order progression", () => {
     const result = evaluateClaudeTranscript(`
 [state] review-ready

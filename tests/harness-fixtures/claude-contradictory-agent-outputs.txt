@@ -1,0 +1,6 @@
+[install] plugin imitation-machine@imitation-machine-dev installed
+[skills] visible: using-agentic, requesting-code-review, review-spec, review-quality
+[route] workflow: requesting-code-review
+[agent:coder] status: DONE
+[agent:reviewer] status: BLOCKED
+[state] review-ready
