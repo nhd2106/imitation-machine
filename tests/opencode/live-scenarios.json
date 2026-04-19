@@ -1,0 +1,21 @@
+{
+  "scenarios": [
+    {
+      "id": "bootstrap-plan-ready",
+      "prompt": "Start from bootstrap, route through the right process skill, and end at a plan-ready state.",
+      "expect": {
+        "valid": true,
+        "selectedProcessSkill": "plan",
+        "stages": ["bootstrap", "process-skill", "plan-ready"]
+      }
+    },
+    {
+      "id": "missing-process-skill",
+      "prompt": "We have an approved requirement but no clear request yet whether to brainstorm, plan, or execute it. Respond in a way that leaves the process-skill routing ambiguous.",
+      "expect": {
+        "valid": false,
+        "issues": ["Missing process-skill selection"]
+      }
+    }
+  ]
+}
