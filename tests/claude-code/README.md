@@ -9,6 +9,7 @@ Lightweight automated coverage for a bounded subset of the Claude workflow lives
 - `scripts/claude-code-harness.ts`
 - `tests/claude-harness.test.ts`
 - `tests/claude-harness-smoke.test.ts`
+- `tests/claude-executable-harness.test.ts`
 - `tests/claude-code/run-tests.sh fast`
 
 Run either:
@@ -20,7 +21,7 @@ bash tests/claude-code/run-tests.sh fast
 or:
 
 ```bash
-bun test tests/claude-harness.test.ts tests/claude-harness-smoke.test.ts
+bun test tests/claude-harness.test.ts tests/claude-harness-smoke.test.ts tests/claude-executable-harness.test.ts
 ```
 
 ## Integration-oriented manual verification
@@ -41,6 +42,13 @@ Recovery-path coverage in the fast harness now also checks that Claude transcrip
 - do not rely on stale verification evidence from a previous run
 - do not report contradictory agent statuses
 - preserve actionable transcript lines in failure messages for recovery debugging
+
+The executable Claude lane adds a scaffolded temp repo that runs a bounded review flow end to end and asserts:
+
+- expected repo files are produced
+- transcript ordering stays bounded and deterministic
+- `review-spec` completes before `review-quality`
+- verify evidence is fresh from the current run
 
 Use the manual checks below when you need confidence in the broader installed inventory and orchestration behavior. Treat the fast harness as a safety net for bounded transcript behavior, not as a substitute for real-session verification.
 
