@@ -7,9 +7,11 @@ Use this guide to separate the fast bounded harness from slower integration-orie
 Lightweight automated coverage for a bounded subset of the Claude workflow lives in:
 
 - `scripts/claude-code-harness.ts`
+- `scripts/claude-live-harness.ts`
 - `tests/claude-harness.test.ts`
 - `tests/claude-harness-smoke.test.ts`
 - `tests/claude-executable-harness.test.ts`
+- `tests/claude-live-harness.test.ts`
 - `tests/claude-code/run-tests.sh fast`
 
 Run either:
@@ -21,7 +23,37 @@ bash tests/claude-code/run-tests.sh fast
 or:
 
 ```bash
-bun test tests/claude-harness.test.ts tests/claude-harness-smoke.test.ts tests/claude-executable-harness.test.ts
+bun test tests/claude-harness.test.ts tests/claude-harness-smoke.test.ts tests/claude-executable-harness.test.ts tests/claude-live-harness.test.ts
+```
+
+## Live bounded harness
+
+The Claude live harness stays bounded and reuses the existing transcript semantics from `scripts/claude-code-harness.ts`.
+
+- `tests/claude-code/live-scenarios.json` defines the checked-in live continuation scenarios
+- `scripts/claude-live-harness.ts` loads that manifest, runs `claude --print`, and adds `--continue` on second-turn follow-ups
+- `tests/claude-live-harness.test.ts` covers manifest loading, env gating, direct argv construction, continued-session sequencing, and transcript evaluation wiring
+
+The checked-in Claude live manifest currently stays intentionally small and covers:
+
+- `continuation-happy-path`
+- `continuation-stale-verification`
+
+These continuation fixtures preserve the transcript lines that matter for evaluation:
+
+- the happy path proves a second turn can continue the same session and remain review-ready
+- the stale-verification path proves carried-forward previous-run verification evidence is rejected in the continued transcript
+
+By default, live mode skips cleanly unless `CLAUDE_LIVE=1` is set:
+
+```bash
+bash tests/claude-code/run-tests.sh live
+```
+
+To execute real Claude scenarios:
+
+```bash
+CLAUDE_LIVE=1 bash tests/claude-code/run-tests.sh live
 ```
 
 ## Integration-oriented manual verification
