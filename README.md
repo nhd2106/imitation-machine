@@ -88,11 +88,17 @@ Expanded workflow examples to look for in the skill inventory: `systematic-debug
 
 See step-by-step local setup details in `CLAUDE_INSTALL.md`.
 
-For fast bounded transcript/unit coverage across both surfaces, run `bun run test:harness`.
+### Source repo / developer-only verification
 
-For OpenCode-only live bounded checks that replay a checked-in manifest through `opencode run --print-logs`, including continued multi-turn scenarios that use `--continue`, run `bash tests/opencode/run-tests.sh live`. Set `OPENCODE_LIVE=1` to execute real sessions; otherwise the live harness skips cleanly.
+The commands and paths below are for contributors working from this source repository. They rely on checked-in `tests/` and `scripts/` assets and are not part of the published package payload.
 
-For surface-specific commands, coverage details, and slower integration-oriented checks, use the per-surface guides in `tests/opencode/README.md` and `tests/claude-code/README.md`.
+For fast bounded transcript/unit coverage across both surfaces in this repo checkout, run `bun run test:harness`.
+
+For the reusable executable workflow regression lane in this repo checkout that scaffolds a temporary Bun repo, seeds an approved single-task plan, runs a real failing-test-to-passing-test flow, and validates transcript/review/verification evidence, run `bun run test:workflow-harness` or `bun scripts/executable-workflow-harness.ts`.
+
+For OpenCode-only live bounded checks in this repo checkout that replay a checked-in manifest through `opencode run --print-logs`, including continued multi-turn scenarios that use `--continue`, run `bash tests/opencode/run-tests.sh live`. Set `OPENCODE_LIVE=1` to execute real sessions; otherwise the live harness skips cleanly.
+
+For surface-specific commands, coverage details, and slower integration-oriented checks in the source repo, use the per-surface guides in `tests/opencode/README.md` and `tests/claude-code/README.md`.
 
 ## OpenCode Session Verification
 
@@ -127,6 +133,8 @@ agentic orchestrate status --plan PLN-xxxx --json
 
 ## Harness verification
 
-For fast bounded coverage plus surface-specific and integration-oriented guidance, use `tests/opencode/README.md` and `tests/claude-code/README.md`.
+This section documents source-repo/developer-only harness assets.
 
-OpenCode also ships a checked-in live scenario manifest at `tests/opencode/live-scenarios.json` and a bounded live runner at `scripts/opencode-live-harness.ts`.
+For fast bounded coverage plus surface-specific and integration-oriented guidance in this repo checkout, use `tests/opencode/README.md` and `tests/claude-code/README.md`.
+
+The source repo also includes a checked-in live scenario manifest at `tests/opencode/live-scenarios.json` and a bounded live runner at `scripts/opencode-live-harness.ts`.
