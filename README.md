@@ -122,6 +122,11 @@ The bounded OpenCode transcript harness, including the env-gated live runner, is
 
 ```bash
 agentic --help
+agentic mode show
+agentic mode lite
+agentic mode standard
+agentic mode strict
+agentic mode clear
 agentic verify all
 agentic worktree --help
 agentic worktree cleanup-merged --json
@@ -130,6 +135,32 @@ agentic orchestrate run --plan PLN-xxxx --dry-run
 agentic orchestrate run --plan PLN-xxxx --max-parallel 3 --continue-on-error
 agentic orchestrate status --plan PLN-xxxx --json
 ```
+
+## Project mode resolution
+
+`imitation-machine` resolves policy mode in this order:
+
+1. per-project override set with `agentic mode lite|standard|strict`
+2. repo default from `.imitation-machine.json`
+3. fallback `standard`
+
+Repo defaults live in the repo:
+
+```json
+{
+  "mode": "standard"
+}
+```
+
+Per-project overrides are stored outside the repo, keyed by project path, and remain in effect until `agentic mode clear`.
+
+The OpenCode bootstrap now prints the resolved mode and whether it came from `override`, `repo-config`, or `fallback`.
+
+Mode semantics in v1:
+
+- `lite`: relaxes the pre-workflow guard after bootstrap; bash and file writes are allowed without an implementation workflow skill
+- `standard`: current default behavior; bash allowed after bootstrap, writes still require a workflow skill
+- `strict`: requires a workflow skill before bash or file writes
 
 ## Harness verification
 

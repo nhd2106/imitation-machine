@@ -108,6 +108,78 @@ describe("imitation-machine plugin behavior", () => {
     ).resolves.toBeUndefined();
   });
 
+  test("standard mode bootstrap shows resolved mode and source", async () => {
+    const cwd = await makeProject(true);
+    process.chdir(cwd);
+    const plugin = await ImitationMachinePlugin();
+    const output = { messages: [userMessage("hello")] };
+
+    await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s-mode-show", cwd }, output);
+
+    const bootstrapText = output.messages[0]?.parts[0]?.text ?? "";
+    expect(bootstrapText).toContain("Resolved mode: standard");
+    expect(bootstrapText).toContain("Source: fallback");
+  });
+
+  test("bootstrap shows repo-config as the mode source", async () => {
+    const cwd = await makeProject(true);
+    await writeFile(join(cwd, ".imitation-machine.json"), JSON.stringify({ mode: "lite" }, null, 2));
+    process.chdir(cwd);
+    const plugin = await ImitationMachinePlugin();
+    const output = { messages: [userMessage("hello")] };
+
+    await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s-mode-repo", cwd }, output);
+
+    const bootstrapText = output.messages[0]?.parts[0]?.text ?? "";
+    expect(bootstrapText).toContain("Resolved mode: lite");
+    expect(bootstrapText).toContain("Source: repo-config");
+  });
+
+  test("bootstrap shows override as the mode source", async () => {
+    const cwd = await makeProject(true);
+    const storePath = join(cwd, "mode-store.json");
+    await writeFile(join(cwd, ".imitation-machine.json"), JSON.stringify({ mode: "lite" }, null, 2));
+    await writeFile(storePath, JSON.stringify({ version: 1, overrides: { [cwd]: "strict" } }, null, 2));
+    process.env.AGENTIC_MODE_STORE_PATH = storePath;
+    process.chdir(cwd);
+    const plugin = await ImitationMachinePlugin();
+    const output = { messages: [userMessage("hello")] };
+
+    await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s-mode-override", cwd }, output);
+
+    const bootstrapText = output.messages[0]?.parts[0]?.text ?? "";
+    expect(bootstrapText).toContain("Resolved mode: strict");
+    expect(bootstrapText).toContain("Source: override");
+  });
+
+  test("lite mode allows direct small-task edits after bootstrap", async () => {
+    const cwd = await makeProject(true);
+    await writeFile(join(cwd, ".imitation-machine.json"), JSON.stringify({ mode: "lite" }, null, 2));
+    process.chdir(cwd);
+    const plugin = await ImitationMachinePlugin();
+
+    const chatOutput = { messages: [userMessage("hello")] };
+    await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s-lite", cwd }, chatOutput);
+
+    await expect(
+      plugin["tool.execute.before"]?.({ sessionID: "s-lite", tool: "edit", cwd }, { args: { filePath: "/tmp/test.ts" } }),
+    ).resolves.toBeUndefined();
+  });
+
+  test("strict mode keeps bash blocked until a workflow skill is loaded", async () => {
+    const cwd = await makeProject(true);
+    await writeFile(join(cwd, ".imitation-machine.json"), JSON.stringify({ mode: "strict" }, null, 2));
+    process.chdir(cwd);
+    const plugin = await ImitationMachinePlugin();
+
+    const chatOutput = { messages: [userMessage("hello")] };
+    await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s-strict", cwd }, chatOutput);
+
+    await expect(
+      plugin["tool.execute.before"]?.({ sessionID: "s-strict", tool: "bash", cwd }, { args: { command: "bun test" } }),
+    ).rejects.toThrow("workflow skill");
+  });
+
   test("blocks edit before workflow skill after using-agentic in opted-in repos", async () => {
     const cwd = await makeProject(true);
     process.chdir(cwd);
