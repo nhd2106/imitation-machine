@@ -16,6 +16,52 @@
         "valid": false,
         "issues": ["Missing process-skill selection"]
       }
+    },
+    {
+      "id": "missing-bootstrap",
+      "prompt": "Simulate a recovery-path transcript that jumps straight to routing and plan-ready output without showing any OpenCode bootstrap evidence.",
+      "expect": {
+        "valid": false,
+        "selectedProcessSkill": "plan",
+        "stages": ["process-skill", "plan-ready"],
+        "issues": [
+          "Missing bootstrap evidence: [bootstrap] plugin=.opencode/plugins/imitation-machine.js; [bootstrap] service=skill initialized; [skill] using-agentic loaded"
+        ]
+      }
+    },
+    {
+      "id": "wrong-process-skill",
+      "prompt": "Show a recovery attempt that routes to plan but accidentally loads brainstorm instead, while still claiming the session reached plan-ready.",
+      "expect": {
+        "valid": false,
+        "selectedProcessSkill": "plan",
+        "stages": ["bootstrap", "process-skill", "plan-ready"],
+        "issues": ["Wrong process skill loaded: expected plan, loaded brainstorm"]
+      }
+    },
+    {
+      "id": "stale-verification-evidence",
+      "prompt": "Produce a recovery transcript that reaches plan-ready but cites previous-run verification evidence instead of fresh verification for the current state.",
+      "expect": {
+        "valid": false,
+        "selectedProcessSkill": "plan",
+        "stages": ["bootstrap", "process-skill", "plan-ready"],
+        "issues": [
+          "Stale verification evidence: [verify] evidence source=previous-run age=2h command=bun test"
+        ]
+      }
+    },
+    {
+      "id": "contradictory-agent-outputs",
+      "prompt": "Produce a recovery transcript that reaches plan-ready but contains contradictory final statuses from different agents, such as DONE and BLOCKED.",
+      "expect": {
+        "valid": false,
+        "selectedProcessSkill": "plan",
+        "stages": ["bootstrap", "process-skill", "plan-ready"],
+        "issues": [
+          "Contradictory agent outputs: [agent:coder] status: DONE; [agent:reviewer] status: BLOCKED"
+        ]
+      }
     }
   ]
 }

@@ -1,0 +1,8 @@
+[bootstrap] plugin=.opencode/plugins/imitation-machine.js
+[bootstrap] service=skill initialized
+[skill] using-agentic loaded
+[recovery] replaying verification notes from transcript cache
+[route] selected process skill: plan
+[verify] evidence source=previous-run age=2h command=bun test
+[verify] reminder=fresh evidence still required
+[state] plan-ready

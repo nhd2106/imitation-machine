@@ -1,9 +1,4 @@
-import {
-  buildOpenCodeHarnessCommand,
-  evaluateOpenCodeTranscript,
-  type OpenCodeStage,
-  type OpenCodeTranscriptResult,
-} from "./opencode-harness";
+import { evaluateOpenCodeTranscript, type OpenCodeStage, type OpenCodeTranscriptResult } from "./opencode-harness";
 
 export type LiveScenarioExpectation = {
   valid: boolean;
@@ -100,6 +95,12 @@ function compareExpectations(
     }
   }
 
+  const unexpectedIssues = evaluation.issues.filter((issue) => !(expectation.issues ?? []).includes(issue));
+
+  if (unexpectedIssues.length > 0) {
+    failureReasons.push(`Unexpected issues: ${unexpectedIssues.join(", ")}`);
+  }
+
   return failureReasons;
 }
 
@@ -118,8 +119,10 @@ async function defaultExec(command: LiveHarnessCommand): Promise<LiveHarnessExec
     stderr: "pipe",
   });
 
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
   const timeout = new Promise<number>((resolve) => {
-    const timer = setTimeout(() => {
+    timer = setTimeout(() => {
       try {
         proc.kill();
       } catch {
@@ -130,10 +133,18 @@ async function defaultExec(command: LiveHarnessCommand): Promise<LiveHarnessExec
     }, DEFAULT_TIMEOUT_MS);
   });
 
+  const exited = proc.exited.then((exitCode: number) => {
+    if (timer !== undefined) {
+      clearTimeout(timer);
+    }
+
+    return exitCode;
+  });
+
   const [stdout, stderr, exitCode] = await Promise.all([
     new Response(proc.stdout).text(),
     new Response(proc.stderr).text(),
-    Promise.race([proc.exited, timeout]),
+    Promise.race([exited, timeout]),
   ]);
 
   return {
