@@ -283,37 +283,44 @@ describe("OpenCode live harness", () => {
     const originalSpawn = Bun.spawn;
     const originalSetTimeout = globalThis.setTimeout;
     const originalClearTimeout = globalThis.clearTimeout;
-    const timerToken = { id: "timer" };
     const clearTimeoutCalls: unknown[] = [];
+    const timerToken = 1;
+    const mockSetTimeout = ((
+      _handler: TimerHandler,
+      _timeout?: number,
+      ..._arguments: unknown[]
+    ) => timerToken) as unknown as typeof setTimeout;
+    const mockProcess = {
+      stdout: new ReadableStream({
+        start(controller) {
+          controller.enqueue(
+            new TextEncoder().encode(
+              `[bootstrap] plugin=.opencode/plugins/imitation-machine.js\n` +
+                `[bootstrap] service=skill initialized\n` +
+                `[skill] using-agentic loaded\n` +
+                `[route] selected process skill: plan\n` +
+                `[state] plan-ready\n`,
+            ),
+          );
+          controller.close();
+        },
+      }),
+      stderr: new ReadableStream({
+        start(controller) {
+          controller.close();
+        },
+      }),
+      exited: Promise.resolve(0),
+      kill() {},
+    } as unknown as ReturnType<typeof Bun.spawn>;
+    const mockSpawn: typeof Bun.spawn = (..._arguments) => mockProcess;
 
     try {
-      globalThis.setTimeout = ((_: TimerHandler) => timerToken) as typeof setTimeout;
+      globalThis.setTimeout = mockSetTimeout;
       globalThis.clearTimeout = ((timer: unknown) => {
         clearTimeoutCalls.push(timer);
       }) as typeof clearTimeout;
-      Bun.spawn = (() => ({
-        stdout: new ReadableStream({
-          start(controller) {
-            controller.enqueue(
-              new TextEncoder().encode(
-                `[bootstrap] plugin=.opencode/plugins/imitation-machine.js\n` +
-                  `[bootstrap] service=skill initialized\n` +
-                  `[skill] using-agentic loaded\n` +
-                  `[route] selected process skill: plan\n` +
-                  `[state] plan-ready\n`,
-              ),
-            );
-            controller.close();
-          },
-        }),
-        stderr: new ReadableStream({
-          start(controller) {
-            controller.close();
-          },
-        }),
-        exited: Promise.resolve(0),
-        kill() {},
-      })) as typeof Bun.spawn;
+      Bun.spawn = mockSpawn;
 
       const result = await runLiveHarness({
         manifestPath: customManifestPath,
