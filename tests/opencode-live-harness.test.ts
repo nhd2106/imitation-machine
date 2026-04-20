@@ -14,21 +14,21 @@ async function writeManifest(contents: object): Promise<string> {
   return path;
 }
 
+function getResultsById(
+  result: Awaited<ReturnType<typeof runLiveHarness>>,
+): Map<string, (typeof result.results)[number]> {
+  return new Map(result.results.map((scenario) => [scenario.id, scenario]));
+}
+
 describe("OpenCode live harness", () => {
   test("loads the checked-in live scenario manifest", async () => {
     const manifest = await loadLiveScenarioManifest(manifestPath);
+    const scenarioIds = manifest.scenarios.map((scenario) => scenario.id);
 
-    expect(manifest.scenarios.length).toBeGreaterThanOrEqual(8);
-    expect(manifest.scenarios.map((scenario) => scenario.id)).toEqual([
-      "bootstrap-plan-ready",
-      "missing-process-skill",
-      "missing-bootstrap",
-      "wrong-process-skill",
-      "stale-verification-evidence",
-      "contradictory-agent-outputs",
-      "continuation-happy-path",
-      "continuation-stale-verification",
-    ]);
+    expect(manifest.scenarios.length).toBeGreaterThanOrEqual(12);
+    expect(scenarioIds).toContain("fresh-install-flow");
+    expect(scenarioIds).toContain("first-run-help-flow");
+    expect(scenarioIds).toContain("continuation-happy-path");
   });
 
   test("builds direct opencode argv rather than a shell command string", () => {
@@ -117,7 +117,89 @@ describe("OpenCode live harness", () => {
     ]);
   });
 
+  test("fails when a scenario-level raw transcript substring is missing", async () => {
+    const customManifestPath = await writeManifest({
+      scenarios: [
+        {
+          id: "missing-raw-substring",
+          prompt: "help me get started",
+          rawTranscriptIncludes: ["agentic verify all"],
+          expect: {
+            valid: true,
+            selectedProcessSkill: "plan",
+            stages: ["bootstrap", "process-skill", "plan-ready"],
+          },
+        },
+      ],
+    });
+
+    const result = await runLiveHarness({
+      manifestPath: customManifestPath,
+      env: { OPENCODE_LIVE: "1" },
+      exec: async () => ({
+        stdout:
+          `[bootstrap] plugin=.opencode/plugins/imitation-machine.js\n` +
+          `[bootstrap] service=skill initialized\n` +
+          `[skill] using-agentic loaded\n` +
+          `[route] selected process skill: plan\n` +
+          `[state] plan-ready\n`,
+        stderr: "",
+        exitCode: 0,
+      }),
+    });
+
+    expect(result.summary.failed).toBe(1);
+    expect(result.results[0]?.failureReasons).toEqual(
+      expect.arrayContaining([
+        "Missing raw transcript substring: agentic verify all",
+      ]),
+    );
+  });
+
+  test("rejects non-string rawTranscriptIncludes entries at manifest load time", async () => {
+    const customManifestPath = await writeManifest({
+      scenarios: [
+        {
+          id: "durable-anchor-check",
+          prompt: "help me get started",
+          rawTranscriptIncludes: [["using-agentic", "tdd", "agentic verify all"]],
+          expect: {
+            valid: true,
+            selectedProcessSkill: "plan",
+            stages: ["bootstrap", "process-skill", "plan-ready"],
+          },
+        },
+      ],
+    });
+
+    await expect(loadLiveScenarioManifest(customManifestPath)).rejects.toThrow(
+      "Scenario durable-anchor-check has invalid rawTranscriptIncludes[0]: expected string",
+    );
+  });
+
+  test("rejects non-array rawTranscriptIncludes at manifest load time", async () => {
+    const customManifestPath = await writeManifest({
+      scenarios: [
+        {
+          id: "durable-anchor-shape-check",
+          prompt: "help me get started",
+          rawTranscriptIncludes: "agentic verify all",
+          expect: {
+            valid: true,
+            selectedProcessSkill: "plan",
+            stages: ["bootstrap", "process-skill", "plan-ready"],
+          },
+        },
+      ],
+    });
+
+    await expect(loadLiveScenarioManifest(customManifestPath)).rejects.toThrow(
+      "Scenario durable-anchor-shape-check has invalid rawTranscriptIncludes: expected array",
+    );
+  });
+
   test("evaluates live transcripts with existing OpenCode harness semantics", async () => {
+    const manifest = await loadLiveScenarioManifest(manifestPath);
     const missingBootstrapTranscript = await Bun.file(
       "tests/harness-fixtures/opencode-missing-bootstrap.log",
     ).text();
@@ -137,6 +219,22 @@ describe("OpenCode live harness", () => {
       "tests/harness-fixtures/opencode-continuation-stale-verification.log",
     ).text();
     const transcripts = new Map([
+      [
+        "fresh-install-flow",
+        `[bootstrap] plugin=.opencode/plugins/imitation-machine.js\n[bootstrap] service=skill initialized\n[skill] using-agentic loaded\n[route] selected process skill: plan\n[state] plan-ready\nOpenCode install path: agentic install local --surface opencode\nThen check the mode with: agentic mode show\nBefore calling it done, run: agentic verify all\n`,
+      ],
+      [
+        "first-run-help-flow",
+        `[bootstrap] plugin=.opencode/plugins/imitation-machine.js\n[bootstrap] service=skill initialized\n[skill] using-agentic loaded\n[route] selected process skill: plan\n[state] plan-ready\nStart with using-agentic, then choose the matching workflow skill like plan or tdd.\nFinish with fresh verification: agentic verify all\n`,
+      ],
+      [
+        "mode-discovery-flow",
+        `[bootstrap] plugin=.opencode/plugins/imitation-machine.js\n[bootstrap] service=skill initialized\n[skill] using-agentic loaded\n[route] selected process skill: plan\n[state] plan-ready\nResolved mode: standard\nSource: built-in fallback (no override or valid repo config)\nTip: run \`agentic mode show\`\n`,
+      ],
+      [
+        "mode-confusion-recovery",
+        `[bootstrap] plugin=.opencode/plugins/imitation-machine.js\n[bootstrap] service=skill initialized\n[skill] using-agentic loaded\n[route] selected process skill: plan\n[state] plan-ready\nproject override > repo config > fallback standard\nTo change it: agentic mode lite|standard|strict [--cwd <path>]\nTo revert to the repo default or fallback: agentic mode clear [--cwd <path>]\n`,
+      ],
       [
         "bootstrap-plan-ready",
         `[bootstrap] plugin=.opencode/plugins/imitation-machine.js\n[bootstrap] service=skill initialized\n[skill] using-agentic loaded\n[route] selected process skill: plan\n[state] plan-ready\n`,
@@ -185,21 +283,52 @@ describe("OpenCode live harness", () => {
         };
       },
     });
+    const resultsById = getResultsById(result);
 
     expect(result.skipped).toBe(false);
-    expect(result.summary.passed).toBe(8);
+    expect(result.summary.passed).toBe(manifest.scenarios.length);
     expect(result.summary.failed).toBe(0);
-    expect(result.results.map((scenario) => scenario.id)).toEqual([
-      "bootstrap-plan-ready",
-      "missing-process-skill",
-      "missing-bootstrap",
-      "wrong-process-skill",
-      "stale-verification-evidence",
-      "contradictory-agent-outputs",
-      "continuation-happy-path",
-      "continuation-stale-verification",
-    ]);
-    expect(result.results[0]).toMatchObject({
+    expect(result.results).toHaveLength(manifest.scenarios.length);
+    expect(result.results.map((scenario) => scenario.id).sort()).toEqual(
+      manifest.scenarios.map((scenario) => scenario.id).sort(),
+    );
+    expect(resultsById.get("fresh-install-flow")).toMatchObject({
+      id: "fresh-install-flow",
+      ok: true,
+      evaluation: {
+        valid: true,
+        selectedProcessSkill: "plan",
+        stages: ["bootstrap", "process-skill", "plan-ready"],
+      },
+    });
+    expect(resultsById.get("first-run-help-flow")).toMatchObject({
+      id: "first-run-help-flow",
+      ok: true,
+      evaluation: {
+        valid: true,
+        selectedProcessSkill: "plan",
+        stages: ["bootstrap", "process-skill", "plan-ready"],
+      },
+    });
+    expect(resultsById.get("mode-discovery-flow")).toMatchObject({
+      id: "mode-discovery-flow",
+      ok: true,
+      evaluation: {
+        valid: true,
+        selectedProcessSkill: "plan",
+        stages: ["bootstrap", "process-skill", "plan-ready"],
+      },
+    });
+    expect(resultsById.get("mode-confusion-recovery")).toMatchObject({
+      id: "mode-confusion-recovery",
+      ok: true,
+      evaluation: {
+        valid: true,
+        selectedProcessSkill: "plan",
+        stages: ["bootstrap", "process-skill", "plan-ready"],
+      },
+    });
+    expect(resultsById.get("bootstrap-plan-ready")).toMatchObject({
       id: "bootstrap-plan-ready",
       ok: true,
       evaluation: {
@@ -208,7 +337,7 @@ describe("OpenCode live harness", () => {
         stages: ["bootstrap", "process-skill", "plan-ready"],
       },
     });
-    expect(result.results[1]).toMatchObject({
+    expect(resultsById.get("missing-process-skill")).toMatchObject({
       id: "missing-process-skill",
       ok: true,
       evaluation: {
@@ -217,7 +346,7 @@ describe("OpenCode live harness", () => {
         issues: ["Missing process-skill selection"],
       },
     });
-    expect(result.results[2]).toMatchObject({
+    expect(resultsById.get("missing-bootstrap")).toMatchObject({
       id: "missing-bootstrap",
       ok: true,
       evaluation: {
@@ -228,7 +357,7 @@ describe("OpenCode live harness", () => {
         ],
       },
     });
-    expect(result.results[3]).toMatchObject({
+    expect(resultsById.get("wrong-process-skill")).toMatchObject({
       id: "wrong-process-skill",
       ok: true,
       evaluation: {
@@ -237,7 +366,7 @@ describe("OpenCode live harness", () => {
         issues: ["Wrong process skill loaded: expected plan, loaded brainstorm"],
       },
     });
-    expect(result.results[4]).toMatchObject({
+    expect(resultsById.get("stale-verification-evidence")).toMatchObject({
       id: "stale-verification-evidence",
       ok: true,
       evaluation: {
@@ -248,7 +377,7 @@ describe("OpenCode live harness", () => {
         ],
       },
     });
-    expect(result.results[5]).toMatchObject({
+    expect(resultsById.get("contradictory-agent-outputs")).toMatchObject({
       id: "contradictory-agent-outputs",
       ok: true,
       evaluation: {
@@ -259,7 +388,7 @@ describe("OpenCode live harness", () => {
         ],
       },
     });
-    expect(result.results[6]).toMatchObject({
+    expect(resultsById.get("continuation-happy-path")).toMatchObject({
       id: "continuation-happy-path",
       ok: true,
       turns: [
@@ -293,7 +422,7 @@ describe("OpenCode live harness", () => {
         },
       ],
     });
-    expect(result.results[7]).toMatchObject({
+    expect(resultsById.get("continuation-stale-verification")).toMatchObject({
       id: "continuation-stale-verification",
       ok: true,
       turns: [
@@ -320,6 +449,7 @@ describe("OpenCode live harness", () => {
   });
 
   test("marks executions that time out as failures", async () => {
+    const manifest = await loadLiveScenarioManifest(manifestPath);
     const result = await runLiveHarness({
       manifestPath,
       env: { OPENCODE_LIVE: "1" },
@@ -331,7 +461,7 @@ describe("OpenCode live harness", () => {
     });
 
     expect(result.skipped).toBe(false);
-    expect(result.summary.failed).toBe(8);
+    expect(result.summary.failed).toBe(manifest.scenarios.length);
     expect(result.results[0]?.failureReasons).toEqual(
       expect.arrayContaining([expect.stringContaining("code 124")]),
     );

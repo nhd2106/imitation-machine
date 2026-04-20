@@ -39,12 +39,16 @@ That path is slower and environment-dependent, so keep it separate from the fast
 
 The live harness stays OpenCode-only and reuses the existing bounded transcript semantics from `scripts/opencode-harness.ts`.
 
- - `tests/opencode/live-scenarios.json` defines the checked-in live scenarios
+  - `tests/opencode/live-scenarios.json` defines the checked-in live scenarios, including optional per-scenario raw transcript substring checks for onboarding guidance
  - `scripts/opencode-live-harness.ts` loads the manifest, runs `opencode run --print-logs`, and can continue a prior scenario turn with `--continue`
  - `tests/opencode-live-harness.test.ts` covers manifest loading, env gating, command construction, continuation sequencing, and transcript evaluation wiring
 
-The checked-in live manifest now exercises both the happy path and recovery realism cases:
+The checked-in live manifest now exercises onboarding guidance plus the happy path and recovery realism cases:
 
+- `fresh-install-flow`
+- `first-run-help-flow`
+- `mode-discovery-flow`
+- `mode-confusion-recovery`
 - `bootstrap-plan-ready`
 - `missing-process-skill`
 - `missing-bootstrap`
@@ -53,6 +57,13 @@ The checked-in live manifest now exercises both the happy path and recovery real
 - `contradictory-agent-outputs`
 - `continuation-happy-path`
 - `continuation-stale-verification`
+
+The four onboarding scenarios specifically assert that the raw OpenCode transcript still includes user-facing guidance for:
+
+- local OpenCode install, mode check, and final verification
+- first-run workflow orientation (`using-agentic`, then a matching process skill)
+- mode discovery output and source reporting
+- mode precedence/reset recovery instructions
 
 The recovery fixtures intentionally preserve the transcript lines that explain each failure so evaluator output stays actionable:
 
