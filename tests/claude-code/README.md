@@ -60,11 +60,17 @@ CLAUDE_LIVE=1 bash tests/claude-code/run-tests.sh live
 
 ## Installed Claude integration lane
 
-This opt-in lane runs one real installed Claude session against a temp repo scaffolded from the reusable executable harness with the `docs-review` archetype.
+This opt-in lane runs a bounded installed Claude continuation flow against a temp repo scaffolded from the reusable executable harness with the `docs-review` archetype.
 
-- `tests/claude-code/installed-live-scenarios.json` defines the single bounded installed scenario
-- `scripts/claude-installed-live-harness.ts` scaffolds the temp repo, runs `claude --print` in that repo, and validates install visibility plus ordered plan/execute/review/verify flow
-- `tests/claude-installed-live-harness.test.ts` covers manifest loading, env gating, argv construction, docs-review scaffold reuse, and transcript rejection for wrong review order or stale/missing verify evidence
+- `tests/claude-code/installed-live-scenarios.json` defines the bounded installed continuation scenarios
+- `scripts/claude-installed-live-harness.ts` scaffolds the temp repo, runs `claude --print` on the first turn, adds `--continue` on later turns, and validates ordered plan/execute/review/verify flow across the continued transcript
+- `tests/claude-installed-live-harness.test.ts` covers manifest loading, env gating, argv construction, docs-review scaffold reuse, continuation sequencing, and later-turn invalidation of stale or pre-write review/verify evidence
+
+The checked-in installed continuation manifest currently covers:
+
+- happy-path continuation with rerun review/verify evidence after a continued write
+- stale verification surfaced after `--continue`
+- missing rerun after a continued write, which invalidates prior review/verify evidence
 
 By default this lane skips cleanly unless `CLAUDE_INSTALLED_LIVE=1` is set:
 
