@@ -11,6 +11,51 @@ Enterprise-oriented agentic SDLC framework with:
 - Worktree lifecycle support
 - Persona orchestration (`agentic orchestrate run --plan PLN-...`)
 
+## Quickstart
+
+If you are trying this for the first time from a local checkout of this repository, start here:
+
+1. Choose exactly one install target based on the client you use. Here, **surface** means the client or tool you are installing into, such as OpenCode or Claude.
+   - OpenCode: `agentic install local --surface opencode`
+   - Claude: `agentic install local --surface claude`
+2. Check the current workflow mode: `agentic mode show`
+3. Run the final verification gate: `agentic verify all`
+
+- `agentic mode show` tells you how strict the repo is configured to be.
+- `agentic verify all` is the final "do the checks say this is ready?" command.
+
+### Tiny example workflow
+
+```text
+1. Open a repo that opted into imitation-machine.
+2. Load `using-agentic`.
+3. Pick the process skill that matches the task (for example `plan` or `tdd`).
+4. Do the work with the right personas and review steps.
+5. Run `agentic verify all` before calling it done.
+```
+
+## 2-minute mental model
+
+`using-agentic` is the entry skill. It does not do the work itself. It tells the agent, "this repo opted into the workflow, so load the right process skill before you start making changes."
+
+In plain language:
+
+- `using-agentic` appears first when a repo wants the full workflow discipline.
+- **Skills**: reusable workflow or policy packages such as `using-agentic`, `plan`, `tdd`, and `verify`.
+- **Personas**: roles or subagents used during execution and review, such as a planner, coder, or reviewer.
+- **Planner persona**: appears when the task needs a plan or clearer execution steps.
+- **Coder persona**: appears when a bounded implementation task is ready to be done.
+- **Reviewer personas**: appear after implementation to check spec fit, quality, and sometimes security.
+- **`verify` skill**: appears at the end to gather fresh evidence before anyone says the work is complete.
+
+Modes are just how much guardrail you want:
+
+- **lite**: the most relaxed; useful when you want lighter workflow enforcement
+- **standard**: the normal default; some workflow discipline, but not the strictest path
+- **strict**: the most locked down; load the right workflow skill before doing real work
+
+The core idea is simple: start with `using-agentic`, let the matching workflow skill drive the task, and finish with verification.
+
 ## Current status
 
 ### Ships now
