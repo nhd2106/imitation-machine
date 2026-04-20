@@ -2,7 +2,13 @@
 
 ## Option A: Local install (recommended while iterating)
 
-From this repository:
+From this repository, prefer the packaged local install command:
+
+```bash
+agentic install local --surface opencode
+```
+
+If you need the raw script directly, use this manual fallback:
 
 ```bash
 ./scripts/install-local-opencode.sh
@@ -60,4 +66,4 @@ You should see imitation-machine skills such as:
 - `worktree`
 - `repo`
 
-If you do not see them, the package was not actually installed. Use the local install script first.
+If you do not see them, the package was not actually installed. Try `agentic install local --surface opencode` first.

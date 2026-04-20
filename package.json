@@ -7,7 +7,7 @@
   "main": ".opencode/plugins/imitation-machine.js",
   "private": true,
   "bin": {
-    "agentic": "./cli/index.ts"
+    "agentic": "./bin/agentic"
   },
   "files": [
     ".claude-plugin/**",
@@ -20,6 +20,7 @@
     "gates/**",
     "hooks/**",
     "monorepo/**",
+    "scripts/install-local-*.sh",
     "skills/**",
     "CLAUDE_INSTALL.md",
     "README.md"

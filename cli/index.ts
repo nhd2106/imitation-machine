@@ -1,17 +1,4 @@
 #!/usr/bin/env bun
-import { gateCommand } from "./commands/gate";
-import { planCommand } from "./commands/plan";
-import { requirementCommand } from "./commands/requirement";
-import { repoCommand } from "./commands/repo";
-import { auditCommand } from "./commands/audit";
-import { prCommand } from "./commands/pr";
-import { releaseCommand } from "./commands/release";
-import { verifyCommand } from "./commands/verify";
-import { worktreeCommand } from "./commands/worktree";
-import { orchestrateCommand } from "./commands/orchestrate";
-import { checkPluginCommand } from "./commands/check-plugin";
-import { modeCommand } from "./commands/mode";
-import { migrate } from "../db/migrate";
 
 const VERSION = "0.1.0";
 
@@ -29,6 +16,7 @@ COMMANDS
   audit     Audit trail (trace, export)
   pr        Pull request operations (open, approve)
   release   Release operations (tag)
+  install   Install local development integrations
   verify    Verification before completion (gates + typecheck + tests)
   worktree  Worktree lifecycle (create, list, remove, cleanup-merged)
   orchestrate  Persona orchestration (run, status)
@@ -56,48 +44,53 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  // Ensure DB tables exist before any command
-  await migrate();
-
   const [command, ...rest] = args as [string, ...string[]];
+
+  if (command !== "install") {
+    const { migrate } = await import("../db/migrate");
+    await migrate();
+  }
 
   switch (command) {
     case "gate":
-      await gateCommand(rest);
+      await (await import("./commands/gate")).gateCommand(rest);
       break;
     case "plan":
-      await planCommand(rest);
+      await (await import("./commands/plan")).planCommand(rest);
       break;
     case "req":
     case "requirement":
-      await requirementCommand(rest);
+      await (await import("./commands/requirement")).requirementCommand(rest);
       break;
     case "repo":
-      await repoCommand(rest);
+      await (await import("./commands/repo")).repoCommand(rest);
       break;
     case "audit":
-      await auditCommand(rest);
+      await (await import("./commands/audit")).auditCommand(rest);
       break;
     case "pr":
-      await prCommand(rest);
+      await (await import("./commands/pr")).prCommand(rest);
       break;
     case "release":
-      await releaseCommand(rest);
+      await (await import("./commands/release")).releaseCommand(rest);
+      break;
+    case "install":
+      await (await import("./commands/install")).installCommand(rest);
       break;
     case "verify":
-      await verifyCommand(rest);
+      await (await import("./commands/verify")).verifyCommand(rest);
       break;
     case "worktree":
-      await worktreeCommand(rest);
+      await (await import("./commands/worktree")).worktreeCommand(rest);
       break;
     case "orchestrate":
-      await orchestrateCommand(rest);
+      await (await import("./commands/orchestrate")).orchestrateCommand(rest);
       break;
     case "check-plugin":
-      await checkPluginCommand(rest);
+      await (await import("./commands/check-plugin")).checkPluginCommand(rest);
       break;
     case "mode":
-      await modeCommand(rest);
+      await (await import("./commands/mode")).modeCommand(rest);
       break;
     default:
       console.error(`Unknown command: ${command}\n`);
