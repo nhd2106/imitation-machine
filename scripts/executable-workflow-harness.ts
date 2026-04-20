@@ -35,6 +35,7 @@ export type ExecutableWorkflowScaffold = {
 export type ExecutableWorkflowHarnessConfig = {
   planId?: string;
   taskId?: string;
+  archetype?: "default" | "frontend-app" | "cli-service" | "docs-review";
   variant?: "default" | "review-spec-recovery";
   repoShape?: "default" | "alternate";
   promptFile?: {
@@ -123,9 +124,80 @@ const ALTERNATE_REPO_SHAPE_SAMPLE = {
   transcriptFile: "tmp/artifacts/workflow-transcript.log",
 } as const;
 
+type ExecutableWorkflowQualityExpectations = {
+  exportIndicator: string;
+  behaviorIndicators: string[];
+  testIndicators: string[];
+};
+
+const EXECUTABLE_WORKFLOW_ARCHETYPES = {
+  "frontend-app": {
+    sample: {
+      implementationFile: "src/frontend/app.tsx",
+      testFile: "tests/frontend/app.test.tsx",
+      reviewSpecFile: "scripts/review-spec.ts",
+      reviewQualityFile: "scripts/review-quality.ts",
+      transcriptFile: "artifacts/workflow-transcript.log",
+    },
+    planOutcome: "render a frontend headline via Bun-tested workflow harness sample",
+    exportName: "renderHeadline",
+    testName: "renders the page headline",
+    testExpectation: 'expect(renderHeadline("Docs")).toBe("<h1>Docs</h1>")',
+    implementation: `export function renderHeadline(title: string): string {\n  return \`<h1>\${title}</h1>\`;\n}\n`,
+    reviewQualityExpectations: {
+      exportIndicator: "export function renderHeadline",
+      behaviorIndicators: ["<h1>", "</h1>"],
+      testIndicators: ['renderHeadline("Docs")', 'toBe("<h1>Docs</h1>")'],
+    },
+  },
+  "cli-service": {
+    sample: {
+      implementationFile: "src/cli/service.ts",
+      testFile: "tests/cli/service.test.ts",
+      reviewSpecFile: "scripts/review-spec.ts",
+      reviewQualityFile: "scripts/review-quality.ts",
+      transcriptFile: "artifacts/workflow-transcript.log",
+    },
+    planOutcome: "format CLI service output via Bun-tested workflow harness sample",
+    exportName: "formatCommandResult",
+    testName: "formats the command result",
+    testExpectation: 'expect(formatCommandResult("build")).toBe("cli-service:build")',
+    implementation:
+      'export function formatCommandResult(commandName: string): string {\n  return `cli-service:${commandName}`;\n}\n',
+    reviewQualityExpectations: {
+      exportIndicator: "export function formatCommandResult",
+      behaviorIndicators: ["cli-service:"],
+      testIndicators: ['formatCommandResult("build")', 'toBe("cli-service:build")'],
+    },
+  },
+  "docs-review": {
+    sample: {
+      implementationFile: "src/docs/review.ts",
+      testFile: "tests/docs/review.test.ts",
+      reviewSpecFile: "scripts/review-spec.ts",
+      reviewQualityFile: "scripts/review-quality.ts",
+      transcriptFile: "artifacts/workflow-transcript.log",
+    },
+    planOutcome: "summarize docs review findings via Bun-tested workflow harness sample",
+    exportName: "summarizeDocReview",
+    testName: "summarizes review findings",
+    testExpectation: 'expect(summarizeDocReview(["clarify setup"])).toBe("docs-review:clarify setup")',
+    implementation:
+      'export function summarizeDocReview(findings: string[]): string {\n  return `docs-review:${findings.join(", ")}`;\n}\n',
+    reviewQualityExpectations: {
+      exportIndicator: "export function summarizeDocReview",
+      behaviorIndicators: ["docs-review:", 'join(", ")'],
+      testIndicators: ['summarizeDocReview(["clarify setup"])', 'toBe("docs-review:clarify setup")'],
+    },
+  },
+} as const;
+
+type ExecutableWorkflowArchetype = "default" | keyof typeof EXECUTABLE_WORKFLOW_ARCHETYPES;
+
 type ResolvedExecutableWorkflowHarnessConfig = {
   planId: string;
   taskId: string;
+  archetype: ExecutableWorkflowArchetype;
   variant: "default" | "review-spec-recovery";
   repoShape: "default" | "alternate";
   promptFile?: {
@@ -151,12 +223,19 @@ type ResolvedExecutableWorkflowHarnessConfig = {
 function resolveHarnessConfig(
   config: ExecutableWorkflowHarnessConfig = {},
 ): ResolvedExecutableWorkflowHarnessConfig {
+  const archetype = config.archetype ?? "default";
   const repoShape = config.repoShape ?? DEFAULT_CONFIG.repoShape;
-  const baseSample = repoShape === "alternate" ? ALTERNATE_REPO_SHAPE_SAMPLE : DEFAULT_CONFIG.sample;
+  const baseSample =
+    archetype === "default"
+      ? repoShape === "alternate"
+        ? ALTERNATE_REPO_SHAPE_SAMPLE
+        : DEFAULT_CONFIG.sample
+      : EXECUTABLE_WORKFLOW_ARCHETYPES[archetype].sample;
 
   return {
     planId: config.planId ?? DEFAULT_CONFIG.planId,
     taskId: config.taskId ?? DEFAULT_CONFIG.taskId,
+    archetype,
     variant: config.variant ?? DEFAULT_CONFIG.variant,
     repoShape,
     promptFile: config.promptFile,
@@ -169,6 +248,10 @@ function resolveHarnessConfig(
       transcriptFile: config.sample?.transcriptFile ?? baseSample.transcriptFile,
     },
   };
+}
+
+function getArchetypeDefinition(archetype: ExecutableWorkflowArchetype) {
+  return archetype === "default" ? null : EXECUTABLE_WORKFLOW_ARCHETYPES[archetype];
 }
 
 function getSampleModuleName(implementationFile: string): string {
@@ -215,20 +298,42 @@ function getImplementationRelativeImport(testFile: string, implementationFile: s
 function createPlanContent(
   planId: string,
   taskId: string,
+  archetype: ExecutableWorkflowArchetype,
   variant: ResolvedExecutableWorkflowHarnessConfig["variant"],
 ): string {
   const recoveryMarker = variant === "review-spec-recovery" ? "" : "- Recovery marker: review-spec-ready\n";
-  return `# ${planId}\n\nStatus: approved\nTask count: 1\n\n## Task ${taskId}\n- Outcome: add numbers via Bun-tested workflow harness sample\n- Scope: single task only\n- Verification: bun test\n${recoveryMarker}`;
+  const outcome =
+    getArchetypeDefinition(archetype)?.planOutcome ??
+    "add numbers via Bun-tested workflow harness sample";
+  return `# ${planId}\n\nStatus: approved\nTask count: 1\n\n## Task ${taskId}\n- Outcome: ${outcome}\n- Scope: single task only\n- Verification: bun test\n${recoveryMarker}`;
 }
 
-function createTestContent(testFile: string, implementationFile: string): string {
+function createTestContent(
+  testFile: string,
+  implementationFile: string,
+  archetype: ExecutableWorkflowArchetype,
+): string {
+  const archetypeDefinition = getArchetypeDefinition(archetype);
+  if (archetypeDefinition) {
+    const importPath = getImplementationRelativeImport(testFile, implementationFile);
+    return `import { describe, expect, test } from "bun:test";\nimport { ${archetypeDefinition.exportName} } from "${importPath}";\n\ndescribe("${getSampleModuleName(implementationFile)}", () => {\n  test("${archetypeDefinition.testName}", () => {\n    ${archetypeDefinition.testExpectation};\n  });\n});\n`;
+  }
+
   const moduleName = getSampleModuleName(implementationFile);
   const exportName = getSampleExportName(moduleName);
   const importPath = getImplementationRelativeImport(testFile, implementationFile);
   return `import { describe, expect, test } from "bun:test";\nimport { ${exportName} } from "${importPath}";\n\ndescribe("${moduleName}", () => {\n  test("adds two numbers", () => {\n    expect(${exportName}(1, 2)).toBe(3);\n  });\n});\n`;
 }
 
-function createImplementationContent(implementationFile: string): string {
+function createImplementationContent(
+  implementationFile: string,
+  archetype: ExecutableWorkflowArchetype,
+): string {
+  const archetypeDefinition = getArchetypeDefinition(archetype);
+  if (archetypeDefinition) {
+    return archetypeDefinition.implementation;
+  }
+
   const exportName = getSampleExportName(getSampleModuleName(implementationFile));
   return `export function ${exportName}(left: number, right: number): number {\n  return left + right;\n}\n`;
 }
@@ -249,13 +354,37 @@ function createReviewSpecContent(
 function createReviewQualityContent(
   implementationFile: string,
   testFile: string,
+  archetype: ExecutableWorkflowArchetype,
 ): string {
   const implementationFileParts = implementationFile.split("/");
   const testFileParts = testFile.split("/");
+  const archetypeDefinition = getArchetypeDefinition(archetype);
+  if (archetypeDefinition) {
+    const qualityExpectations = archetypeDefinition.reviewQualityExpectations;
+    return `import { readFile } from "node:fs/promises";\nimport { join } from "node:path";\n\nconst repoDir = process.cwd();\nconst implementationFile = join(repoDir, ${implementationFileParts
+      .map((part) => `"${part}"`)
+      .join(", ")});\nconst testFile = join(repoDir, ${testFileParts.map((part) => `"${part}"`).join(", ")});\nconst [implementation, test] = await Promise.all([readFile(implementationFile, "utf8"), readFile(testFile, "utf8")]);\nconst report = {\n  review: "quality",\n  implementationFile,\n  testFile,\n  exportsArchetypeFunction: implementation.includes(${JSON.stringify(
+        qualityExpectations.exportIndicator,
+      )}),\n  preservesArchetypeBehavior: ${qualityExpectations.behaviorIndicators
+        .map((indicator) => `implementation.includes(${JSON.stringify(indicator)})`)
+        .join(" && ")},\n  coversHappyPath: ${qualityExpectations.testIndicators
+        .map((indicator) => `test.includes(${JSON.stringify(indicator)})`)
+        .join(" && ")},\n};\nconsole.log(JSON.stringify(report));\nprocess.exitCode = Object.values(report).every((value) => typeof value !== "boolean" || value) ? 0 : 1;\n`;
+  }
+
   const exportName = getSampleExportName(getSampleModuleName(implementationFile));
+  const defaultQualityExpectations: ExecutableWorkflowQualityExpectations = {
+    exportIndicator: `export function ${exportName}`,
+    behaviorIndicators: ["left + right"],
+    testIndicators: [`expect(${exportName}(1, 2))`, "toBe(3)"],
+  };
   return `import { readFile } from "node:fs/promises";\nimport { join } from "node:path";\n\nconst repoDir = process.cwd();\nconst implementationFile = join(repoDir, ${implementationFileParts
     .map((part) => `"${part}"`)
-    .join(", ")});\nconst testFile = join(repoDir, ${testFileParts.map((part) => `"${part}"`).join(", ")});\nconst [implementation, test] = await Promise.all([readFile(implementationFile, "utf8"), readFile(testFile, "utf8")]);\nconst report = {\n  review: "quality",\n  implementationFile,\n  testFile,\n  exportsAdd: implementation.includes("export function ${exportName}"),\n  addsNumbers: implementation.includes("return left + right"),\n  coversHappyPath: test.includes("expect(${exportName}(1, 2)).toBe(3)"),\n};\nconsole.log(JSON.stringify(report));\nprocess.exitCode = Object.values(report).every((value) => typeof value !== "boolean" || value) ? 0 : 1;\n`;
+    .join(", ")});\nconst testFile = join(repoDir, ${testFileParts.map((part) => `"${part}"`).join(", ")});\nconst [implementation, test] = await Promise.all([readFile(implementationFile, "utf8"), readFile(testFile, "utf8")]);\nconst report = {\n  review: "quality",\n  implementationFile,\n  testFile,\n  exportsAdd: implementation.includes(${JSON.stringify(defaultQualityExpectations.exportIndicator)}),\n  addsNumbers: ${defaultQualityExpectations.behaviorIndicators
+    .map((indicator) => `implementation.includes(${JSON.stringify(indicator)})`)
+    .join(" && ")},\n  coversHappyPath: ${defaultQualityExpectations.testIndicators
+    .map((indicator) => `test.includes(${JSON.stringify(indicator)})`)
+    .join(" && ")},\n};\nconsole.log(JSON.stringify(report));\nprocess.exitCode = Object.values(report).every((value) => typeof value !== "boolean" || value) ? 0 : 1;\n`;
 }
 
 function getTrimmedLines(transcript: string): string[] {
@@ -494,8 +623,13 @@ export async function scaffoldExecutableWorkflowHarness(
   );
   await writeFile(
     files.plan,
-    resolvedConfig.content.plan ??
-      createPlanContent(resolvedConfig.planId, resolvedConfig.taskId, resolvedConfig.variant),
+      resolvedConfig.content.plan ??
+      createPlanContent(
+        resolvedConfig.planId,
+        resolvedConfig.taskId,
+        resolvedConfig.archetype,
+        resolvedConfig.variant,
+      ),
   );
   if (files.prompt && resolvedConfig.promptFile) {
     await writeFile(files.prompt, resolvedConfig.promptFile.content);
@@ -511,10 +645,11 @@ export async function scaffoldExecutableWorkflowHarness(
   );
   await writeFile(
     files.reviewQuality,
-    resolvedConfig.content.reviewQuality ??
+      resolvedConfig.content.reviewQuality ??
       createReviewQualityContent(
         resolvedConfig.sample.implementationFile,
         resolvedConfig.sample.testFile,
+        resolvedConfig.archetype,
       ),
   );
   await writeFile(
@@ -523,6 +658,7 @@ export async function scaffoldExecutableWorkflowHarness(
       createTestContent(
         resolvedConfig.sample.testFile,
         resolvedConfig.sample.implementationFile,
+        resolvedConfig.archetype,
       ),
   );
   await writeFile(files.transcript, "");
@@ -540,7 +676,7 @@ export async function runExecutableWorkflowHarness(
   await writeFile(
     scaffold.files.implementation,
     resolvedConfig.content.implementation ??
-      createImplementationContent(resolvedConfig.sample.implementationFile),
+      createImplementationContent(resolvedConfig.sample.implementationFile, resolvedConfig.archetype),
   );
   const reviewSpecAttempts = [
     await runBunCommand(scaffold.repoDir, [resolvedConfig.sample.reviewSpecFile]),

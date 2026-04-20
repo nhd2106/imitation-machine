@@ -154,6 +154,53 @@ describe("executable workflow harness", () => {
     expect(testFile).toContain('import { addValues } from "../../lib/numbers/add"');
   });
 
+  test.each([
+    {
+      archetype: "frontend-app",
+      expectedFiles: {
+        implementation: ["src", "frontend", "app.tsx"],
+        test: ["tests", "frontend", "app.test.tsx"],
+      },
+      exportName: "renderHeadline",
+      reportFields: ["exportsArchetypeFunction", "preservesArchetypeBehavior", "coversHappyPath"],
+    },
+    {
+      archetype: "cli-service",
+      expectedFiles: {
+        implementation: ["src", "cli", "service.ts"],
+        test: ["tests", "cli", "service.test.ts"],
+      },
+      exportName: "formatCommandResult",
+      reportFields: ["exportsArchetypeFunction", "preservesArchetypeBehavior", "coversHappyPath"],
+    },
+    {
+      archetype: "docs-review",
+      expectedFiles: {
+        implementation: ["src", "docs", "review.ts"],
+        test: ["tests", "docs", "review.test.ts"],
+      },
+      exportName: "summarizeDocReview",
+      reportFields: ["exportsArchetypeFunction", "preservesArchetypeBehavior", "coversHappyPath"],
+    },
+  ])(
+    "scaffolds the $archetype archetype with reusable workflow files",
+    async ({ archetype, expectedFiles, exportName, reportFields }) => {
+      const scaffold = await scaffoldExecutableWorkflowHarness({ archetype });
+      cleanupDirs.add(scaffold.repoDir);
+
+      expect(scaffold.files.implementation).toBe(join(scaffold.repoDir, ...expectedFiles.implementation));
+      expect(scaffold.files.test).toBe(join(scaffold.repoDir, ...expectedFiles.test));
+
+      const testFile = await readFile(scaffold.files.test, "utf8");
+      const reviewQuality = await readFile(scaffold.files.reviewQuality, "utf8");
+
+      expect(testFile).toContain(`import { ${exportName} }`);
+      for (const field of reportFields) {
+        expect(reviewQuality).toContain(`${field}:`);
+      }
+    },
+  );
+
   test("runs the reusable workflow harness end to end", async () => {
     const result = await runExecutableWorkflowHarness();
     cleanupDirs.add(result.repoDir);
@@ -294,6 +341,60 @@ describe("executable workflow harness", () => {
     expect(result.transcript).toContain(
       "[review-quality] command=bun tools/reviewers/review-quality.ts exit=0",
     );
+  });
+
+  test.each([
+    {
+      archetype: "frontend-app",
+      implementationPath: ["src", "frontend", "app.tsx"],
+      testPath: ["tests", "frontend", "app.test.tsx"],
+      implementation: 'export function renderHeadline(title: string): string {\n  const heading = `<h1>${title}</h1>`;\n  return heading;\n}\n',
+    },
+    {
+      archetype: "cli-service",
+      implementationPath: ["src", "cli", "service.ts"],
+      testPath: ["tests", "cli", "service.test.ts"],
+      implementation:
+        'export function formatCommandResult(commandName: string): string {\n  const formatted = `cli-service:${commandName}`;\n  return formatted;\n}\n',
+    },
+    {
+      archetype: "docs-review",
+      implementationPath: ["src", "docs", "review.ts"],
+      testPath: ["tests", "docs", "review.test.ts"],
+      implementation:
+        'export function summarizeDocReview(findings: string[]): string {\n  const summary = `docs-review:${findings.join(", ")}`;\n  return summary;\n}\n',
+    },
+  ])("runs the $archetype archetype end to end", async ({ archetype, implementationPath, testPath, implementation }) => {
+    const result = await runExecutableWorkflowHarness({
+      archetype,
+      content: { implementation },
+    });
+    cleanupDirs.add(result.repoDir);
+
+    const implementationFile = await readFile(result.files.implementation, "utf8");
+    const reviewSpecReport = JSON.parse(result.reviewSpec.stdout) as {
+      testFile: string;
+    };
+    const reviewQualityReport = JSON.parse(result.reviewQuality.stdout) as {
+      implementationFile: string;
+      testFile: string;
+      exportsArchetypeFunction: boolean;
+      preservesArchetypeBehavior: boolean;
+      coversHappyPath: boolean;
+    };
+
+    expect(result.failingTest.exitCode).not.toBe(0);
+    expect(result.reviewSpec.exitCode).toBe(0);
+    expect(result.reviewQuality.exitCode).toBe(0);
+    expect(result.verification.exitCode).toBe(0);
+    expect(result.validation.valid).toBe(true);
+    expect(reviewSpecReport.testFile).toEndWith(join(...testPath));
+    expect(reviewQualityReport.implementationFile).toEndWith(join(...implementationPath));
+    expect(reviewQualityReport.testFile).toEndWith(join(...testPath));
+    expect(implementationFile).toBe(implementation);
+    expect(reviewQualityReport.exportsArchetypeFunction).toBe(true);
+    expect(reviewQualityReport.preservesArchetypeBehavior).toBe(true);
+    expect(reviewQualityReport.coversHappyPath).toBe(true);
   });
 
   test("accepts transcript ordering for review-spec recovery evidence", () => {
