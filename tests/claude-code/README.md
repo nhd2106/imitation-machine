@@ -86,7 +86,13 @@ Use the manual checks below when you need confidence in the broader installed in
 
 ## Preconditions
 
-1. Install the local plugin:
+1. Install the local plugin with the preferred local entrypoint:
+
+```bash
+agentic install local --surface claude
+```
+
+Raw script fallback if needed:
 
 ```bash
 ./scripts/install-local-claude-plugin.sh
