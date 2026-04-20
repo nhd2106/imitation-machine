@@ -65,6 +65,7 @@ describe("project mode resolution", () => {
     await expect(resolveProjectMode({ projectRoot, storePath })).resolves.toMatchObject({
       mode: "strict",
       source: "repo-config",
+      relevantPath: storePath,
       warnings: [
         `Ignoring malformed project mode override \"invalid\" in ${storePath}.`,
       ],
@@ -123,6 +124,7 @@ describe("project mode resolution", () => {
     await expect(resolveProjectMode({ projectRoot, storePath })).resolves.toMatchObject({
       mode: "standard",
       source: "fallback",
+      relevantPath: storePath,
       warnings: [`Ignoring malformed JSON in ${storePath}.`],
     });
   });
@@ -162,6 +164,7 @@ describe("project mode resolution", () => {
     await expect(resolveProjectMode({ projectRoot, storePath })).resolves.toMatchObject({
       mode: "standard",
       source: "fallback",
+      relevantPath: storePath,
       warnings: [`Ignoring non-string project mode override in ${storePath} for ${projectRoot}.`],
     });
   });

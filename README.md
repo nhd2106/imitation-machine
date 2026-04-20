@@ -156,6 +156,16 @@ Per-project overrides are stored outside the repo, keyed by project path, and re
 
 The OpenCode bootstrap now prints the resolved mode and whether it came from `override`, `repo-config`, or `fallback`.
 
+Small flow example:
+
+```bash
+agentic mode show
+agentic mode strict
+agentic mode show
+agentic mode clear
+agentic mode show
+```
+
 Mode semantics in v1:
 
 - `lite`: relaxes the pre-workflow guard after bootstrap; bash and file writes are allowed without an implementation workflow skill

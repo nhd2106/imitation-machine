@@ -10,7 +10,7 @@
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
-import { getModePolicy, resolveProjectMode } from "../../cli/mode";
+import { describeModeSource, getModePolicy, getRelevantModePath, resolveProjectMode } from "../../cli/mode";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const skillsDir = path.resolve(__dirname, "../../skills");
@@ -45,6 +45,8 @@ const PACKAGED_AGENT_CONFIGS = {
 
 function buildBootstrap(modeResolution, projectSkills = []) {
   const modePolicy = getModePolicy(modeResolution.mode);
+  const sourceDescription = describeModeSource(modeResolution);
+  const relevantPath = getRelevantModePath(modeResolution);
   const projectSkillsSection = projectSkills.length > 0
     ? [
         "",
@@ -64,8 +66,10 @@ function buildBootstrap(modeResolution, projectSkills = []) {
     "",
     "## Resolved Policy Mode",
     `Resolved mode: ${modeResolution.mode}`,
-    `Source: ${modeResolution.source}`,
+    `Source: ${sourceDescription}`,
+    `Relevant path: ${relevantPath}`,
     modePolicy.summary,
+    "Tip: run `agentic mode show` for the full precedence explanation and revert/change commands.",
     "",
     "## YOU ARE AN ORCHESTRATOR, NOT AN IMPLEMENTER",
     "",

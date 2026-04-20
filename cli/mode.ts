@@ -10,8 +10,15 @@ export type ModeResolution = {
   source: AgenticModeSource;
   projectRoot: string;
   storePath: string;
+  relevantPath: string;
   configPath?: string;
   warnings: string[];
+};
+
+type OverrideInspection = {
+  store: ModeOverrideStore;
+  warnings: string[];
+  relevantPath?: string;
 };
 
 export type ModePolicy = {
@@ -39,6 +46,7 @@ type JsonReadResult = {
 const VALID_MODES = new Set<AgenticMode>(["lite", "standard", "strict"]);
 const DEFAULT_MODE: AgenticMode = "standard";
 const DEFAULT_SOURCE: AgenticModeSource = "fallback";
+const REPO_CONFIG_FILE = ".imitation-machine.json";
 
 export function normalizeProjectPath(projectRoot: string): string {
   return path.resolve(projectRoot);
@@ -54,6 +62,26 @@ export function getModeOverrideStorePath(customPath?: string): string {
   if (customPath && customPath.trim()) return customPath;
   if (process.env.AGENTIC_MODE_STORE_PATH?.trim()) return process.env.AGENTIC_MODE_STORE_PATH;
   return path.join(homedir(), ".config", "imitation-machine", "project-mode-overrides.json");
+}
+
+export function getRepoModeConfigPath(projectRoot: string): string {
+  return path.join(normalizeProjectPath(projectRoot), REPO_CONFIG_FILE);
+}
+
+export function describeModeSource(resolved: ModeResolution): string {
+  switch (resolved.source) {
+    case "override":
+      return "per-project override from override store";
+    case "repo-config":
+      return `repo config from ${REPO_CONFIG_FILE}`;
+    case "fallback":
+    default:
+      return "built-in fallback (no override or valid repo config)";
+  }
+}
+
+export function getRelevantModePath(resolved: ModeResolution): string {
+  return resolved.relevantPath;
 }
 
 export async function readModeOverrideStore(storePath = getModeOverrideStorePath()): Promise<ModeOverrideStore> {
@@ -76,17 +104,20 @@ export async function writeProjectModeOverride(
 
 export async function clearProjectModeOverride(
   { projectRoot, storePath = getModeOverrideStorePath() }: { projectRoot: string; storePath?: string },
-): Promise<void> {
+): Promise<boolean> {
   const store = await readModeOverrideStoreForMutation(storePath);
-  delete store.overrides[normalizeProjectPath(projectRoot)];
+  const normalizedProjectRoot = normalizeProjectPath(projectRoot);
+  const hadOverride = normalizeMode(store.overrides[normalizedProjectRoot]) !== null;
+  delete store.overrides[normalizedProjectRoot];
   await persistModeOverrideStore(storePath, store);
+  return hadOverride;
 }
 
 export async function resolveProjectMode(
   { projectRoot, storePath = getModeOverrideStorePath() }: { projectRoot: string; storePath?: string },
 ): Promise<ModeResolution> {
   const normalizedProjectRoot = normalizeProjectPath(projectRoot);
-  const { store, warnings } = await inspectModeOverrideStore(storePath, normalizedProjectRoot);
+  const { store, warnings, relevantPath } = await inspectModeOverrideStore(storePath, normalizedProjectRoot);
   const overrideMode = normalizeMode(store.overrides[normalizedProjectRoot]);
   if (overrideMode) {
     return {
@@ -94,6 +125,7 @@ export async function resolveProjectMode(
       source: "override",
       projectRoot: normalizedProjectRoot,
       storePath,
+      relevantPath: storePath,
       warnings,
     };
   }
@@ -105,6 +137,7 @@ export async function resolveProjectMode(
       source: "repo-config",
       projectRoot: normalizedProjectRoot,
       storePath,
+      relevantPath: relevantPath ?? repoConfig.configPath,
       configPath: repoConfig.configPath,
       warnings: [...warnings, ...repoConfig.warnings],
     };
@@ -115,6 +148,7 @@ export async function resolveProjectMode(
     source: DEFAULT_SOURCE,
     projectRoot: normalizedProjectRoot,
     storePath,
+    relevantPath: relevantPath ?? repoConfig.configPath,
     configPath: repoConfig.configPath,
     warnings: [...warnings, ...repoConfig.warnings],
   };
@@ -144,7 +178,7 @@ export function getModePolicy(mode: AgenticMode): ModePolicy {
   }
 }
 
-async function inspectModeOverrideStore(storePath: string, projectRoot?: string): Promise<{ store: ModeOverrideStore; warnings: string[] }> {
+async function inspectModeOverrideStore(storePath: string, projectRoot?: string): Promise<OverrideInspection> {
   const file = Bun.file(storePath);
   if (!(await file.exists())) {
     return { store: { version: 1, overrides: {} }, warnings: [] };
@@ -157,15 +191,22 @@ async function inspectModeOverrideStore(storePath: string, projectRoot?: string)
   ) as Record<string, string>;
 
   const warnings = [...parsed.warnings];
+  const relevantPath = parsed.warnings.length > 0 ? storePath : undefined;
   if (projectRoot && Object.hasOwn(rawOverrides, projectRoot)) {
     const rawOverride = rawOverrides[projectRoot];
     const overrideWarning = getProjectOverrideWarning(rawOverride, storePath, projectRoot);
     if (overrideWarning) warnings.push(overrideWarning);
+    return {
+      store: { version: 1, overrides },
+      warnings,
+      relevantPath: overrideWarning ? storePath : relevantPath,
+    };
   }
 
   return {
     store: { version: 1, overrides },
     warnings,
+    relevantPath,
   };
 }
 
@@ -187,7 +228,7 @@ async function readModeOverrideStoreForMutation(storePath: string): Promise<Muta
 }
 
 async function readRepoModeConfig(projectRoot: string): Promise<{ mode: AgenticMode | null; configPath: string; warnings: string[] }> {
-  const configPath = path.join(projectRoot, ".imitation-machine.json");
+  const configPath = getRepoModeConfigPath(projectRoot);
   const file = Bun.file(configPath);
   if (!(await file.exists())) {
     return { mode: null, configPath, warnings: [] };

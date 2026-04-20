@@ -33,13 +33,14 @@ COMMANDS
   worktree  Worktree lifecycle (create, list, remove, cleanup-merged)
   orchestrate  Persona orchestration (run, status)
   check-plugin  Validate OpenCode and Claude plugin setup
-  mode      Resolve or override project mode
+  mode      Explain or override project mode (show, lite, standard, strict, clear)
 
 FLAGS
   --help, -h     Show help
   --version, -v  Show version
 
 Run \`agentic <command> --help\` for command-specific help.
+Run \`agentic mode --help\` for mode precedence and override details.
 `.trim();
 
 async function main(): Promise<void> {

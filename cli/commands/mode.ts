@@ -1,6 +1,9 @@
 import {
   clearProjectModeOverride,
+  describeModeSource,
+  getModePolicy,
   getModeOverrideStorePath,
+  getRelevantModePath,
   resolveProjectMode,
   writeProjectModeOverride,
 } from "../mode";
@@ -17,6 +20,14 @@ USAGE
 
 PRECEDENCE
   project override > repo config > fallback standard
+
+MODES
+  lite      Allows bash and file writes after bootstrap.
+  standard  Allows bash after bootstrap, but still requires a workflow skill before file writes.
+  strict    Requires a workflow skill before bash or file writes.
+
+NOTES
+  Overrides are stored outside the repo and stay active until you run \`agentic mode clear\`.
 `.trim();
 
 export async function modeCommand(args: string[]): Promise<void> {
@@ -36,9 +47,14 @@ export async function modeCommand(args: string[]): Promise<void> {
   }
 
   if (subcommand === "clear") {
-    await clearProjectModeOverride({ projectRoot: cwd, storePath });
+    const cleared = await clearProjectModeOverride({ projectRoot: cwd, storePath });
     const resolved = await resolveProjectMode({ projectRoot: cwd, storePath });
-    console.log(`Cleared mode override for ${resolved.projectRoot}`);
+    if (cleared) {
+      console.log(`Cleared the per-project mode override for ${resolved.projectRoot}.`);
+    } else {
+      console.log(`No valid per-project mode override was set for ${resolved.projectRoot}.`);
+    }
+    console.log(`Run \`agentic mode show --cwd ${resolved.projectRoot}\` to confirm the effective mode.`);
     printModeResolution(resolved);
     process.exit(0);
   }
@@ -46,7 +62,8 @@ export async function modeCommand(args: string[]): Promise<void> {
   if (subcommand === "lite" || subcommand === "standard" || subcommand === "strict") {
     await writeProjectModeOverride({ projectRoot: cwd, mode: subcommand, storePath });
     const resolved = await resolveProjectMode({ projectRoot: cwd, storePath });
-    console.log(`Mode override set to ${subcommand} for ${resolved.projectRoot}`);
+    console.log(`Saved a per-project mode override: ${subcommand} for ${resolved.projectRoot}.`);
+    console.log(`Run \`agentic mode show --cwd ${resolved.projectRoot}\` to confirm the effective mode.`);
     printModeResolution(resolved);
     process.exit(0);
   }
@@ -73,6 +90,12 @@ function printModeResolution(resolved: Awaited<ReturnType<typeof resolveProjectM
   }
 
   console.log(`Project: ${resolved.projectRoot}`);
-  console.log(`Mode: ${resolved.mode}`);
-  console.log(`Source: ${resolved.source}`);
+  console.log(`Effective mode: ${resolved.mode}`);
+  console.log(`Source: ${describeModeSource(resolved)}`);
+  console.log(`Relevant path: ${getRelevantModePath(resolved)}`);
+  console.log(`In practice: ${getModePolicy(resolved.mode).summary}`);
+  console.log("To change it: agentic mode lite|standard|strict [--cwd <path>]");
+  if (resolved.source === "override") {
+    console.log("To revert to the repo default or fallback: agentic mode clear [--cwd <path>]");
+  }
 }
