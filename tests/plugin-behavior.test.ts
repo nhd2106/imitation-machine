@@ -118,7 +118,8 @@ describe("imitation-machine plugin behavior", () => {
 
     const bootstrapText = output.messages[0]?.parts[0]?.text ?? "";
     expect(bootstrapText).toContain("Resolved mode: standard");
-    expect(bootstrapText).toContain("Source: fallback");
+    expect(bootstrapText).toContain("Source: built-in fallback (no override or valid repo config)");
+    expect(bootstrapText).toContain("Tip: run `agentic mode show`");
   });
 
   test("bootstrap shows repo-config as the mode source", async () => {
@@ -132,7 +133,7 @@ describe("imitation-machine plugin behavior", () => {
 
     const bootstrapText = output.messages[0]?.parts[0]?.text ?? "";
     expect(bootstrapText).toContain("Resolved mode: lite");
-    expect(bootstrapText).toContain("Source: repo-config");
+    expect(bootstrapText).toContain("Source: repo config from .imitation-machine.json");
   });
 
   test("bootstrap shows override as the mode source", async () => {
@@ -149,7 +150,8 @@ describe("imitation-machine plugin behavior", () => {
 
     const bootstrapText = output.messages[0]?.parts[0]?.text ?? "";
     expect(bootstrapText).toContain("Resolved mode: strict");
-    expect(bootstrapText).toContain("Source: override");
+    expect(bootstrapText).toContain("Source: per-project override from override store");
+    expect(bootstrapText).toContain("agentic mode show");
   });
 
   test("lite mode allows direct small-task edits after bootstrap", async () => {

@@ -33,6 +33,19 @@ async function runModeCli(args: string[], cwd: string, env: Record<string, strin
 }
 
 describe("mode command", () => {
+  test("help explains modes, precedence, and persistent overrides", async () => {
+    const cwd = await mkdtemp(join(tmpdir(), "agentic-mode-cli-"));
+    const result = await runModeCli(["--help"], cwd, {});
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("MODES");
+    expect(result.stdout).toContain("lite      Allows bash and file writes after bootstrap.");
+    expect(result.stdout).toContain("standard  Allows bash after bootstrap, but still requires a workflow skill before file writes.");
+    expect(result.stdout).toContain("strict    Requires a workflow skill before bash or file writes.");
+    expect(result.stdout).toContain("project override > repo config > fallback standard");
+    expect(result.stdout).toContain("Overrides are stored outside the repo and stay active until you run `agentic mode clear`.");
+  });
+
   test("show reports resolved repo mode", async () => {
     const cwd = await mkdtemp(join(tmpdir(), "agentic-mode-cli-"));
     const storePath = join(cwd, "mode-store.json");
@@ -42,8 +55,11 @@ describe("mode command", () => {
     const result = await runModeCli(["show", "--cwd", cwd], cwd, { AGENTIC_MODE_STORE_PATH: storePath });
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("Mode: lite");
-    expect(result.stdout).toContain("Source: repo-config");
+    expect(result.stdout).toContain("Effective mode: lite");
+    expect(result.stdout).toContain("Source: repo config from .imitation-machine.json");
+    expect(result.stdout).toContain(`Relevant path: ${join(cwd, ".imitation-machine.json")}`);
+    expect(result.stdout).toContain("In practice: Lite relaxes the pre-workflow guard after bootstrap: bash and file writes are allowed without an implementation workflow skill.");
+    expect(result.stdout).toContain("To change it: agentic mode lite|standard|strict");
   });
 
   test("set commands persist override until clear", async () => {
@@ -54,21 +70,52 @@ describe("mode command", () => {
 
     const setResult = await runModeCli(["strict", "--cwd", cwd], cwd, { AGENTIC_MODE_STORE_PATH: storePath });
     expect(setResult.exitCode).toBe(0);
-    expect(setResult.stdout).toContain("Mode override set to strict");
+    expect(setResult.stdout).toContain("Saved a per-project mode override: strict");
+    expect(setResult.stdout).toContain("Run `agentic mode show --cwd");
 
     const showOverride = await runModeCli(["show", "--cwd", cwd], cwd, { AGENTIC_MODE_STORE_PATH: storePath });
     expect(showOverride.exitCode).toBe(0);
-    expect(showOverride.stdout).toContain("Mode: strict");
-    expect(showOverride.stdout).toContain("Source: override");
+    expect(showOverride.stdout).toContain("Effective mode: strict");
+    expect(showOverride.stdout).toContain("Source: per-project override from override store");
+    expect(showOverride.stdout).toContain(`Relevant path: ${storePath}`);
+    expect(showOverride.stdout).toContain("To revert to the repo default or fallback: agentic mode clear");
 
     const clearResult = await runModeCli(["clear", "--cwd", cwd], cwd, { AGENTIC_MODE_STORE_PATH: storePath });
     expect(clearResult.exitCode).toBe(0);
-    expect(clearResult.stdout).toContain("Cleared mode override");
+    expect(clearResult.stdout).toContain("Cleared the per-project mode override");
+    expect(clearResult.stdout).toContain("Run `agentic mode show --cwd");
 
     const showCleared = await runModeCli(["show", "--cwd", cwd], cwd, { AGENTIC_MODE_STORE_PATH: storePath });
     expect(showCleared.exitCode).toBe(0);
-    expect(showCleared.stdout).toContain("Mode: lite");
-    expect(showCleared.stdout).toContain("Source: repo-config");
+    expect(showCleared.stdout).toContain("Effective mode: lite");
+    expect(showCleared.stdout).toContain("Source: repo config from .imitation-machine.json");
+  });
+
+  test("clear reports when no per-project override existed", async () => {
+    const cwd = await mkdtemp(join(tmpdir(), "agentic-mode-cli-"));
+    const storePath = join(cwd, "mode-store.json");
+    await writeFile(join(cwd, ".imitation-machine.json"), JSON.stringify({ mode: "lite" }, null, 2));
+
+    const result = await runModeCli(["clear", "--cwd", cwd], cwd, { AGENTIC_MODE_STORE_PATH: storePath });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("No valid per-project mode override was set");
+    expect(result.stdout).not.toContain("Cleared the per-project mode override");
+    expect(result.stdout).toContain("Effective mode: lite");
+  });
+
+  test("clear does not claim success when only a malformed project override entry existed", async () => {
+    const cwd = await mkdtemp(join(tmpdir(), "agentic-mode-cli-"));
+    const storePath = join(cwd, "mode-store.json");
+    await writeFile(join(cwd, ".imitation-machine.json"), JSON.stringify({ mode: "lite" }, null, 2));
+    await writeFile(storePath, JSON.stringify({ version: 1, overrides: { [cwd]: false } }, null, 2));
+
+    const result = await runModeCli(["clear", "--cwd", cwd], cwd, { AGENTIC_MODE_STORE_PATH: storePath });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("No valid per-project mode override was set");
+    expect(result.stdout).not.toContain("Cleared the per-project mode override");
+    expect(result.stdout).toContain("Effective mode: lite");
   });
 
   test("invalid stored override falls back safely", async () => {
@@ -80,8 +127,9 @@ describe("mode command", () => {
     const result = await runModeCli(["show", "--cwd", cwd], cwd, { AGENTIC_MODE_STORE_PATH: storePath });
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("Mode: standard");
-    expect(result.stdout).toContain("Source: repo-config");
+    expect(result.stdout).toContain("Effective mode: standard");
+    expect(result.stdout).toContain("Source: repo config from .imitation-machine.json");
+    expect(result.stdout).toContain(`Relevant path: ${storePath}`);
     expect(result.stderr).toContain(`Warning: Ignoring malformed project mode override \"broken\" in ${storePath}.`);
   });
 
@@ -93,8 +141,9 @@ describe("mode command", () => {
     const result = await runModeCli(["show", "--cwd", cwd], cwd, { AGENTIC_MODE_STORE_PATH: storePath });
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("Mode: standard");
-    expect(result.stdout).toContain("Source: fallback");
+    expect(result.stdout).toContain("Effective mode: standard");
+    expect(result.stdout).toContain("Source: built-in fallback (no override or valid repo config)");
+    expect(result.stdout).toContain(`Relevant path: ${join(cwd, ".imitation-machine.json")}`);
     expect(result.stderr).toContain(
       `Warning: Ignoring malformed repo mode \"turbo\" in ${join(cwd, ".imitation-machine.json")}.`,
     );
@@ -109,8 +158,8 @@ describe("mode command", () => {
     const result = await runModeCli(["show", "--cwd", cwd], cwd, { AGENTIC_MODE_STORE_PATH: storePath });
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("Mode: standard");
-    expect(result.stdout).toContain("Source: fallback");
+    expect(result.stdout).toContain("Effective mode: standard");
+    expect(result.stdout).toContain("Source: built-in fallback (no override or valid repo config)");
     expect(result.stderr).toContain(`Warning: Ignoring malformed JSON in ${configPath}.`);
   });
 
@@ -122,8 +171,9 @@ describe("mode command", () => {
     const result = await runModeCli(["show", "--cwd", cwd], cwd, { AGENTIC_MODE_STORE_PATH: storePath });
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("Mode: standard");
-    expect(result.stdout).toContain("Source: fallback");
+    expect(result.stdout).toContain("Effective mode: standard");
+    expect(result.stdout).toContain("Source: built-in fallback (no override or valid repo config)");
+    expect(result.stdout).toContain(`Relevant path: ${storePath}`);
     expect(result.stderr).toContain(`Warning: Ignoring non-string project mode override in ${storePath} for ${cwd}.`);
   });
 
