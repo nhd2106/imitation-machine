@@ -2,19 +2,21 @@
 
 Codex support in this repo is currently experimental, manual, and skills-only.
 
+From this source checkout, use `./bin/agentic` unless `agentic` is already on your `PATH`.
+
 ## Recommended path
 
 1. Clone this repository locally.
 2. Run:
 
 ```bash
-agentic install local --surface codex
+./bin/agentic install local --surface codex
 ```
 
 If you want to preview what will run first, use:
 
 ```bash
-agentic install local --surface codex --dry-run
+./bin/agentic install local --surface codex --dry-run
 ```
 
 ## Manual fallback
@@ -51,7 +53,7 @@ Expected:
 If the skills do not appear, re-run:
 
 ```bash
-agentic install local --surface codex
+./bin/agentic install local --surface codex
 ```
 
 Then inspect:

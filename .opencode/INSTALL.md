@@ -2,10 +2,12 @@
 
 ## Recommended path
 
-For local development from this source repository, prefer the packaged local install command:
+For local development from this source repository, prefer the packaged local install command.
+
+From this source checkout, use `./bin/agentic` unless `agentic` is already on your `PATH`.
 
 ```bash
-agentic install local --surface opencode
+./bin/agentic install local --surface opencode
 ```
 
 ## Manual fallback
@@ -60,7 +62,7 @@ Expected:
 If the skills do not appear, first re-run:
 
 ```bash
-agentic install local --surface opencode
+./bin/agentic install local --surface opencode
 ```
 
 If that still fails, inspect these paths and then restart OpenCode:

@@ -13,17 +13,21 @@ Enterprise-oriented agentic SDLC framework with:
 
 ## Quickstart
 
-If you are trying this for the first time from a local checkout of this repository, start here:
+If you are trying this for the first time from a local checkout of this repository, start here.
 
-1. Choose exactly one install target based on the client you use. Here, **surface** means the client or tool you are installing into, such as OpenCode or Claude.
-   - OpenCode: `agentic install local --surface opencode`
-   - Claude: `agentic install local --surface claude`
-   - Codex: `agentic install local --surface codex` (experimental manual skills-only)
-2. Check the current workflow mode: `agentic mode show`
-3. Run the final verification gate: `agentic verify all`
+From this source checkout, use `./bin/agentic` unless you already installed `agentic` on your `PATH`.
 
-- `agentic mode show` tells you how strict the repo is configured to be.
-- `agentic verify all` is the final "do the checks say this is ready?" command.
+1. Install local dependencies first: `bun install`
+2. If you are contributing from this checkout, read [CONTRIBUTING.md](CONTRIBUTING.md) for the full repo-local setup and verification flow.
+3. Choose exactly one install target based on the client you use. Here, **surface** means the client or tool you are installing into, such as OpenCode or Claude.
+   - OpenCode: `./bin/agentic install local --surface opencode`
+   - Claude: `./bin/agentic install local --surface claude`
+   - Codex: `./bin/agentic install local --surface codex` (experimental manual skills-only)
+4. Check the current workflow mode: `./bin/agentic mode show`
+5. Run the final verification gate: `./bin/agentic verify all`
+
+- `./bin/agentic mode show` tells you how strict the repo is configured to be.
+- `./bin/agentic verify all` is the final "do the checks say this is ready?" command.
 
 ### Tiny example workflow
 
@@ -32,8 +36,12 @@ If you are trying this for the first time from a local checkout of this reposito
 2. Load `using-agentic`.
 3. Pick the process skill that matches the task (for example `plan` or `tdd`).
 4. Do the work with the right personas and review steps.
-5. Run `agentic verify all` before calling it done.
+5. Run `./bin/agentic verify all` before calling it done.
 ```
+
+## Contributing
+
+Contributors working from this repo checkout should start with [CONTRIBUTING.md](CONTRIBUTING.md) for Bun setup, bounded change expectations, staged review order, and local verification commands. Pull requests in this repo also use the checked-in [pull request template](.github/PULL_REQUEST_TEMPLATE.md).
 
 ## 2-minute mental model
 
@@ -84,11 +92,13 @@ Use this table as the single install hub:
 
 | Client | Recommended path | Manual fallback | Exact instructions | Support status / notes |
 | --- | --- | --- | --- | --- |
-| OpenCode | `agentic install local --surface opencode` | `./scripts/install-local-opencode.sh` | [`.opencode/INSTALL.md`](.opencode/INSTALL.md) | Supported packaged local install from this repo via plugin + skills. |
-| Claude | `agentic install local --surface claude` | `./scripts/install-local-claude-plugin.sh` | [`CLAUDE_INSTALL.md`](CLAUDE_INSTALL.md) | Supported packaged local install from this repo via Claude development marketplace. |
-| Codex | `agentic install local --surface codex` | `./scripts/install-local-codex.sh` | [`CODEX_INSTALL.md`](CODEX_INSTALL.md) | Experimental manual skills-only install; no plugin integration or verified harness coverage. |
+| OpenCode | `./bin/agentic install local --surface opencode` | `./scripts/install-local-opencode.sh` | [`.opencode/INSTALL.md`](.opencode/INSTALL.md) | Supported packaged local install from this repo via plugin + skills. |
+| Claude | `./bin/agentic install local --surface claude` | `./scripts/install-local-claude-plugin.sh` | [`CLAUDE_INSTALL.md`](CLAUDE_INSTALL.md) | Supported packaged local install from this repo via Claude development marketplace. |
+| Codex | `./bin/agentic install local --surface codex` | `./scripts/install-local-codex.sh` | [`CODEX_INSTALL.md`](CODEX_INSTALL.md) | Experimental manual skills-only install; no plugin integration or verified harness coverage. |
 | Cursor | Not currently supported | None | See notes in this table | No packaged installer or verified install flow in this repo today. |
 | Gemini | Not currently supported | None | See notes in this table | No packaged installer or verified install flow in this repo today. |
+
+If the CLI is already on your `PATH`, the equivalent install commands are `agentic install local --surface opencode`, `agentic install local --surface claude`, and `agentic install local --surface codex`.
 
 For OpenCode, the packaged local install from this repo creates a local package layout under `~/.config/opencode/imitation-machine/`, registers the plugin in `~/.config/opencode/plugins/`, and exposes the skills in `~/.config/opencode/skills/imitation-machine/`.
 
@@ -96,7 +106,7 @@ For Claude, the packaged local install from this repo registers a local Claude C
 
 For Codex, the install is currently experimental and manual: it only symlinks this repo's `skills/` tree into `~/.agents/skills/imitation-machine/`. It does not install plugin integration, bootstrap injection, or claim verified harness/live coverage.
 
-Because Codex is still experimental here, `agentic install local` and `--surface all` stay limited to the supported packaged surfaces; use `--surface codex` explicitly when you want the manual Codex skills link.
+Because Codex is still experimental here, `./bin/agentic install local` and `--surface all` stay limited to the supported packaged surfaces; use `./bin/agentic install local --surface codex` explicitly when you want the manual Codex skills link.
 
 Published registry install guidance, when available for a surface, is documented separately from the packaged local install flow above.
 
@@ -135,7 +145,7 @@ In logs, confirm:
 - `using-agentic` listed and loadable
 - other imitation-machine skills such as `gate`, `verify`, `worktree`, and `repo` appear
 
-If skills do not appear, first re-run `agentic install local --surface opencode`. If that still fails, inspect `~/.config/opencode/plugins/imitation-machine.js` and `~/.config/opencode/skills/imitation-machine`, then restart OpenCode.
+If skills do not appear, first re-run `./bin/agentic install local --surface opencode`. If that still fails, inspect `~/.config/opencode/plugins/imitation-machine.js` and `~/.config/opencode/skills/imitation-machine`, then restart OpenCode.
 
 ### Repo-checkout / plugin-development verification
 
@@ -146,31 +156,31 @@ The bounded OpenCode transcript harness, including the env-gated live runner, is
 ## CLI
 
 ```bash
-agentic install local
-agentic install local --surface all --dry-run
-agentic install local --surface opencode
-agentic install local --surface claude
-agentic install local --surface codex
-agentic --help
-agentic mode show
-agentic mode lite
-agentic mode standard
-agentic mode strict
-agentic mode clear
-agentic verify all
-agentic worktree --help
-agentic worktree cleanup-merged --json
-agentic check-plugin --json
-agentic orchestrate run --plan PLN-xxxx --dry-run
-agentic orchestrate run --plan PLN-xxxx --max-parallel 3 --continue-on-error
-agentic orchestrate status --plan PLN-xxxx --json
+./bin/agentic install local
+./bin/agentic install local --surface all --dry-run
+./bin/agentic install local --surface opencode
+./bin/agentic install local --surface claude
+./bin/agentic install local --surface codex
+./bin/agentic --help
+./bin/agentic mode show
+./bin/agentic mode lite
+./bin/agentic mode standard
+./bin/agentic mode strict
+./bin/agentic mode clear
+./bin/agentic verify all
+./bin/agentic worktree --help
+./bin/agentic worktree cleanup-merged --json
+./bin/agentic check-plugin --json
+./bin/agentic orchestrate run --plan PLN-xxxx --dry-run
+./bin/agentic orchestrate run --plan PLN-xxxx --max-parallel 3 --continue-on-error
+./bin/agentic orchestrate status --plan PLN-xxxx --json
 ```
 
 ## Project mode resolution
 
 `imitation-machine` resolves policy mode in this order:
 
-1. per-project override set with `agentic mode lite|standard|strict`
+1. per-project override set with `./bin/agentic mode lite|standard|strict`
 2. repo default from `.imitation-machine.json`
 3. fallback `standard`
 
@@ -182,18 +192,18 @@ Repo defaults live in the repo:
 }
 ```
 
-Per-project overrides are stored outside the repo, keyed by project path, and remain in effect until `agentic mode clear`.
+Per-project overrides are stored outside the repo, keyed by project path, and remain in effect until `./bin/agentic mode clear`.
 
 The OpenCode bootstrap now prints the resolved mode and whether it came from `override`, `repo-config`, or `fallback`.
 
 Small flow example:
 
 ```bash
-agentic mode show
-agentic mode strict
-agentic mode show
-agentic mode clear
-agentic mode show
+./bin/agentic mode show
+./bin/agentic mode strict
+./bin/agentic mode show
+./bin/agentic mode clear
+./bin/agentic mode show
 ```
 
 Mode semantics in v1:
