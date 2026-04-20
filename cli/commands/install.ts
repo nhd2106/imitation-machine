@@ -4,19 +4,20 @@ const INSTALL_USAGE = `
 agentic install — Install local development integrations
 
 USAGE
-  agentic install local [--surface <opencode|claude|all>] [--dry-run]
+  agentic install local [--surface <opencode|claude|codex|all>] [--dry-run]
 
 OPTIONS
-  --surface  Choose which local install scripts to run (default: all)
+  --surface  Choose which local install scripts to run (default: supported packaged surfaces; use codex explicitly)
   --dry-run  Print script path(s) without executing them
 `.trim();
 
 const SCRIPT_PATHS = {
   opencode: join(import.meta.dir, "..", "..", "scripts", "install-local-opencode.sh"),
   claude: join(import.meta.dir, "..", "..", "scripts", "install-local-claude-plugin.sh"),
+  codex: join(import.meta.dir, "..", "..", "scripts", "install-local-codex.sh"),
 } as const;
 
-type Surface = "opencode" | "claude" | "all";
+type Surface = "opencode" | "claude" | "codex" | "all";
 
 export async function installCommand(args: string[]): Promise<void> {
   if (args.length === 0 || args[0] === "--help" || args[0] === "-h") {
@@ -97,11 +98,11 @@ function resolveScriptPaths(surface: Surface): InstallScript[] {
 }
 
 function getSurface(value: string): Surface {
-  if (value === "opencode" || value === "claude" || value === "all") {
+  if (value === "opencode" || value === "claude" || value === "codex" || value === "all") {
     return value;
   }
 
-  throw new Error(`Unsupported --surface value: ${value}. Expected opencode, claude, or all.`);
+  throw new Error(`Unsupported --surface value: ${value}. Expected opencode, claude, codex, or all.`);
 }
 
 function getFlag(args: string[], flag: string): string | undefined {
