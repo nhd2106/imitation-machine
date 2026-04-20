@@ -105,3 +105,11 @@ Executable Claude harness lane:
 ```bash
 bun test tests/claude-executable-harness.test.ts
 ```
+
+Installed Claude integration lane from a source checkout:
+
+```bash
+bash tests/claude-code/run-tests.sh installed
+```
+
+Set `CLAUDE_INSTALLED_LIVE=1` to run the real installed session. Otherwise the lane skips cleanly after the focused unit coverage.

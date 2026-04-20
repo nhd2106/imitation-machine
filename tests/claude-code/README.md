@@ -4,7 +4,7 @@ Use this guide to separate the fast bounded harness from slower integration-orie
 
 ## Fast bounded coverage
 
-Lightweight automated coverage for a bounded subset of the Claude workflow lives in:
+Lightweight automated coverage for the standard fast Claude harness lives in:
 
 - `scripts/claude-code-harness.ts`
 - `scripts/claude-live-harness.ts`
@@ -25,6 +25,8 @@ or:
 ```bash
 bun test tests/claude-harness.test.ts tests/claude-harness-smoke.test.ts tests/claude-executable-harness.test.ts tests/claude-live-harness.test.ts
 ```
+
+The installed Claude lane is separate from this fast command set. Run it with `bash tests/claude-code/run-tests.sh installed`.
 
 ## Live bounded harness
 
@@ -54,6 +56,26 @@ To execute real Claude scenarios:
 
 ```bash
 CLAUDE_LIVE=1 bash tests/claude-code/run-tests.sh live
+```
+
+## Installed Claude integration lane
+
+This opt-in lane runs one real installed Claude session against a temp repo scaffolded from the reusable executable harness with the `docs-review` archetype.
+
+- `tests/claude-code/installed-live-scenarios.json` defines the single bounded installed scenario
+- `scripts/claude-installed-live-harness.ts` scaffolds the temp repo, runs `claude --print` in that repo, and validates install visibility plus ordered plan/execute/review/verify flow
+- `tests/claude-installed-live-harness.test.ts` covers manifest loading, env gating, argv construction, docs-review scaffold reuse, and transcript rejection for wrong review order or stale/missing verify evidence
+
+By default this lane skips cleanly unless `CLAUDE_INSTALLED_LIVE=1` is set:
+
+```bash
+bash tests/claude-code/run-tests.sh installed
+```
+
+To execute the real installed lane:
+
+```bash
+CLAUDE_INSTALLED_LIVE=1 bash tests/claude-code/run-tests.sh installed
 ```
 
 ## Integration-oriented manual verification
@@ -174,8 +196,10 @@ Expected behavior:
 - Claude Code may not expose OpenCode-style child sessions the same way
 - the key thing to verify is that the installed skill content reflects the updated orchestration guidance
 
-For the full bounded harness suite across both surfaces, run:
+For the standard fast bounded harness suite across both surfaces, run:
 
 ```bash
 bun run test:harness
 ```
+
+`bun run test:harness` does not include the installed Claude lane. Run `bash tests/claude-code/run-tests.sh installed` separately when you want that opt-in installed integration coverage.

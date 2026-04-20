@@ -32,6 +32,7 @@
     "test:workflow-harness": "bun test tests/executable-workflow-harness.test.ts",
     "test:opencode": "bash tests/opencode/run-tests.sh fast",
     "test:opencode:live": "bash tests/opencode/run-tests.sh live",
+    "test:claude:installed": "bash tests/claude-code/run-tests.sh installed",
     "typecheck": "bunx tsc --noEmit",
     "pack:dry": "npm pack --dry-run"
   },

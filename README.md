@@ -109,6 +109,8 @@ For the reusable executable workflow regression lane in this repo checkout that 
 
 For OpenCode-only live bounded checks in this repo checkout that replay a checked-in manifest through `opencode run --print-logs`, including continued multi-turn scenarios that use `--continue`, run `bash tests/opencode/run-tests.sh live`. Set `OPENCODE_LIVE=1` to execute real sessions; otherwise the live harness skips cleanly.
 
+For the opt-in installed Claude integration lane in this repo checkout that scaffolds a `docs-review` temp repo and runs one real `claude --print` session, run `bash tests/claude-code/run-tests.sh installed`. Set `CLAUDE_INSTALLED_LIVE=1` to execute the real session; otherwise it skips cleanly.
+
 For surface-specific commands, coverage details, and slower integration-oriented checks in the source repo, use the per-surface guides in `tests/opencode/README.md` and `tests/claude-code/README.md`.
 
 ## OpenCode verification

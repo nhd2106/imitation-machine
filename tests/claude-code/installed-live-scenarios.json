@@ -1,0 +1,27 @@
+{
+  "scenarios": [
+    {
+      "id": "installed-docs-review-happy-path",
+      "prompt": "Use the docs-review temp repo already scaffolded here. Load using-agentic, route through executing-plans, keep this to one single session, follow the approved plan, run bun test before implementation so it fails, write the minimal docs-review implementation to pass, run review-spec before review-quality, then run fresh bun test verification and end review-ready. In your final printed transcript include deterministic marker lines for install visibility, workflow route, approved plan, implementation write, review-spec, review-quality, fresh verify, and review-ready.",
+      "expect": {
+        "valid": true,
+        "workflowRoute": "executing-plans",
+        "stages": [
+          "install-visible-skills",
+          "workflow-routing",
+          "plan-approved",
+          "implementation-written",
+          "review-spec-passed",
+          "review-quality-passed",
+          "verification-fresh",
+          "review-ready"
+        ]
+      },
+      "scaffold": {
+        "archetype": "docs-review",
+        "planId": "PLN-PR37",
+        "taskId": "TSK-PR37-1"
+      }
+    }
+  ]
+}
