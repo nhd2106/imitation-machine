@@ -23,6 +23,7 @@
     "scripts/install-local-*.sh",
     "skills/**",
     "CLAUDE_INSTALL.md",
+    "CODEX_INSTALL.md",
     "README.md"
   ],
   "scripts": {

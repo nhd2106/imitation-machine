@@ -18,6 +18,7 @@ If you are trying this for the first time from a local checkout of this reposito
 1. Choose exactly one install target based on the client you use. Here, **surface** means the client or tool you are installing into, such as OpenCode or Claude.
    - OpenCode: `agentic install local --surface opencode`
    - Claude: `agentic install local --surface claude`
+   - Codex: `agentic install local --surface codex` (experimental manual skills-only)
 2. Check the current workflow mode: `agentic mode show`
 3. Run the final verification gate: `agentic verify all`
 
@@ -85,13 +86,17 @@ Use this table as the single install hub:
 | --- | --- | --- | --- | --- |
 | OpenCode | `agentic install local --surface opencode` | `./scripts/install-local-opencode.sh` | [`.opencode/INSTALL.md`](.opencode/INSTALL.md) | Supported packaged local install from this repo via plugin + skills. |
 | Claude | `agentic install local --surface claude` | `./scripts/install-local-claude-plugin.sh` | [`CLAUDE_INSTALL.md`](CLAUDE_INSTALL.md) | Supported packaged local install from this repo via Claude development marketplace. |
-| Codex | Not currently supported | None | See notes in this table | No packaged installer or verified install flow in this repo today. |
+| Codex | `agentic install local --surface codex` | `./scripts/install-local-codex.sh` | [`CODEX_INSTALL.md`](CODEX_INSTALL.md) | Experimental manual skills-only install; no plugin integration or verified harness coverage. |
 | Cursor | Not currently supported | None | See notes in this table | No packaged installer or verified install flow in this repo today. |
 | Gemini | Not currently supported | None | See notes in this table | No packaged installer or verified install flow in this repo today. |
 
 For OpenCode, the packaged local install from this repo creates a local package layout under `~/.config/opencode/imitation-machine/`, registers the plugin in `~/.config/opencode/plugins/`, and exposes the skills in `~/.config/opencode/skills/imitation-machine/`.
 
 For Claude, the packaged local install from this repo registers a local Claude Code development marketplace and installs `imitation-machine` as a real plugin. If you also want loose local skills while iterating, `CLAUDE_INSTALL.md` includes the optional `./scripts/install-local-claude.sh` step.
+
+For Codex, the install is currently experimental and manual: it only symlinks this repo's `skills/` tree into `~/.agents/skills/imitation-machine/`. It does not install plugin integration, bootstrap injection, or claim verified harness/live coverage.
+
+Because Codex is still experimental here, `agentic install local` and `--surface all` stay limited to the supported packaged surfaces; use `--surface codex` explicitly when you want the manual Codex skills link.
 
 Published registry install guidance, when available for a surface, is documented separately from the packaged local install flow above.
 
@@ -145,6 +150,7 @@ agentic install local
 agentic install local --surface all --dry-run
 agentic install local --surface opencode
 agentic install local --surface claude
+agentic install local --surface codex
 agentic --help
 agentic mode show
 agentic mode lite
