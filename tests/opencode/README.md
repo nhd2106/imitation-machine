@@ -25,13 +25,15 @@ bun test tests/opencode-harness.test.ts tests/opencode-harness-smoke.test.ts
 
 ## Integration-oriented usage
 
+Before running live or integration-oriented checks from this repo checkout, follow [`.opencode/INSTALL.md`](../../.opencode/INSTALL.md) so the local OpenCode plugin install is in place.
+
 Use a real OpenCode session when you need to confirm plugin installation, live skill loading, or end-to-end routing behavior:
 
 ```bash
 opencode run --print-logs "use skill tool to list skills and load using-agentic"
 ```
 
-If you are validating mode resolution, set a repo default in `.imitation-machine.json` or use `agentic mode lite|standard|strict`, then confirm the bootstrap text reports the resolved mode and source (`override`, `repo-config`, or `fallback`).
+If you are validating mode resolution, set a repo default in `.imitation-machine.json` or use `./bin/agentic mode lite|standard|strict`, then confirm the bootstrap text reports the resolved mode and source (`override`, `repo-config`, or `fallback`).
 
 That path is slower and environment-dependent, so keep it separate from the fast bounded harness checks. The fast runner is meant to protect bounded transcript behavior, not to replace real-session validation.
 

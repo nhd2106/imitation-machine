@@ -2,6 +2,8 @@
 
 For local development from this source repository, the most reliable path is a packaged local install that registers a local Claude Code development marketplace.
 
+From this source checkout, use `./bin/agentic` unless `agentic` is already on your `PATH`.
+
 ## Recommended path
 
 Published package assets include the `agentic` launcher, local install helper scripts, packaged plugin assets, and the `skills/` tree.
@@ -10,7 +12,7 @@ Published package assets include the `agentic` launcher, local install helper sc
 2. Run:
 
 ```bash
-agentic install local --surface claude
+./bin/agentic install local --surface claude
 ```
 
 3. Start a new Claude Code session.
@@ -23,7 +25,7 @@ This packaged local install from this repo uses Claude Code's native plugin syst
 If you want to preview what will run first, use:
 
 ```bash
-agentic install local --surface claude --dry-run
+./bin/agentic install local --surface claude --dry-run
 ```
 
 ## Manual fallback
@@ -60,12 +62,10 @@ Expected:
 If the skills do not appear, first re-run:
 
 ```bash
-agentic install local --surface claude
+./bin/agentic install local --surface claude
 ```
 
-If that still fails, inspect the symlinks in `~/.claude/skills/` and start a brand new session.
-
-If the plugin itself does not appear, run:
+If that still fails, check the plugin and marketplace state first:
 
 ```bash
 claude plugin list
@@ -74,13 +74,15 @@ claude plugin marketplace list
 
 and confirm `imitation-machine@imitation-machine-dev` is installed.
 
+If that still fails, inspect the symlinks in `~/.claude/skills/` only if you also opted into the optional local skills symlink path, then start a brand new session.
+
 ## Mandatory workflow (Claude + OpenCode parity)
 
 The `using-agentic` skill is the policy entrypoint and enforces:
 
 1. skill-first invocation
 2. process-skill before implementation
-3. `agentic verify all` evidence before completion claim
+3. `./bin/agentic verify all` evidence before completion claim
 
 Typical follow-on workflow choices now include `systematic-debugging` for stubborn failures, `dispatching-parallel-agents` for safe concurrency, `executing-plans` for approved-plan direct execution, `requesting-code-review` for pre-PR review asks, `receiving-code-review` for reply/fix loops, and `finishing-a-development-branch` for final handoff cleanup.
 
