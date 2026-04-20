@@ -156,6 +156,18 @@ describe("install command", () => {
     expect(readme).toContain("Repo-only contributor assets include checked-in `tests/`, harness scripts, and other verification helpers used from a source checkout.");
   });
 
+  test("readme is the single install hub with a conservative client install matrix", async () => {
+    const readme = await Bun.file(join(ROOT, "README.md")).text();
+
+    expect(readme).toContain("## Install");
+    expect(readme).toContain("| Client | Recommended path | Manual fallback | Exact instructions | Support status / notes |");
+    expect(readme).toContain("| OpenCode | `agentic install local --surface opencode` | `./scripts/install-local-opencode.sh` | [`.opencode/INSTALL.md`](.opencode/INSTALL.md) | Supported packaged local install from this repo via plugin + skills. |");
+    expect(readme).toContain("| Claude | `agentic install local --surface claude` | `./scripts/install-local-claude-plugin.sh` | [`CLAUDE_INSTALL.md`](CLAUDE_INSTALL.md) | Supported packaged local install from this repo via Claude development marketplace. |");
+    expect(readme).toContain("| Codex | Not currently supported | None | See notes in this table | No packaged installer or verified install flow in this repo today. |");
+    expect(readme).toContain("| Cursor | Not currently supported | None | See notes in this table | No packaged installer or verified install flow in this repo today. |");
+    expect(readme).toContain("| Gemini | Not currently supported | None | See notes in this table | No packaged installer or verified install flow in this repo today. |");
+  });
+
   test("packaged opencode install docs prefer agentic local install with script fallback", async () => {
     const installDoc = await Bun.file(join(ROOT, ".opencode", "INSTALL.md")).text();
 
@@ -164,5 +176,59 @@ describe("install command", () => {
     expect(installDoc.indexOf("agentic install local --surface opencode")).toBeLessThan(
       installDoc.indexOf("./scripts/install-local-opencode.sh"),
     );
+  });
+
+  test("opencode install doc labels published-package setup separately from local development", async () => {
+    const installDoc = await Bun.file(join(ROOT, ".opencode", "INSTALL.md")).text();
+
+    expect(installDoc).toContain("## Published registry install (not recommended for local development)");
+    expect(installDoc).toContain("Use this only after the package is actually published and reachable.");
+    expect(installDoc).not.toContain("## Additional notes");
+  });
+
+  test("claude manual verification preconditions prefer agentic local install", async () => {
+    const claudeReadme = await Bun.file(join(ROOT, "tests", "claude-code", "README.md")).text();
+
+    expect(claudeReadme).toContain("agentic install local --surface claude");
+    expect(claudeReadme).toContain("Raw script fallback if needed:");
+    expect(claudeReadme.indexOf("agentic install local --surface claude")).toBeLessThan(
+      claudeReadme.indexOf("./scripts/install-local-claude-plugin.sh"),
+    );
+  });
+
+  test("surface install docs match the README recommended-path wording", async () => {
+    const [opencodeDoc, claudeDoc] = await Promise.all([
+      Bun.file(join(ROOT, ".opencode", "INSTALL.md")).text(),
+      Bun.file(join(ROOT, "CLAUDE_INSTALL.md")).text(),
+    ]);
+
+    expect(opencodeDoc).toContain("## Recommended path");
+    expect(opencodeDoc).toContain("## Manual fallback");
+    expect(opencodeDoc).not.toContain("## Option A:");
+
+    expect(claudeDoc).toContain("## Recommended path");
+    expect(claudeDoc).toContain("## Manual fallback");
+    expect(claudeDoc).not.toContain("## Local install (recommended while iterating)");
+  });
+
+  test("claude install troubleshooting prefers rerunning agentic local install before manual inspection", async () => {
+    const claudeDoc = await Bun.file(join(ROOT, "CLAUDE_INSTALL.md")).text();
+
+    expect(claudeDoc).toContain("If the skills do not appear, first re-run:");
+    expect(claudeDoc).toContain("agentic install local --surface claude");
+    expect(claudeDoc).toContain("If that still fails, inspect the symlinks in `~/.claude/skills/`");
+    expect(claudeDoc.indexOf("If the skills do not appear, first re-run:")).toBeLessThan(
+      claudeDoc.indexOf("If that still fails, inspect the symlinks in `~/.claude/skills/`"),
+    );
+  });
+
+  test("opencode verification distinguishes installed-user checks from repo-checkout verification", async () => {
+    const readme = await Bun.file(join(ROOT, "README.md")).text();
+
+    expect(readme).toContain("## OpenCode verification");
+    expect(readme).toContain("### Installed-user verification");
+    expect(readme).toContain("### Repo-checkout / plugin-development verification");
+    expect(readme).toContain("~/.config/opencode/plugins/imitation-machine.js");
+    expect(readme).toContain("~/.config/opencode/skills/imitation-machine");
   });
 });

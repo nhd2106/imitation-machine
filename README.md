@@ -30,77 +30,27 @@ Enterprise-oriented agentic SDLC framework with:
 
 - broader behavioral evaluation depth beyond the bounded harness layer, especially denser integration-style and recovery-path scenarios
 
-## OpenCode Install
-
-### Local first (recommended while iterating)
+## Install
 
 Published package assets include the `agentic` launcher, local install helper scripts, packaged plugin assets, and the `skills/` tree.
 
-Run:
+Use this table as the single install hub:
 
-```bash
-agentic install local --surface opencode
-```
+| Client | Recommended path | Manual fallback | Exact instructions | Support status / notes |
+| --- | --- | --- | --- | --- |
+| OpenCode | `agentic install local --surface opencode` | `./scripts/install-local-opencode.sh` | [`.opencode/INSTALL.md`](.opencode/INSTALL.md) | Supported packaged local install from this repo via plugin + skills. |
+| Claude | `agentic install local --surface claude` | `./scripts/install-local-claude-plugin.sh` | [`CLAUDE_INSTALL.md`](CLAUDE_INSTALL.md) | Supported packaged local install from this repo via Claude development marketplace. |
+| Codex | Not currently supported | None | See notes in this table | No packaged installer or verified install flow in this repo today. |
+| Cursor | Not currently supported | None | See notes in this table | No packaged installer or verified install flow in this repo today. |
+| Gemini | Not currently supported | None | See notes in this table | No packaged installer or verified install flow in this repo today. |
 
-This creates a local OpenCode package layout under `~/.config/opencode/imitation-machine/`, registers the plugin in `~/.config/opencode/plugins/`, and exposes the skills in `~/.config/opencode/skills/imitation-machine/`.
+For OpenCode, the packaged local install from this repo creates a local package layout under `~/.config/opencode/imitation-machine/`, registers the plugin in `~/.config/opencode/plugins/`, and exposes the skills in `~/.config/opencode/skills/imitation-machine/`.
 
-Manual alternative:
+For Claude, the packaged local install from this repo registers a local Claude Code development marketplace and installs `imitation-machine` as a real plugin. If you also want loose local skills while iterating, `CLAUDE_INSTALL.md` includes the optional `./scripts/install-local-claude.sh` step.
 
-```bash
-./scripts/install-local-opencode.sh
-```
-
-Restart OpenCode, then ask:
-
-```text
-use skill tool to list skills
-```
-
-### Package install
-
-Add this plugin in your `opencode.json` only after the package is actually published or a real git URL is available:
-
-```json
-{
-  "plugin": ["@duoc95/imitation-machine"]
-}
-```
+Published registry install guidance, when available for a surface, is documented separately from the packaged local install flow above.
 
 Do not rely on the package name alone for local development.
-
-## Claude Code Install
-
-### Local first (recommended while iterating)
-
-Run:
-
-```bash
-agentic install local --surface claude
-```
-
-This registers a local Claude Code development marketplace and installs `imitation-machine` as a real plugin.
-
-Manual plugin-install alternative:
-
-```bash
-./scripts/install-local-claude-plugin.sh
-```
-
-If you want loose local skills in addition to the plugin, you can also run:
-
-```bash
-./scripts/install-local-claude.sh
-```
-
-Then start a new Claude Code session and ask:
-
-```text
-Use Skill tool to list available skills and then load using-agentic.
-```
-
-Expanded workflow examples to look for in the skill inventory: `systematic-debugging`, `dispatching-parallel-agents`, `executing-plans`, `finishing-a-development-branch`, `requesting-code-review`, and `receiving-code-review`.
-
-See step-by-step local setup details in `CLAUDE_INSTALL.md`.
 
 ### Source repo / developer-only verification
 
@@ -116,9 +66,11 @@ For OpenCode-only live bounded checks in this repo checkout that replay a checke
 
 For surface-specific commands, coverage details, and slower integration-oriented checks in the source repo, use the per-surface guides in `tests/opencode/README.md` and `tests/claude-code/README.md`.
 
-## OpenCode Session Verification
+## OpenCode verification
 
-Use this command to verify plugin and skills are loaded in this project session:
+### Installed-user verification
+
+After running the packaged local install from this repo, verify in an OpenCode session:
 
 ```bash
 opencode run --print-logs "use skill tool to list skills and load using-agentic"
@@ -126,11 +78,16 @@ opencode run --print-logs "use skill tool to list skills and load using-agentic"
 
 In logs, confirm:
 
-- plugin path `.opencode/plugins/imitation-machine.js` loaded
+- plugin path `~/.config/opencode/plugins/imitation-machine.js` loaded
 - `service=skill` initialized
 - `using-agentic` listed and loadable
+- other imitation-machine skills such as `gate`, `verify`, `worktree`, and `repo` appear
 
-If skills do not appear, use the local install script above rather than the package name.
+If skills do not appear, first re-run `agentic install local --surface opencode`. If that still fails, inspect `~/.config/opencode/plugins/imitation-machine.js` and `~/.config/opencode/skills/imitation-machine`, then restart OpenCode.
+
+### Repo-checkout / plugin-development verification
+
+The commands below are source-checkout verification helpers for contributors working in this repository. They are not end-user package install steps.
 
 The bounded OpenCode transcript harness, including the env-gated live runner, is documented in `tests/opencode/README.md`.
 
