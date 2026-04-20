@@ -7,6 +7,8 @@ export type LiveScenarioExpectation = {
   issues?: string[];
 };
 
+export type RawTranscriptRequirement = string;
+
 export type LiveScenarioTurn = {
   prompt: string;
   expect: LiveScenarioExpectation;
@@ -16,6 +18,7 @@ export type LiveScenario = {
   id: string;
   prompt?: string;
   expect?: LiveScenarioExpectation;
+   rawTranscriptIncludes?: RawTranscriptRequirement[];
   turns?: LiveScenarioTurn[];
 };
 
@@ -128,7 +131,53 @@ function compareExpectations(
   return failureReasons;
 }
 
+function describeRawTranscriptRequirement(requirement: RawTranscriptRequirement): string {
+  return typeof requirement === "string" ? requirement : JSON.stringify(requirement);
+}
+
+function compareRawTranscriptIncludes(
+  transcript: string,
+  requirements: RawTranscriptRequirement[] | undefined,
+): string[] {
+  const failureReasons: string[] = [];
+
+  for (const requirement of requirements ?? []) {
+    const matches = transcript.includes(describeRawTranscriptRequirement(requirement));
+
+    if (!matches) {
+      failureReasons.push(
+        `Missing raw transcript substring: ${describeRawTranscriptRequirement(requirement)}`,
+      );
+    }
+  }
+
+  return failureReasons;
+}
+
 const DEFAULT_TIMEOUT_MS = 30_000;
+
+function validateLiveScenarioManifest(manifest: LiveScenarioManifest): LiveScenarioManifest {
+  for (const scenario of manifest.scenarios) {
+    if (
+      scenario.rawTranscriptIncludes !== undefined &&
+      !Array.isArray(scenario.rawTranscriptIncludes)
+    ) {
+      throw new Error(
+        `Scenario ${scenario.id} has invalid rawTranscriptIncludes: expected array`,
+      );
+    }
+
+    for (const [index, requirement] of (scenario.rawTranscriptIncludes ?? []).entries()) {
+      if (typeof requirement !== "string") {
+        throw new Error(
+          `Scenario ${scenario.id} has invalid rawTranscriptIncludes[${index}]: expected string`,
+        );
+      }
+    }
+  }
+
+  return manifest;
+}
 
 function getScenarioTurns(scenario: LiveScenario): LiveScenarioExecutionTurn[] {
   if (scenario.turns && scenario.turns.length > 0) {
@@ -210,7 +259,9 @@ async function defaultExec(command: LiveHarnessCommand): Promise<LiveHarnessExec
 export async function loadLiveScenarioManifest(
   manifestPath = DEFAULT_MANIFEST_PATH,
 ): Promise<LiveScenarioManifest> {
-  return (await Bun.file(manifestPath).json()) as LiveScenarioManifest;
+  return validateLiveScenarioManifest(
+    (await Bun.file(manifestPath).json()) as LiveScenarioManifest,
+  );
 }
 
 export async function runLiveHarness({
@@ -267,9 +318,12 @@ export async function runLiveHarness({
       });
     }
 
-    const failureReasons = turnResults.flatMap((turn) =>
+    const failureReasons = [
+      ...turnResults.flatMap((turn) =>
       turn.failureReasons.map((reason) => `Turn ${turn.index + 1}: ${reason}`),
-    );
+      ),
+      ...compareRawTranscriptIncludes(transcript, scenario.rawTranscriptIncludes),
+    ];
     const evaluation = turnResults.at(-1)?.evaluation ?? evaluateOpenCodeTranscript("");
 
     results.push({

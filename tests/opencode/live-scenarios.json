@@ -1,6 +1,62 @@
 {
   "scenarios": [
     {
+      "id": "fresh-install-flow",
+      "prompt": "Walk a brand-new OpenCode user through the first local setup in this repo, including the exact install, mode-check, and verification commands they should run.",
+      "rawTranscriptIncludes": [
+        "agentic install local --surface opencode",
+        "agentic mode show",
+        "agentic verify all"
+      ],
+      "expect": {
+        "valid": true,
+        "selectedProcessSkill": "plan",
+        "stages": ["bootstrap", "process-skill", "plan-ready"]
+      }
+    },
+    {
+      "id": "first-run-help-flow",
+      "prompt": "A first-time user asks what imitation-machine actually does in OpenCode and what they should do first in-session. Give a concise onboarding answer.",
+      "rawTranscriptIncludes": [
+        "Start with using-agentic",
+        "workflow skill like plan or tdd",
+        "agentic verify all"
+      ],
+      "expect": {
+        "valid": true,
+        "selectedProcessSkill": "plan",
+        "stages": ["bootstrap", "process-skill", "plan-ready"]
+      }
+    },
+    {
+      "id": "mode-discovery-flow",
+      "prompt": "Help a new OpenCode user discover the repo mode and explain where it came from so they know how strict the workflow is.",
+      "rawTranscriptIncludes": [
+        "Resolved mode:",
+        "Source:",
+        "agentic mode show"
+      ],
+      "expect": {
+        "valid": true,
+        "selectedProcessSkill": "plan",
+        "stages": ["bootstrap", "process-skill", "plan-ready"]
+      }
+    },
+    {
+      "id": "mode-confusion-recovery",
+      "prompt": "Recover from user confusion about why mode behavior changed between repos, and explain how mode precedence and reset commands work.",
+      "rawTranscriptIncludes": [
+        "project override > repo config > fallback standard",
+        "agentic mode lite|standard|strict",
+        "agentic mode clear"
+      ],
+      "expect": {
+        "valid": true,
+        "selectedProcessSkill": "plan",
+        "stages": ["bootstrap", "process-skill", "plan-ready"]
+      }
+    },
+    {
       "id": "bootstrap-plan-ready",
       "prompt": "Start from bootstrap, route through the right process skill, and end at a plan-ready state.",
       "expect": {
