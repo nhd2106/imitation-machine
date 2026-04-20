@@ -34,13 +34,21 @@ Enterprise-oriented agentic SDLC framework with:
 
 ### Local first (recommended while iterating)
 
+Published package assets include the `agentic` launcher, local install helper scripts, packaged plugin assets, and the `skills/` tree.
+
 Run:
+
+```bash
+agentic install local --surface opencode
+```
+
+This creates a local OpenCode package layout under `~/.config/opencode/imitation-machine/`, registers the plugin in `~/.config/opencode/plugins/`, and exposes the skills in `~/.config/opencode/skills/imitation-machine/`.
+
+Manual alternative:
 
 ```bash
 ./scripts/install-local-opencode.sh
 ```
-
-This creates a local OpenCode package layout under `~/.config/opencode/imitation-machine/`, registers the plugin in `~/.config/opencode/plugins/`, and exposes the skills in `~/.config/opencode/skills/imitation-machine/`.
 
 Restart OpenCode, then ask:
 
@@ -67,10 +75,16 @@ Do not rely on the package name alone for local development.
 Run:
 
 ```bash
-./scripts/install-local-claude-plugin.sh
+agentic install local --surface claude
 ```
 
 This registers a local Claude Code development marketplace and installs `imitation-machine` as a real plugin.
+
+Manual plugin-install alternative:
+
+```bash
+./scripts/install-local-claude-plugin.sh
+```
 
 If you want loose local skills in addition to the plugin, you can also run:
 
@@ -90,7 +104,9 @@ See step-by-step local setup details in `CLAUDE_INSTALL.md`.
 
 ### Source repo / developer-only verification
 
-The commands and paths below are for contributors working from this source repository. They rely on checked-in `tests/` and `scripts/` assets and are not part of the published package payload.
+Repo-only contributor assets include checked-in `tests/`, harness scripts, and other verification helpers used from a source checkout.
+
+The commands and paths below are for contributors working from this source repository checkout.
 
 For fast bounded transcript/unit coverage across both surfaces in this repo checkout, run `bun run test:harness`.
 
@@ -121,6 +137,10 @@ The bounded OpenCode transcript harness, including the env-gated live runner, is
 ## CLI
 
 ```bash
+agentic install local
+agentic install local --surface all --dry-run
+agentic install local --surface opencode
+agentic install local --surface claude
 agentic --help
 agentic mode show
 agentic mode lite

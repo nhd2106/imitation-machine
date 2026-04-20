@@ -28,6 +28,7 @@ describe("check-plugin command", () => {
       join(root, "package.json"),
       JSON.stringify({
         main: ".opencode/plugins/imitation-machine.js",
+        bin: { agentic: "./bin/agentic" },
         files: [".opencode/**", ".claude-plugin/**", "skills/**"],
       }),
     );
@@ -39,6 +40,11 @@ describe("check-plugin command", () => {
     const report = await validatePluginSetup(root);
     expect(report.passed).toBe(true);
     expect(report.checks.some((check) => check.severity === "fail")).toBe(false);
+    expect(
+      report.checks.some(
+        (check) => check.id === "package:bin:agentic" && check.severity === "pass",
+      ),
+    ).toBe(true);
   });
 
   test("fails when no discoverable skills exist", async () => {
@@ -61,6 +67,7 @@ describe("check-plugin command", () => {
       join(root, "package.json"),
       JSON.stringify({
         main: ".opencode/plugins/imitation-machine.js",
+        bin: { agentic: "./cli/index.ts" },
         files: [".opencode/**", ".claude-plugin/**", "skills/**"],
       }),
     );

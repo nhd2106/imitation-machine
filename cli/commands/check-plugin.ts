@@ -24,6 +24,7 @@ type ClaudePluginManifest = {
 
 type PackageJson = {
   main?: string;
+  bin?: Record<string, string>;
   files?: string[];
 };
 
@@ -107,12 +108,21 @@ async function checkPackageJson(cwd: string, checks: PluginCheck[]): Promise<voi
   }
 
   const expectedMain = ".opencode/plugins/imitation-machine.js";
+  const expectedBin = "./bin/agentic";
   checks.push({
     id: "package:main",
     severity: parsed.main === expectedMain ? "pass" : "fail",
     message: parsed.main === expectedMain
       ? `package.json main is ${expectedMain}`
       : `package.json main should be ${expectedMain}`,
+  });
+
+  checks.push({
+    id: "package:bin:agentic",
+    severity: parsed.bin?.agentic === expectedBin ? "pass" : "fail",
+    message: parsed.bin?.agentic === expectedBin
+      ? `package.json bin.agentic is ${expectedBin}`
+      : `package.json bin.agentic should be ${expectedBin}`,
   });
 
   const files = parsed.files ?? [];

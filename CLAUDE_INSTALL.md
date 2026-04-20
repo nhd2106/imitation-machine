@@ -4,11 +4,13 @@ For local development, the most reliable path is a local development marketplace
 
 ## Local install (recommended while iterating)
 
+Published package assets include the `agentic` launcher, local install helper scripts, packaged plugin assets, and the `skills/` tree.
+
 1. Clone this repository locally.
 2. Run:
 
 ```bash
-./scripts/install-local-claude-plugin.sh
+agentic install local --surface claude
 ```
 
 3. Start a new Claude Code session.
@@ -17,6 +19,18 @@ This uses Claude Code's native plugin system:
 
 - adds a local marketplace from this repo
 - installs `imitation-machine@imitation-machine-dev`
+
+If you want to preview what will run first, use:
+
+```bash
+agentic install local --surface claude --dry-run
+```
+
+Manual plugin-install alternative:
+
+```bash
+./scripts/install-local-claude-plugin.sh
+```
 
 ## Optional loose-skill install
 
@@ -77,6 +91,8 @@ The `using-agentic` skill is the policy entrypoint and enforces:
 Typical follow-on workflow choices now include `systematic-debugging` for stubborn failures, `dispatching-parallel-agents` for safe concurrency, `executing-plans` for approved-plan direct execution, `requesting-code-review` for pre-PR review asks, `receiving-code-review` for reply/fix loops, and `finishing-a-development-branch` for final handoff cleanup.
 
 ## Bounded harness verification
+
+The commands below are source-checkout verification helpers, not end-user package install steps.
 
 ```bash
 bun run test:harness
