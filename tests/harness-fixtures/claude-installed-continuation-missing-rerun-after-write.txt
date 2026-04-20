@@ -1,0 +1,3 @@
+[state] carrying-forward prior installed Claude session context
+[impl] wrote src/docs/review.ts
+[state] review-ready

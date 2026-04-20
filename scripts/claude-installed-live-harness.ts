@@ -29,10 +29,16 @@ export type ClaudeInstalledLiveScenarioExpectation = {
   issues?: string[];
 };
 
-export type ClaudeInstalledLiveScenario = {
-  id: string;
+export type ClaudeInstalledLiveScenarioTurn = {
   prompt: string;
   expect: ClaudeInstalledLiveScenarioExpectation;
+};
+
+export type ClaudeInstalledLiveScenario = {
+  id: string;
+  prompt?: string;
+  expect?: ClaudeInstalledLiveScenarioExpectation;
+  turns?: ClaudeInstalledLiveScenarioTurn[];
   scaffold: {
     archetype: "docs-review";
     planId: string;
@@ -62,14 +68,28 @@ export type ClaudeInstalledLiveHarnessScaffold = Omit<ExecutableWorkflowScaffold
   scenario: ClaudeInstalledLiveScenario;
 };
 
-export type ClaudeInstalledLiveHarnessScenarioResult = {
-  id: string;
-  ok: boolean;
+type ClaudeInstalledLiveScenarioExecutionTurn = ClaudeInstalledLiveScenarioTurn & {
+  index: number;
+  continueSession: boolean;
+};
+
+export type ClaudeInstalledLiveHarnessTurnResult = {
+  index: number;
+  prompt: string;
   command: ClaudeInstalledLiveHarnessCommand;
+  ok: boolean;
   evaluation: ClaudeInstalledLiveTranscriptResult;
   failureReasons: string[];
   exitCode: number;
   stderr: string;
+};
+
+export type ClaudeInstalledLiveHarnessScenarioResult = {
+  id: string;
+  ok: boolean;
+  evaluation: ClaudeInstalledLiveTranscriptResult;
+  failureReasons: string[];
+  turns: ClaudeInstalledLiveHarnessTurnResult[];
   repoDir: string;
 };
 
@@ -91,6 +111,7 @@ type RunClaudeInstalledLiveHarnessOptions = {
     command: ClaudeInstalledLiveHarnessCommand,
     scenario: ClaudeInstalledLiveScenario,
     scaffold: ClaudeInstalledLiveHarnessScaffold,
+    turn: ClaudeInstalledLiveScenarioExecutionTurn,
   ) => Promise<ClaudeInstalledLiveHarnessExecResult>;
 };
 
@@ -118,6 +139,14 @@ function getTrimmedLines(transcript: string): string[] {
 
 function getLineIndex(lines: string[], predicate: (line: string) => boolean): number {
   return lines.findIndex(predicate);
+}
+
+function getLineIndexes(lines: string[], predicate: (line: string) => boolean): number[] {
+  return lines.flatMap((line, index) => (predicate(line) ? [index] : []));
+}
+
+function getFirstIndexAfter(indexes: number[], minimumIndex: number): number {
+  return indexes.find((index) => index > minimumIndex) ?? -1;
 }
 
 function parseVisibleSkills(lines: string[]): string[] {
@@ -168,14 +197,41 @@ function compareExpectations(
   return failures;
 }
 
+function getScenarioTurns(
+  scenario: ClaudeInstalledLiveScenario,
+): ClaudeInstalledLiveScenarioExecutionTurn[] {
+  if (scenario.turns && scenario.turns.length > 0) {
+    return scenario.turns.map((turn, index) => ({
+      ...turn,
+      index,
+      continueSession: index > 0,
+    }));
+  }
+
+  if (!scenario.prompt || !scenario.expect) {
+    throw new Error(`Scenario ${scenario.id} must provide either prompt/expect or turns[].`);
+  }
+
+  return [
+    {
+      index: 0,
+      prompt: scenario.prompt,
+      expect: scenario.expect,
+      continueSession: false,
+    },
+  ];
+}
+
 export function buildClaudeInstalledLiveHarnessCommand({
   prompt,
+  continueSession = false,
 }: {
   prompt: string;
+  continueSession?: boolean;
 }): ClaudeInstalledLiveHarnessCommand {
   return {
     executable: "claude",
-    args: ["--print", prompt],
+    args: ["--print", ...(continueSession ? ["--continue"] : []), prompt],
   };
 }
 
@@ -183,6 +239,7 @@ async function defaultExec(
   command: ClaudeInstalledLiveHarnessCommand,
   _scenario: ClaudeInstalledLiveScenario,
   scaffold: ClaudeInstalledLiveHarnessScaffold,
+  _turn: ClaudeInstalledLiveScenarioExecutionTurn,
 ): Promise<ClaudeInstalledLiveHarnessExecResult> {
   const proc = Bun.spawn([command.executable, ...command.args], {
     cwd: scaffold.repoDir,
@@ -229,13 +286,14 @@ export async function loadClaudeInstalledLiveScenarioManifest(
 export async function scaffoldClaudeInstalledLiveHarnessScenario(
   scenario: ClaudeInstalledLiveScenario,
 ): Promise<ClaudeInstalledLiveHarnessScaffold> {
+  const initialPrompt = getScenarioTurns(scenario)[0]?.prompt ?? "";
   const config: ExecutableWorkflowHarnessConfig = {
     planId: scenario.scaffold.planId,
     taskId: scenario.scaffold.taskId,
     archetype: scenario.scaffold.archetype,
     promptFile: {
       file: "prompts/claude-installed-live.txt",
-      content: scenario.prompt,
+      content: initialPrompt,
     },
     sample: {
       transcriptFile: "artifacts/claude-installed-live.log",
@@ -270,30 +328,48 @@ export function evaluateClaudeInstalledLiveTranscript(
   );
   const routeIndex = getLineIndex(lines, (line) => line.startsWith("[route] workflow: "));
   const planIndex = getLineIndex(lines, (line) => line === "[plan] status: approved");
-  const implementationIndex = getLineIndex(lines, (line) => line.startsWith("[impl] wrote "));
-  const reviewSpecIndex = getLineIndex(
+  const implementationIndexes = getLineIndexes(lines, (line) => line.startsWith("[impl] wrote "));
+  const implementationIndex = implementationIndexes.at(-1) ?? -1;
+  const phaseStartIndex = implementationIndex >= 0 ? implementationIndex : -1;
+  const reviewSpecIndexes = getLineIndexes(
     lines,
     (line) =>
       line.startsWith("[review-spec] command=bun ") &&
       /\bexit=0\b/.test(line) &&
       line.includes(" evidence-sha256="),
   );
-  const reviewQualityIndex = getLineIndex(
+  const reviewQualityIndexes = getLineIndexes(
     lines,
     (line) =>
       line.startsWith("[review-quality] command=bun ") &&
       /\bexit=0\b/.test(line) &&
       line.includes(" evidence-sha256="),
   );
-  const verificationIndex = getLineIndex(
+  const verificationIndexes = getLineIndexes(
     lines,
     (line) =>
       line.startsWith("[verify] evidence source=current-run command=bun test exit=0 stdout-sha256="),
   );
-  const reviewReadyIndex = getLineIndex(lines, (line) => line === "[state] review-ready");
+  const reviewReadyIndexes = getLineIndexes(lines, (line) => line === "[state] review-ready");
   const staleVerification = lines.filter(
     (line) => line.startsWith("[verify] evidence ") && /\b(previous-run|stale)\b/.test(line),
   );
+  const reviewSpecIndex = getFirstIndexAfter(reviewSpecIndexes, phaseStartIndex);
+  const reviewQualityIndex = getFirstIndexAfter(reviewQualityIndexes, phaseStartIndex);
+  const verificationIndex = getFirstIndexAfter(verificationIndexes, phaseStartIndex);
+  const reviewReadyIndex = getFirstIndexAfter(reviewReadyIndexes, phaseStartIndex);
+  const hadPriorReviewEvidence =
+    reviewSpecIndexes.some((index) => index < implementationIndex) ||
+    reviewQualityIndexes.some((index) => index < implementationIndex) ||
+    verificationIndexes.some((index) => index < implementationIndex);
+  const hasReviewEvidenceAfterLatestImplementation =
+    reviewSpecIndexes.some((index) => index > implementationIndex) ||
+    reviewQualityIndexes.some((index) => index > implementationIndex) ||
+    verificationIndexes.some((index) => index > implementationIndex);
+  const invalidatedPriorEvidence =
+    implementationIndexes.length > 1 &&
+    hadPriorReviewEvidence &&
+    !hasReviewEvidenceAfterLatestImplementation;
 
   if (installIndex >= 0 && missingSkills.length === 0) {
     stages.push("install-visible-skills");
@@ -326,39 +402,50 @@ export function evaluateClaudeInstalledLiveTranscript(
     issues.push("Missing implementation evidence");
   }
 
-  if (reviewSpecIndex >= 0) {
-    stages.push("review-spec-passed");
+  if (invalidatedPriorEvidence) {
+    issues.push(
+      "Latest implementation invalidated prior review/verify evidence; rerun review-spec, review-quality, and fresh verification",
+    );
   } else {
-    issues.push("Missing review-spec evidence");
-  }
+    if (reviewSpecIndex >= 0) {
+      stages.push("review-spec-passed");
+    } else {
+      issues.push("Missing review-spec evidence");
+    }
 
-  if (reviewQualityIndex >= 0) {
-    stages.push("review-quality-passed");
-  } else {
-    issues.push("Missing review-quality evidence");
-  }
+    if (reviewQualityIndex >= 0) {
+      stages.push("review-quality-passed");
+    } else {
+      issues.push("Missing review-quality evidence");
+    }
 
-  if (verificationIndex >= 0) {
-    stages.push("verification-fresh");
-  } else {
-    issues.push("Missing fresh verification evidence");
-  }
+    if (verificationIndex >= 0) {
+      stages.push("verification-fresh");
+    } else {
+      issues.push("Missing fresh verification evidence");
+    }
 
-  if (reviewReadyIndex >= 0) {
-    stages.push("review-ready");
-  } else {
-    issues.push("Missing review-ready state");
+    if (reviewReadyIndex >= 0) {
+      stages.push("review-ready");
+    } else {
+      issues.push("Missing review-ready state");
+    }
   }
 
   if (reviewSpecIndex >= 0 && reviewQualityIndex >= 0 && reviewSpecIndex > reviewQualityIndex) {
     issues.push("Review sequence violated: review-spec must precede review-quality");
   }
 
-  if (planIndex >= 0 && implementationIndex >= 0 && planIndex > implementationIndex) {
+  if (planIndex >= 0 && implementationIndexes[0] !== undefined && planIndex > implementationIndexes[0]!) {
     issues.push("Implementation sequence violated: approved plan must precede implementation");
   }
 
-  if (verificationIndex >= 0 && reviewReadyIndex >= 0 && verificationIndex > reviewReadyIndex) {
+  if (
+    !invalidatedPriorEvidence &&
+    verificationIndex >= 0 &&
+    reviewReadyIndex >= 0 &&
+    verificationIndex > reviewReadyIndex
+  ) {
     issues.push("Review-ready sequence violated: fresh verification must precede review-ready");
   }
 
@@ -376,7 +463,7 @@ export function evaluateClaudeInstalledLiveTranscript(
     verificationIndex,
     reviewReadyIndex,
   ];
-  if (orderedIndexes.every((index) => index >= 0)) {
+  if (!invalidatedPriorEvidence && orderedIndexes.every((index) => index >= 0)) {
     for (let index = 1; index < orderedIndexes.length; index += 1) {
       if (orderedIndexes[index - 1]! >= orderedIndexes[index]!) {
         issues.push(
@@ -419,24 +506,49 @@ export async function runClaudeInstalledLiveHarness({
 
   for (const scenario of manifest.scenarios) {
     const scaffold = await scaffoldClaudeInstalledLiveHarnessScenario(scenario);
-    const command = buildClaudeInstalledLiveHarnessCommand({ prompt: scenario.prompt });
-    const execution = await exec(command, scenario, scaffold);
-    const evaluation = evaluateClaudeInstalledLiveTranscript(execution.stdout);
-    const failureReasons = [
-      ...(execution.exitCode === 0 ? [] : [`Command exited with code ${execution.exitCode}`]),
-      ...compareExpectations(evaluation, scenario.expect),
-    ];
+    const turns = getScenarioTurns(scenario);
+    const turnResults: ClaudeInstalledLiveHarnessTurnResult[] = [];
+    let transcript = "";
 
-    await Bun.write(scaffold.files.transcript, `${execution.stdout.trim()}\n`);
+    for (const turn of turns) {
+      const command = buildClaudeInstalledLiveHarnessCommand({
+        prompt: turn.prompt,
+        continueSession: turn.continueSession,
+      });
+      const execution = await exec(command, scenario, scaffold, turn);
+      transcript = transcript ? `${transcript}\n${execution.stdout}` : execution.stdout;
+      await Bun.write(scaffold.files.transcript, `${transcript.trim()}\n`);
+
+      const evaluation = evaluateClaudeInstalledLiveTranscript(transcript);
+      const failureReasons = [
+        ...(execution.exitCode === 0 ? [] : [`Command exited with code ${execution.exitCode}`]),
+        ...compareExpectations(evaluation, turn.expect),
+      ];
+
+      turnResults.push({
+        index: turn.index,
+        prompt: turn.prompt,
+        command,
+        ok: failureReasons.length === 0,
+        evaluation,
+        failureReasons,
+        exitCode: execution.exitCode,
+        stderr: execution.stderr,
+      });
+    }
+
+    const failureReasons = turnResults.flatMap((turn) =>
+      turn.failureReasons.map((reason) => `Turn ${turn.index + 1}: ${reason}`),
+    );
+    const evaluation =
+      turnResults.at(-1)?.evaluation ?? evaluateClaudeInstalledLiveTranscript(transcript);
 
     results.push({
       id: scenario.id,
       ok: failureReasons.length === 0,
-      command,
       evaluation,
       failureReasons,
-      exitCode: execution.exitCode,
-      stderr: execution.stderr,
+      turns: turnResults,
       repoDir: scaffold.repoDir,
     });
   }
@@ -462,10 +574,13 @@ async function main() {
 
   for (const scenario of result.results) {
     console.log(`[claude-installed-live] ${scenario.ok ? "PASS" : "FAIL"} ${scenario.id}`);
-    console.log(
-      `[claude-installed-live]   command: ${scenario.command.executable} ${scenario.command.args.join(" ")}`,
-    );
     console.log(`[claude-installed-live]   repo: ${scenario.repoDir}`);
+
+    for (const turn of scenario.turns) {
+      console.log(
+        `[claude-installed-live]   turn ${turn.index + 1}: ${turn.command.executable} ${turn.command.args.join(" ")}`,
+      );
+    }
 
     if (!scenario.ok) {
       for (const reason of scenario.failureReasons) {
