@@ -64,11 +64,11 @@ This opt-in lane runs a bounded installed Claude continuation flow against a tem
 
 - `tests/claude-code/installed-live-scenarios.json` defines the bounded installed continuation scenarios
 - `scripts/claude-installed-live-harness.ts` scaffolds the temp repo, runs `claude --print` on the first turn, adds `--continue` on later turns, and validates ordered plan/execute/review/verify flow across the continued transcript
-- `tests/claude-installed-live-harness.test.ts` covers manifest loading, env gating, argv construction, docs-review scaffold reuse, continuation sequencing, and later-turn invalidation of stale or pre-write review/verify evidence
+- `tests/claude-installed-live-harness.test.ts` covers manifest loading, env gating, argv construction, same-cwd docs-review scaffold reuse across three turns, continuation sequencing, and later-turn invalidation of stale or pre-write review/verify evidence
 
 The checked-in installed continuation manifest currently covers:
 
-- happy-path continuation with rerun review/verify evidence after a continued write
+- one 3-turn happy path: `claude --print`, then two `claude --print --continue` turns in the same scaffolded repo with fresh `review-spec`, `review-quality`, and `bun test` evidence after each later write
 - stale verification surfaced after `--continue`
 - missing rerun after a continued write, which invalidates prior review/verify evidence
 

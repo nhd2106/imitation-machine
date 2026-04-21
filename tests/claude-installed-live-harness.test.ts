@@ -26,6 +26,24 @@ const initialInstalledTranscript = [
   "[state] review-ready",
 ].join("\n");
 
+const longRunningHappyTurnTwoTranscript = [
+  "[state] carrying-forward prior installed Claude session context",
+  "[impl] wrote src/docs/review.ts",
+  "[review-spec] command=bun scripts/review-spec.ts exit=0 evidence-sha256=spec-turn-2",
+  "[review-quality] command=bun scripts/review-quality.ts exit=0 evidence-sha256=quality-turn-2",
+  "[verify] evidence source=current-run command=bun test exit=0 stdout-sha256=verify-turn-2",
+  "[state] review-ready",
+].join("\n");
+
+const longRunningHappyTurnThreeTranscript = [
+  "[state] carrying-forward prior installed Claude session context",
+  "[impl] wrote src/docs/review.ts",
+  "[review-spec] command=bun scripts/review-spec.ts exit=0 evidence-sha256=spec-turn-3",
+  "[review-quality] command=bun scripts/review-quality.ts exit=0 evidence-sha256=quality-turn-3",
+  "[verify] evidence source=current-run command=bun test exit=0 stdout-sha256=verify-turn-3",
+  "[state] review-ready",
+].join("\n");
+
 async function writeManifest(contents: object): Promise<string> {
   const path = `/tmp/claude-installed-live-harness-${crypto.randomUUID()}.json`;
   await Bun.write(path, JSON.stringify(contents));
@@ -47,7 +65,7 @@ describe("Claude installed live harness", () => {
     const manifest = await loadClaudeInstalledLiveScenarioManifest(manifestPath);
 
     expect(manifest.scenarios.map((scenario) => scenario.id)).toEqual([
-      "installed-docs-review-continuation-happy-path",
+      "installed-docs-review-long-running-happy-path",
       "installed-docs-review-continuation-stale-verification-after-continue",
       "installed-docs-review-continuation-missing-rerun-after-write",
     ]);
@@ -116,11 +134,11 @@ describe("Claude installed live harness", () => {
     expect(await readFile(scaffold.files.test, "utf8")).toContain("summarizeDocReview");
   });
 
-  test("runs the installed harness with docs-review scaffold reuse and continued repo cwd", async () => {
+  test("runs the installed harness with docs-review scaffold reuse across three continued turns", async () => {
     const customManifestPath = await writeManifest({
       scenarios: [
         {
-          id: "installed-docs-review-continuation",
+          id: "installed-docs-review-long-running",
           turns: [
             {
               prompt: "start the docs-review lane",
@@ -140,6 +158,22 @@ describe("Claude installed live harness", () => {
             },
             {
               prompt: "continue the docs-review lane",
+              expect: {
+                valid: true,
+                stages: [
+                  "install-visible-skills",
+                  "workflow-routing",
+                  "plan-approved",
+                  "implementation-written",
+                  "review-spec-passed",
+                  "review-quality-passed",
+                  "verification-fresh",
+                  "review-ready",
+                ],
+              },
+            },
+            {
+              prompt: "continue the docs-review lane one more time",
               expect: {
                 valid: true,
                 stages: [
@@ -174,16 +208,11 @@ describe("Claude installed live harness", () => {
         executions += 1;
         return {
           stdout:
-            executions === 2
-              ? [
-                  "[state] carrying-forward prior installed Claude session context",
-                  "[impl] wrote src/docs/review.ts",
-                  "[review-spec] command=bun scripts/review-spec.ts exit=0 evidence-sha256=spec-turn-2",
-                  "[review-quality] command=bun scripts/review-quality.ts exit=0 evidence-sha256=quality-turn-2",
-                  "[verify] evidence source=current-run command=bun test exit=0 stdout-sha256=verify-turn-2",
-                  "[state] review-ready",
-                ].join("\n")
-              : initialInstalledTranscript,
+            executions === 1
+              ? initialInstalledTranscript
+              : executions === 2
+                ? longRunningHappyTurnTwoTranscript
+                : longRunningHappyTurnThreeTranscript,
           stderr: "",
           exitCode: 0,
         };
@@ -203,8 +232,14 @@ describe("Claude installed live harness", () => {
         args: ["--print", "--continue", "continue the docs-review lane"],
         cwd: expect.stringContaining("executable-workflow-harness-"),
       },
+      {
+        executable: "claude",
+        args: ["--print", "--continue", "continue the docs-review lane one more time"],
+        cwd: expect.stringContaining("executable-workflow-harness-"),
+      },
     ]);
     expect(commands[0]!.cwd).toBe(commands[1]!.cwd);
+    expect(commands[1]!.cwd).toBe(commands[2]!.cwd);
     expect(result.results[0]?.evaluation).toEqual({
       valid: true,
       workflowRoute: "executing-plans",
@@ -227,12 +262,22 @@ describe("Claude installed live harness", () => {
         ok: true,
         command: { args: ["--print", "--continue", "continue the docs-review lane"] },
       },
+      {
+        index: 2,
+        ok: true,
+        command: {
+          args: ["--print", "--continue", "continue the docs-review lane one more time"],
+        },
+      },
     ]);
   });
 
-  test("evaluates continuation transcripts from the checked-in installed manifest and fixtures", async () => {
-    const continuationHappyTranscript = await Bun.file(
-      "tests/harness-fixtures/claude-installed-continuation-happy.txt",
+  test("evaluates long-running continuation transcripts from the checked-in installed manifest and fixtures", async () => {
+    const longRunningHappyTurnTwoFixture = await Bun.file(
+      "tests/harness-fixtures/claude-installed-long-running-happy-turn-2.txt",
+    ).text();
+    const longRunningHappyTurnThreeFixture = await Bun.file(
+      "tests/harness-fixtures/claude-installed-long-running-happy-turn-3.txt",
     ).text();
     const continuationStaleTranscript = await Bun.file(
       "tests/harness-fixtures/claude-installed-continuation-stale-verification.txt",
@@ -241,8 +286,9 @@ describe("Claude installed live harness", () => {
       "tests/harness-fixtures/claude-installed-continuation-missing-rerun-after-write.txt",
     ).text();
     const transcripts = new Map([
-      ["installed-docs-review-continuation-happy-path:0", initialInstalledTranscript],
-      ["installed-docs-review-continuation-happy-path:1", continuationHappyTranscript],
+      ["installed-docs-review-long-running-happy-path:0", initialInstalledTranscript],
+      ["installed-docs-review-long-running-happy-path:1", longRunningHappyTurnTwoFixture],
+      ["installed-docs-review-long-running-happy-path:2", longRunningHappyTurnThreeFixture],
       [
         "installed-docs-review-continuation-stale-verification-after-continue:0",
         initialInstalledTranscript,
@@ -282,7 +328,7 @@ describe("Claude installed live harness", () => {
     expect(result.summary).toEqual({ total: 3, passed: 3, failed: 0 });
     expect(result.results).toMatchObject([
       {
-        id: "installed-docs-review-continuation-happy-path",
+        id: "installed-docs-review-long-running-happy-path",
         ok: true,
         evaluation: {
           valid: true,
@@ -303,6 +349,11 @@ describe("Claude installed live harness", () => {
           { index: 0, ok: true, command: { args: ["--print", expect.any(String)] } },
           {
             index: 1,
+            ok: true,
+            command: { args: ["--print", "--continue", expect.any(String)] },
+          },
+          {
+            index: 2,
             ok: true,
             command: { args: ["--print", "--continue", expect.any(String)] },
           },

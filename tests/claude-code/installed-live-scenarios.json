@@ -1,7 +1,7 @@
 {
   "scenarios": [
     {
-      "id": "installed-docs-review-continuation-happy-path",
+      "id": "installed-docs-review-long-running-happy-path",
       "turns": [
         {
           "prompt": "Use the docs-review temp repo already scaffolded here. Load using-agentic, route through executing-plans, follow the approved plan, run bun test before implementation so it fails, write the minimal docs-review implementation to pass, run review-spec before review-quality, then run fresh bun test verification and end review-ready. In your final printed transcript include deterministic marker lines for install visibility, workflow route, approved plan, implementation write, review-spec, review-quality, fresh verify, and review-ready.",
@@ -22,6 +22,23 @@
         },
         {
           "prompt": "Continue the same installed Claude session with --continue. Make one more bounded docs-review write, rerun review-spec, rerun review-quality, rerun fresh bun test verification, and end review-ready with deterministic transcript markers for the continued write, rerun reviews, rerun verify, and review-ready.",
+          "expect": {
+            "valid": true,
+            "workflowRoute": "executing-plans",
+            "stages": [
+              "install-visible-skills",
+              "workflow-routing",
+              "plan-approved",
+              "implementation-written",
+              "review-spec-passed",
+              "review-quality-passed",
+              "verification-fresh",
+              "review-ready"
+            ]
+          }
+        },
+        {
+          "prompt": "Continue the same installed Claude session with --continue one more time. Make one more bounded docs-review write in the same scaffolded repo, rerun review-spec, rerun review-quality, rerun fresh bun test verification, and end review-ready with deterministic transcript markers for the third-turn write, rerun reviews, rerun verify, and review-ready.",
           "expect": {
             "valid": true,
             "workflowRoute": "executing-plans",
