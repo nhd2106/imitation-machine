@@ -39,13 +39,19 @@ describe("install command", () => {
     expect(result.stdout).toContain("install   Install local development integrations");
   });
 
-  test("bare local install defaults to the supported packaged surfaces during dry-run", async () => {
+  test("bare local install defaults to all supported local install surfaces during dry-run", async () => {
     const result = await runCli(["install", "local", "--dry-run"]);
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain(`opencode: ${join(ROOT, "scripts", "install-local-opencode.sh")}`);
-    expect(result.stdout).toContain(`claude: ${join(ROOT, "scripts", "install-local-claude-plugin.sh")}`);
-    expect(result.stdout).not.toContain("codex:");
+    const opencodePath = join(ROOT, "scripts", "install-local-opencode.sh");
+    const claudePath = join(ROOT, "scripts", "install-local-claude-plugin.sh");
+    const codexPath = join(ROOT, "scripts", "install-local-codex.sh");
+
+    expect(result.stdout).toContain(`opencode: ${opencodePath}`);
+    expect(result.stdout).toContain(`claude: ${claudePath}`);
+    expect(result.stdout).toContain(`codex: ${codexPath}`);
+    expect(result.stdout.indexOf(opencodePath)).toBeLessThan(result.stdout.indexOf(claudePath));
+    expect(result.stdout.indexOf(claudePath)).toBeLessThan(result.stdout.indexOf(codexPath));
   });
 
   test("install with no subcommand shows install-specific usage", async () => {
@@ -53,6 +59,8 @@ describe("install command", () => {
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("agentic install — Install local development integrations");
+    expect(result.stdout).toContain("default: opencode, claude, codex");
+    expect(result.stdout).not.toContain("use codex explicitly");
     expect(result.stdout).not.toContain("agentic — Enterprise Agentic Software-Dev Framework");
     expect(result.stderr).toBe("");
   });
@@ -64,6 +72,8 @@ describe("install command", () => {
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("agentic install — Install local development integrations");
+    expect(result.stdout).toContain("default: opencode, claude, codex");
+    expect(result.stdout).not.toContain("use codex explicitly");
     expect(result.stderr).toBe("");
   });
 
@@ -75,6 +85,7 @@ describe("install command", () => {
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain(`opencode: ${join(ROOT, "scripts", "install-local-opencode.sh")}`);
     expect(result.stdout).toContain(`claude: ${join(ROOT, "scripts", "install-local-claude-plugin.sh")}`);
+    expect(result.stdout).toContain(`codex: ${join(ROOT, "scripts", "install-local-codex.sh")}`);
     expect(result.stderr).toBe("");
   });
 
@@ -103,18 +114,20 @@ describe("install command", () => {
     expect(result.stdout).not.toContain("claude:");
   });
 
-  test("dry-run with all surfaces stays limited to the supported packaged surfaces", async () => {
+  test("dry-run with all surfaces includes every supported local install surface in stable order", async () => {
     const result = await runCli(["install", "local", "--surface", "all", "--dry-run"]);
 
     expect(result.exitCode).toBe(0);
 
     const opencodePath = join(ROOT, "scripts", "install-local-opencode.sh");
     const claudePath = join(ROOT, "scripts", "install-local-claude-plugin.sh");
+    const codexPath = join(ROOT, "scripts", "install-local-codex.sh");
 
     expect(result.stdout).toContain(`opencode: ${opencodePath}`);
     expect(result.stdout).toContain(`claude: ${claudePath}`);
-    expect(result.stdout).not.toContain("codex:");
+    expect(result.stdout).toContain(`codex: ${codexPath}`);
     expect(result.stdout.indexOf(opencodePath)).toBeLessThan(result.stdout.indexOf(claudePath));
+    expect(result.stdout.indexOf(claudePath)).toBeLessThan(result.stdout.indexOf(codexPath));
   });
 
   test("invalid install arguments show install-specific usage instead of fatal handler output", async () => {
@@ -168,7 +181,7 @@ describe("install command", () => {
     expect(readme).toContain("Repo-only contributor assets include checked-in `tests/`, harness scripts, and other verification helpers used from a source checkout.");
   });
 
-  test("readme is the single install hub with a conservative client install matrix", async () => {
+  test("readme is the single install hub with Codex listed as a supported local install surface", async () => {
     const readme = await Bun.file(join(ROOT, "README.md")).text();
 
     expect(readme).toContain("## Install");
@@ -184,25 +197,39 @@ describe("install command", () => {
     expect(readme).toContain("| Codex |");
     expect(readme).toContain("`agentic install local --surface codex`");
     expect(readme).toContain("[`CODEX_INSTALL.md`](CODEX_INSTALL.md)");
-    expect(readme).toContain("Experimental manual skills-only install");
+    expect(readme).toContain("Supported local install surface");
+    expect(readme).toContain("skills-only");
     expect(readme).toContain("no plugin integration");
-    expect(readme).toContain("verified harness coverage");
+    expect(readme).toContain("no bootstrap injection");
+    expect(readme).toContain("no live Codex harness claim");
     expect(readme).toContain("| Cursor |");
     expect(readme).toContain("| Gemini |");
     expect(readme).toContain("Not currently supported");
   });
 
-  test("codex install doc stays truthful about manual skills-only support", async () => {
+  test("codex install doc stays truthful about supported skills-only install limits", async () => {
     const codexDoc = await Bun.file(join(ROOT, "CODEX_INSTALL.md")).text();
 
-    expect(codexDoc).toContain("experimental");
-    expect(codexDoc).toContain("manual");
+    expect(codexDoc).toContain("supported local install surface");
     expect(codexDoc).toContain("skills-only");
     expect(codexDoc).toContain("agentic install local --surface codex");
     expect(codexDoc).toContain("./scripts/install-local-codex.sh");
     expect(codexDoc).toContain("no plugin integration");
-    expect(codexDoc).toContain("no verified harness/live coverage claim");
-    expect(codexDoc).not.toContain("supported packaged local install");
+    expect(codexDoc).toContain("no bootstrap injection");
+    expect(codexDoc).toContain("no live Codex harness claim");
+    expect(codexDoc).not.toContain("experimental");
+  });
+
+  test("codex verification docs describe the supported installer lane and current limits", async () => {
+    const codexReadme = await Bun.file(join(ROOT, "tests", "codex", "README.md")).text();
+
+    expect(codexReadme).toContain("supported local install surface");
+    expect(codexReadme).toContain("bun run test:codex");
+    expect(codexReadme).toContain("CODEX_AGENTS_DIR");
+    expect(codexReadme).toContain("skills/imitation-machine");
+    expect(codexReadme).toContain("no plugin integration");
+    expect(codexReadme).toContain("no bootstrap injection");
+    expect(codexReadme).toContain("no live Codex harness claim");
   });
 
   test("codex install script links the skills bundle into the user agents directory", async () => {
