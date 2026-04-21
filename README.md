@@ -126,7 +126,7 @@ For OpenCode-only live bounded checks in this repo checkout that replay a checke
 
 For the opt-in installed OpenCode integration lane in this repo checkout that scaffolds a `docs-review` temp repo and runs a bounded multi-turn `opencode run --print-logs` / `opencode run --print-logs --continue` session, run `bun run test:opencode:installed` (or `bash tests/opencode/run-tests.sh installed`). Set `OPENCODE_INSTALLED_LIVE=1` to execute the real session; otherwise it skips cleanly.
 
-For the opt-in installed Claude integration lane in this repo checkout that scaffolds a `docs-review` temp repo and runs a bounded multi-turn `claude --print` / `claude --print --continue` session, run `bash tests/claude-code/run-tests.sh installed`. Set `CLAUDE_INSTALLED_LIVE=1` to execute the real session; otherwise it skips cleanly.
+For the opt-in installed Claude integration lane in this repo checkout that scaffolds a `docs-review` temp repo and runs one bounded 3-turn session (`claude --print`, then two `claude --print --continue` calls in the same temp repo), run `bash tests/claude-code/run-tests.sh installed`. The happy path requires fresh `review-spec`, `review-quality`, and `bun test` evidence after each later write. Set `CLAUDE_INSTALLED_LIVE=1` to execute the real session; otherwise it skips cleanly.
 
 For focused Codex installer verification in this repo checkout, run `bun run test:codex`. That lane executes the real installer against a temp `CODEX_AGENTS_DIR` and asserts `skills/imitation-machine` points at this repo's `skills/` tree. Details and current Codex limits live in `tests/codex/README.md`.
 
