@@ -124,6 +124,8 @@ For the reusable executable workflow regression lane in this repo checkout that 
 
 For OpenCode-only live bounded checks in this repo checkout that replay a checked-in manifest through `opencode run --print-logs`, including continued multi-turn scenarios that use `--continue`, run `bash tests/opencode/run-tests.sh live`. Set `OPENCODE_LIVE=1` to execute real sessions; otherwise the live harness skips cleanly.
 
+For the opt-in installed OpenCode integration lane in this repo checkout that scaffolds a `docs-review` temp repo and runs a bounded multi-turn `opencode run --print-logs` / `opencode run --print-logs --continue` session, run `bun run test:opencode:installed` (or `bash tests/opencode/run-tests.sh installed`). Set `OPENCODE_INSTALLED_LIVE=1` to execute the real session; otherwise it skips cleanly.
+
 For the opt-in installed Claude integration lane in this repo checkout that scaffolds a `docs-review` temp repo and runs a bounded multi-turn `claude --print` / `claude --print --continue` session, run `bash tests/claude-code/run-tests.sh installed`. Set `CLAUDE_INSTALLED_LIVE=1` to execute the real session; otherwise it skips cleanly.
 
 For focused Codex installer verification in this repo checkout, run `bun run test:codex`. That lane executes the real installer against a temp `CODEX_AGENTS_DIR` and asserts `skills/imitation-machine` points at this repo's `skills/` tree. Details and current Codex limits live in `tests/codex/README.md`.
