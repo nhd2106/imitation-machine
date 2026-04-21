@@ -11,9 +11,12 @@ case "$mode" in
   live)
     bun test tests/opencode-live-harness.test.ts && bun scripts/opencode-live-harness.ts
     ;;
+  installed)
+    bun test tests/opencode-installed-live-harness.test.ts && bun scripts/opencode-installed-live-harness.ts
+    ;;
   *)
     printf 'Unsupported mode: %s\n' "$mode" >&2
-    printf 'Usage: bash tests/opencode/run-tests.sh {fast|live}\n' >&2
+    printf 'Usage: bash tests/opencode/run-tests.sh {fast|live|installed}\n' >&2
     exit 1
     ;;
 esac

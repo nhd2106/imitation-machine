@@ -1,0 +1,138 @@
+{
+  "scenarios": [
+    {
+      "id": "installed-docs-review-continuation-happy-path",
+      "turns": [
+        {
+          "prompt": "Use the docs-review temp repo already scaffolded here. Load using-agentic, route through executing-plans, follow the approved plan, run bun test before implementation so it fails, write the minimal docs-review implementation to pass, run review-spec before review-quality, then run fresh bun test verification and end review-ready. In your final printed logs include deterministic marker lines for install visibility, workflow route, approved plan, implementation write, review-spec, review-quality, fresh verify, and review-ready.",
+          "expect": {
+            "valid": true,
+            "workflowRoute": "executing-plans",
+            "stages": [
+              "install-visible-skills",
+              "workflow-routing",
+              "plan-approved",
+              "implementation-written",
+              "review-spec-passed",
+              "review-quality-passed",
+              "verification-fresh",
+              "review-ready"
+            ]
+          }
+        },
+        {
+          "prompt": "Continue the same installed OpenCode session with --continue. Make one more bounded docs-review write, rerun review-spec, rerun review-quality, rerun fresh bun test verification, and end review-ready with deterministic transcript markers for the continued write, rerun reviews, rerun verify, and review-ready.",
+          "expect": {
+            "valid": true,
+            "workflowRoute": "executing-plans",
+            "stages": [
+              "install-visible-skills",
+              "workflow-routing",
+              "plan-approved",
+              "implementation-written",
+              "review-spec-passed",
+              "review-quality-passed",
+              "verification-fresh",
+              "review-ready"
+            ]
+          }
+        }
+      ],
+      "scaffold": {
+        "archetype": "docs-review",
+        "planId": "PLN-PR37",
+        "taskId": "TSK-PR37-1"
+      }
+    },
+    {
+      "id": "installed-docs-review-continuation-stale-verification-after-continue",
+      "turns": [
+        {
+          "prompt": "Use the docs-review temp repo already scaffolded here. Load using-agentic, route through executing-plans, follow the approved plan, run bun test before implementation so it fails, write the minimal docs-review implementation to pass, run review-spec before review-quality, then run fresh bun test verification and end review-ready. In your final printed logs include deterministic marker lines for install visibility, workflow route, approved plan, implementation write, review-spec, review-quality, fresh verify, and review-ready.",
+          "expect": {
+            "valid": true,
+            "workflowRoute": "executing-plans",
+            "stages": [
+              "install-visible-skills",
+              "workflow-routing",
+              "plan-approved",
+              "implementation-written",
+              "review-spec-passed",
+              "review-quality-passed",
+              "verification-fresh",
+              "review-ready"
+            ]
+          }
+        },
+        {
+          "prompt": "Continue the same installed OpenCode session with --continue, but in the follow-up transcript surface stale previous-run verification evidence before ending review-ready.",
+          "expect": {
+            "valid": false,
+            "workflowRoute": "executing-plans",
+            "stages": [
+              "install-visible-skills",
+              "workflow-routing",
+              "plan-approved",
+              "implementation-written",
+              "review-spec-passed",
+              "review-quality-passed",
+              "verification-fresh",
+              "review-ready"
+            ],
+            "issues": [
+              "Stale verification evidence: [verify] evidence source=previous-run age=2h command=bun test tests/docs/review.test.ts"
+            ]
+          }
+        }
+      ],
+      "scaffold": {
+        "archetype": "docs-review",
+        "planId": "PLN-PR37",
+        "taskId": "TSK-PR37-1"
+      }
+    },
+    {
+      "id": "installed-docs-review-continuation-missing-rerun-after-write",
+      "turns": [
+        {
+          "prompt": "Use the docs-review temp repo already scaffolded here. Load using-agentic, route through executing-plans, follow the approved plan, run bun test before implementation so it fails, write the minimal docs-review implementation to pass, run review-spec before review-quality, then run fresh bun test verification and end review-ready. In your final printed logs include deterministic marker lines for install visibility, workflow route, approved plan, implementation write, review-spec, review-quality, fresh verify, and review-ready.",
+          "expect": {
+            "valid": true,
+            "workflowRoute": "executing-plans",
+            "stages": [
+              "install-visible-skills",
+              "workflow-routing",
+              "plan-approved",
+              "implementation-written",
+              "review-spec-passed",
+              "review-quality-passed",
+              "verification-fresh",
+              "review-ready"
+            ]
+          }
+        },
+        {
+          "prompt": "Continue the same installed OpenCode session with --continue, write to the docs-review implementation again, but do not rerun review-spec, review-quality, or fresh verification before ending review-ready.",
+          "expect": {
+            "valid": false,
+            "workflowRoute": "executing-plans",
+            "stages": [
+              "install-visible-skills",
+              "workflow-routing",
+              "plan-approved",
+              "implementation-written"
+            ],
+            "issues": [
+              "Latest implementation invalidated prior review/verify evidence; rerun review-spec, review-quality, and fresh verification"
+            ]
+          }
+        }
+      ],
+      "scaffold": {
+        "archetype": "docs-review",
+        "planId": "PLN-PR37",
+        "taskId": "TSK-PR37-1"
+      }
+    }
+  ]
+}

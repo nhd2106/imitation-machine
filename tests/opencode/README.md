@@ -23,6 +23,8 @@ or:
 bun test tests/opencode-harness.test.ts tests/opencode-harness-smoke.test.ts
 ```
 
+The installed OpenCode lane is separate from this fast command set. Run it with `bun run test:opencode:installed` (or `bash tests/opencode/run-tests.sh installed`).
+
 ## Integration-oriented usage
 
 Before running live or integration-oriented checks from this repo checkout, follow [`.opencode/INSTALL.md`](../../.opencode/INSTALL.md) so the local OpenCode plugin install is in place.
@@ -87,3 +89,29 @@ OPENCODE_LIVE=1 bash tests/opencode/run-tests.sh live
 ```
 
 This keeps `fast` deterministic while making the slower OpenCode session checks discoverable without adding Claude live automation here.
+
+## Installed OpenCode integration lane
+
+This opt-in lane runs a bounded installed OpenCode continuation flow against a temp repo scaffolded from the reusable executable harness with the `docs-review` archetype.
+
+- `tests/opencode/installed-live-scenarios.json` defines the bounded installed continuation scenarios
+- `scripts/opencode-installed-live-harness.ts` scaffolds the temp repo, runs `opencode run --print-logs` on the first turn, adds `--continue` on later turns, and validates ordered plan/execute/review/verify flow across the continued transcript
+- `tests/opencode-installed-live-harness.test.ts` covers manifest loading, env gating, argv construction, docs-review scaffold reuse, continuation sequencing, and later-turn invalidation of stale or pre-write review/verify evidence
+
+The checked-in installed continuation manifest currently covers exactly three scenarios:
+
+- happy-path continuation with rerun review/verify evidence after a continued write
+- stale verification surfaced after `--continue`
+- missing rerun after a continued write, which invalidates prior review/verify evidence
+
+By default this lane skips cleanly unless `OPENCODE_INSTALLED_LIVE=1` is set:
+
+```bash
+bun run test:opencode:installed
+```
+
+To execute the real installed lane:
+
+```bash
+OPENCODE_INSTALLED_LIVE=1 bun run test:opencode:installed
+```

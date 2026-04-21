@@ -34,6 +34,7 @@
     "test:codex": "bash tests/codex/run-tests.sh",
     "test:opencode": "bash tests/opencode/run-tests.sh fast",
     "test:opencode:live": "bash tests/opencode/run-tests.sh live",
+    "test:opencode:installed": "bash tests/opencode/run-tests.sh installed",
     "test:claude:installed": "bash tests/claude-code/run-tests.sh installed",
     "typecheck": "bunx tsc --noEmit",
     "pack:dry": "npm pack --dry-run"

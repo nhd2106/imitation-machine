@@ -99,12 +99,17 @@ describe("core skill content", () => {
 
   test("skills comparison matrix reflects shipped executing-plans skill", async () => {
     const content = await Bun.file(join(ROOT, "docs", "skills-comparison-matrix.md")).text();
+    const executingPlansRow = content
+      .split("\n")
+      .find((line) => line.includes("| `executing-plans` |"));
 
     expect(content.includes("dispatching-parallel-agents")).toBe(true);
     expect(content.includes("requesting-code-review")).toBe(true);
     expect(content.includes("receiving-code-review")).toBe(true);
     expect(content.includes("executing-plans")).toBe(true);
-    expect(content.includes("shipped inline plan execution path")).toBe(true);
+    expect(executingPlansRow).toBeDefined();
+    expect(executingPlansRow).toContain("approved-plan direct-lane pressure");
+    expect(executingPlansRow).toContain("plan -> executing-plans");
     expect(content.includes("teaches how to ask for review well")).toBe(false);
     expect(content.includes("later follow-up")).toBe(false);
   });
