@@ -1,6 +1,8 @@
 # Codex Install
 
-Codex support in this repo is currently experimental, manual, and skills-only.
+Codex is a supported local install surface in this repo.
+
+The current Codex install remains skills-only.
 
 From this source checkout, use `./bin/agentic` unless `agentic` is already on your `PATH`.
 
@@ -39,7 +41,17 @@ That gives Codex access to the imitation-machine skills bundle.
 
 - no plugin integration
 - no bootstrap injection
-- no verified harness/live coverage claim for Codex in this repo today
+- no live Codex harness claim
+
+## Automated verification
+
+From this source checkout, run:
+
+```bash
+bun run test:codex
+```
+
+That lane runs the real installer against a temp `CODEX_AGENTS_DIR` and asserts `skills/imitation-machine` points at this repo's `skills/` tree.
 
 ## Verify
 

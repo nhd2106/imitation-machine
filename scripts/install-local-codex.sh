@@ -14,8 +14,9 @@ Installed Imitation Machine skills for Codex.
 Skills symlink:
   $SKILLS_DIR/imitation-machine
 
-This is an experimental, manual, skills-only setup.
-It does not install plugin integration or claim verified harness coverage.
+This is a supported local install surface for Codex.
+It remains a skills-only setup with no plugin integration, no bootstrap injection,
+and no live Codex harness claim.
 
 Next steps:
 1. Restart Codex if it is already running.

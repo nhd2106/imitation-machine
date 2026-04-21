@@ -22,7 +22,7 @@ From this source checkout, use `./bin/agentic` unless you already installed `age
 3. Choose exactly one install target based on the client you use. Here, **surface** means the client or tool you are installing into, such as OpenCode or Claude.
    - OpenCode: `./bin/agentic install local --surface opencode`
    - Claude: `./bin/agentic install local --surface claude`
-   - Codex: `./bin/agentic install local --surface codex` (experimental manual skills-only)
+   - Codex: `./bin/agentic install local --surface codex` (supported local install surface; skills-only, no plugin integration)
 4. Check the current workflow mode: `./bin/agentic mode show`
 5. Run the final verification gate: `./bin/agentic verify all`
 
@@ -94,7 +94,7 @@ Use this table as the single install hub:
 | --- | --- | --- | --- | --- |
 | OpenCode | `./bin/agentic install local --surface opencode` | `./scripts/install-local-opencode.sh` | [`.opencode/INSTALL.md`](.opencode/INSTALL.md) | Supported packaged local install from this repo via plugin + skills. |
 | Claude | `./bin/agentic install local --surface claude` | `./scripts/install-local-claude-plugin.sh` | [`CLAUDE_INSTALL.md`](CLAUDE_INSTALL.md) | Supported packaged local install from this repo via Claude development marketplace. |
-| Codex | `./bin/agentic install local --surface codex` | `./scripts/install-local-codex.sh` | [`CODEX_INSTALL.md`](CODEX_INSTALL.md) | Experimental manual skills-only install; no plugin integration or verified harness coverage. |
+| Codex | `./bin/agentic install local --surface codex` | `./scripts/install-local-codex.sh` | [`CODEX_INSTALL.md`](CODEX_INSTALL.md) | Supported local install surface; skills-only, no plugin integration, no bootstrap injection, no live Codex harness claim. |
 | Cursor | Not currently supported | None | See notes in this table | No packaged installer or verified install flow in this repo today. |
 | Gemini | Not currently supported | None | See notes in this table | No packaged installer or verified install flow in this repo today. |
 
@@ -104,9 +104,9 @@ For OpenCode, the packaged local install from this repo creates a local package 
 
 For Claude, the packaged local install from this repo registers a local Claude Code development marketplace and installs `imitation-machine` as a real plugin. If you also want loose local skills while iterating, `CLAUDE_INSTALL.md` includes the optional `./scripts/install-local-claude.sh` step.
 
-For Codex, the install is currently experimental and manual: it only symlinks this repo's `skills/` tree into `~/.agents/skills/imitation-machine/`. It does not install plugin integration, bootstrap injection, or claim verified harness/live coverage.
+For Codex, the supported local install surface currently symlinks this repo's `skills/` tree into `~/.agents/skills/imitation-machine/`. It is intentionally skills-only: no plugin integration, no bootstrap injection, and no live Codex harness claim.
 
-Because Codex is still experimental here, `./bin/agentic install local` and `--surface all` stay limited to the supported packaged surfaces; use `./bin/agentic install local --surface codex` explicitly when you want the manual Codex skills link.
+`./bin/agentic install local` and `./bin/agentic install local --surface all` now install OpenCode, Claude, and Codex in that stable order.
 
 Published registry install guidance, when available for a surface, is documented separately from the packaged local install flow above.
 
@@ -126,7 +126,9 @@ For OpenCode-only live bounded checks in this repo checkout that replay a checke
 
 For the opt-in installed Claude integration lane in this repo checkout that scaffolds a `docs-review` temp repo and runs a bounded multi-turn `claude --print` / `claude --print --continue` session, run `bash tests/claude-code/run-tests.sh installed`. Set `CLAUDE_INSTALLED_LIVE=1` to execute the real session; otherwise it skips cleanly.
 
-For surface-specific commands, coverage details, and slower integration-oriented checks in the source repo, use the per-surface guides in `tests/opencode/README.md` and `tests/claude-code/README.md`.
+For focused Codex installer verification in this repo checkout, run `bun run test:codex`. That lane executes the real installer against a temp `CODEX_AGENTS_DIR` and asserts `skills/imitation-machine` points at this repo's `skills/` tree. Details and current Codex limits live in `tests/codex/README.md`.
+
+For surface-specific commands, coverage details, and slower integration-oriented checks in the source repo, use the per-surface guides in `tests/opencode/README.md`, `tests/claude-code/README.md`, and `tests/codex/README.md`.
 
 ## OpenCode verification
 

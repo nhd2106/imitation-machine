@@ -7,7 +7,7 @@ USAGE
   agentic install local [--surface <opencode|claude|codex|all>] [--dry-run]
 
 OPTIONS
-  --surface  Choose which local install scripts to run (default: supported packaged surfaces; use codex explicitly)
+  --surface  Choose which local install scripts to run (default: opencode, claude, codex)
   --dry-run  Print script path(s) without executing them
 `.trim();
 
@@ -91,6 +91,7 @@ function resolveScriptPaths(surface: Surface): InstallScript[] {
     return [
       { label: "opencode", path: SCRIPT_PATHS.opencode },
       { label: "claude", path: SCRIPT_PATHS.claude },
+      { label: "codex", path: SCRIPT_PATHS.codex },
     ];
   }
 
