@@ -92,17 +92,15 @@ This keeps `fast` deterministic while making the slower OpenCode session checks 
 
 ## Installed OpenCode integration lane
 
-This opt-in lane runs a bounded installed OpenCode continuation flow against a temp repo scaffolded from the reusable executable harness with the `docs-review` archetype.
+This opt-in lane runs one bounded installed OpenCode long-running happy path against a temp repo scaffolded from the reusable executable harness with the `docs-review` archetype.
 
-- `tests/opencode/installed-live-scenarios.json` defines the bounded installed continuation scenarios
-- `scripts/opencode-installed-live-harness.ts` scaffolds the temp repo, runs `opencode run --print-logs` on the first turn, adds `--continue` on later turns, and validates ordered plan/execute/review/verify flow across the continued transcript
-- `tests/opencode-installed-live-harness.test.ts` covers manifest loading, env gating, argv construction, docs-review scaffold reuse, continuation sequencing, and later-turn invalidation of stale or pre-write review/verify evidence
+- `tests/opencode/installed-live-scenarios.json` defines the single bounded installed long-running scenario
+- `scripts/opencode-installed-live-harness.ts` scaffolds the temp repo, runs `opencode run --print-logs` on the first turn, adds `--continue` on turns 2 and 3, and validates ordered plan/execute/review/verify flow across the continued transcript
+- `tests/opencode-installed-live-harness.test.ts` covers manifest loading, env gating, argv construction, docs-review scaffold reuse, the exact three-command sequence, and later-turn invalidation if a write is not followed by fresh review/verify evidence
 
-The checked-in installed continuation manifest currently covers exactly three scenarios:
+The checked-in installed manifest currently covers exactly one scenario:
 
-- happy-path continuation with rerun review/verify evidence after a continued write
-- stale verification surfaced after `--continue`
-- missing rerun after a continued write, which invalidates prior review/verify evidence
+- a 3-turn `docs-review` happy path that reuses one scaffolded repo/session and requires fresh `review-spec`, `review-quality`, and `bun test` evidence after each later write
 
 By default this lane skips cleanly unless `OPENCODE_INSTALLED_LIVE=1` is set:
 

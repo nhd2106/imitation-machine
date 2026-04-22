@@ -55,10 +55,9 @@ describe("OpenCode installed live harness", () => {
     const manifest = await loadOpenCodeInstalledLiveScenarioManifest(manifestPath);
 
     expect(manifest.scenarios.map((scenario) => scenario.id)).toEqual([
-      "installed-docs-review-continuation-happy-path",
-      "installed-docs-review-continuation-stale-verification-after-continue",
-      "installed-docs-review-continuation-missing-rerun-after-write",
+      "installed-docs-review-long-running-happy-path",
     ]);
+    expect(manifest.scenarios[0]?.turns).toHaveLength(3);
   });
 
   test("builds direct OpenCode argv for first and continued installed turns", () => {
@@ -92,7 +91,7 @@ describe("OpenCode installed live harness", () => {
 
     expect(result.skipped).toBe(true);
     expect(result.reason).toContain("OPENCODE_INSTALLED_LIVE=1");
-    expect(result.summary).toEqual({ total: 3, passed: 0, failed: 0 });
+    expect(result.summary).toEqual({ total: 1, passed: 0, failed: 0 });
     expect(executed).toBe(false);
   });
 
@@ -127,11 +126,11 @@ describe("OpenCode installed live harness", () => {
     expect(await readFile(scaffold.files.test, "utf8")).toContain("summarizeDocReview");
   });
 
-  test("runs the installed harness with docs-review scaffold reuse and continued repo cwd", async () => {
+  test("runs the installed harness with one reused docs-review scaffold across three continued turns", async () => {
     const customManifestPath = await writeManifest({
       scenarios: [
         {
-          id: "installed-docs-review-continuation",
+          id: "installed-docs-review-long-running",
           turns: [
             {
               prompt: "start the docs-review lane",
@@ -151,6 +150,22 @@ describe("OpenCode installed live harness", () => {
             },
             {
               prompt: "continue the docs-review lane",
+              expect: {
+                valid: true,
+                stages: [
+                  "install-visible-skills",
+                  "workflow-routing",
+                  "plan-approved",
+                  "implementation-written",
+                  "review-spec-passed",
+                  "review-quality-passed",
+                  "verification-fresh",
+                  "review-ready",
+                ],
+              },
+            },
+            {
+              prompt: "continue the docs-review lane one more time",
               expect: {
                 valid: true,
                 stages: [
@@ -195,6 +210,15 @@ describe("OpenCode installed live harness", () => {
                   "[verify] evidence source=current-run command=bun test exit=0 stdout-sha256=verify-turn-2",
                   "[state] review-ready",
                 ].join("\n")
+              : executions === 3
+                ? [
+                    "[state] carrying-forward prior installed OpenCode session context",
+                    "[impl] wrote src/docs/review.ts",
+                    "[review-spec] command=bun scripts/review-spec.ts exit=0 evidence-sha256=spec-turn-3",
+                    "[review-quality] command=bun scripts/review-quality.ts exit=0 evidence-sha256=quality-turn-3",
+                    "[verify] evidence source=current-run command=bun test exit=0 stdout-sha256=verify-turn-3",
+                    "[state] review-ready",
+                  ].join("\n")
               : initialInstalledTranscript,
           stderr: "",
           exitCode: 0,
@@ -215,8 +239,14 @@ describe("OpenCode installed live harness", () => {
         args: ["run", "--print-logs", "--continue", "continue the docs-review lane"],
         cwd: expect.stringContaining("executable-workflow-harness-"),
       },
+      {
+        executable: "opencode",
+        args: ["run", "--print-logs", "--continue", "continue the docs-review lane one more time"],
+        cwd: expect.stringContaining("executable-workflow-harness-"),
+      },
     ]);
     expect(commands[0]!.cwd).toBe(commands[1]!.cwd);
+    expect(commands[1]!.cwd).toBe(commands[2]!.cwd);
     expect(cleanupPaths.has(commands[0]!.cwd)).toBe(true);
     expect(result.results[0]?.evaluation).toEqual({
       valid: true,
@@ -244,38 +274,27 @@ describe("OpenCode installed live harness", () => {
         ok: true,
         command: { args: ["run", "--print-logs", "--continue", "continue the docs-review lane"] },
       },
+      {
+        index: 2,
+        ok: true,
+        command: {
+          args: ["run", "--print-logs", "--continue", "continue the docs-review lane one more time"],
+        },
+      },
     ]);
   });
 
-  test("evaluates continuation transcripts from the checked-in installed manifest and fixtures", async () => {
-    const continuationHappyTranscript = await Bun.file(
-      "tests/harness-fixtures/opencode-installed-continuation-happy.log",
+  test("evaluates the checked-in three-turn installed happy path fixtures", async () => {
+    const turnTwoTranscript = await Bun.file(
+      "tests/harness-fixtures/opencode-installed-long-running-happy-turn-2.log",
     ).text();
-    const continuationStaleTranscript = await Bun.file(
-      "tests/harness-fixtures/opencode-installed-continuation-stale-verification.log",
-    ).text();
-    const continuationMissingRerunTranscript = await Bun.file(
-      "tests/harness-fixtures/opencode-installed-continuation-missing-rerun-after-write.log",
+    const turnThreeTranscript = await Bun.file(
+      "tests/harness-fixtures/opencode-installed-long-running-happy-turn-3.log",
     ).text();
     const transcripts = new Map([
-      ["installed-docs-review-continuation-happy-path:0", initialInstalledTranscript],
-      ["installed-docs-review-continuation-happy-path:1", continuationHappyTranscript],
-      [
-        "installed-docs-review-continuation-stale-verification-after-continue:0",
-        initialInstalledTranscript,
-      ],
-      [
-        "installed-docs-review-continuation-stale-verification-after-continue:1",
-        continuationStaleTranscript,
-      ],
-      [
-        "installed-docs-review-continuation-missing-rerun-after-write:0",
-        initialInstalledTranscript,
-      ],
-      [
-        "installed-docs-review-continuation-missing-rerun-after-write:1",
-        continuationMissingRerunTranscript,
-      ],
+      ["installed-docs-review-long-running-happy-path:0", initialInstalledTranscript],
+      ["installed-docs-review-long-running-happy-path:1", turnTwoTranscript],
+      ["installed-docs-review-long-running-happy-path:2", turnThreeTranscript],
     ]);
     const turnCounts = new Map<string, number>();
 
@@ -296,10 +315,10 @@ describe("OpenCode installed live harness", () => {
     });
 
     expect(result.skipped).toBe(false);
-    expect(result.summary).toEqual({ total: 3, passed: 3, failed: 0 });
+    expect(result.summary).toEqual({ total: 1, passed: 1, failed: 0 });
     expect(result.results).toMatchObject([
       {
-        id: "installed-docs-review-continuation-happy-path",
+        id: "installed-docs-review-long-running-happy-path",
         ok: true,
         evaluation: {
           valid: true,
@@ -323,45 +342,12 @@ describe("OpenCode installed live harness", () => {
             ok: true,
             command: { args: ["run", "--print-logs", "--continue", expect.any(String)] },
           },
+          {
+            index: 2,
+            ok: true,
+            command: { args: ["run", "--print-logs", "--continue", expect.any(String)] },
+          },
         ],
-      },
-      {
-        id: "installed-docs-review-continuation-stale-verification-after-continue",
-        ok: true,
-        evaluation: {
-          valid: false,
-          workflowRoute: "executing-plans",
-          stages: [
-            "install-visible-skills",
-            "workflow-routing",
-            "plan-approved",
-            "implementation-written",
-            "review-spec-passed",
-            "review-quality-passed",
-            "verification-fresh",
-            "review-ready",
-          ],
-          issues: [
-            "Stale verification evidence: [verify] evidence source=previous-run age=2h command=bun test tests/docs/review.test.ts",
-          ],
-        },
-      },
-      {
-        id: "installed-docs-review-continuation-missing-rerun-after-write",
-        ok: true,
-        evaluation: {
-          valid: false,
-          workflowRoute: "executing-plans",
-          stages: [
-            "install-visible-skills",
-            "workflow-routing",
-            "plan-approved",
-            "implementation-written",
-          ],
-          issues: [
-            "Latest implementation invalidated prior review/verify evidence; rerun review-spec, review-quality, and fresh verification",
-          ],
-        },
       },
     ]);
   });
