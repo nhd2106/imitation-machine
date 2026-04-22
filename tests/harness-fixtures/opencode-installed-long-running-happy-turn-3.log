@@ -1,0 +1,6 @@
+[state] carrying-forward prior installed OpenCode session context
+[impl] wrote src/docs/review.ts
+[review-spec] command=bun scripts/review-spec.ts exit=0 evidence-sha256=spec-turn-3
+[review-quality] command=bun scripts/review-quality.ts exit=0 evidence-sha256=quality-turn-3
+[verify] evidence source=current-run command=bun test exit=0 stdout-sha256=verify-turn-3
+[state] review-ready
