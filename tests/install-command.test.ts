@@ -171,6 +171,7 @@ describe("install command", () => {
 
     expect(packageJson.bin?.agentic).toBe("./bin/agentic");
     expect(packageJson.files).toContain("scripts/install-local-*.sh");
+    expect(packageJson.files).toContain(".codex-plugin/**");
     expect(packageJson.files).toContain("CODEX_INSTALL.md");
   });
 
@@ -197,25 +198,37 @@ describe("install command", () => {
     expect(readme).toContain("| Codex |");
     expect(readme).toContain("`agentic install local --surface codex`");
     expect(readme).toContain("[`CODEX_INSTALL.md`](CODEX_INSTALL.md)");
-    expect(readme).toContain("Supported local install surface");
-    expect(readme).toContain("skills-only");
-    expect(readme).toContain("no plugin integration");
+    expect(readme).toContain("Supported packaged local install");
+    expect(readme).toContain("~/.agents/plugins/marketplace.json");
+    expect(readme).toContain("~/plugins/imitation-machine");
     expect(readme).toContain("no bootstrap injection");
+    expect(readme).toContain("no hooks");
+    expect(readme).toContain("no `mcpServers`");
+    expect(readme).toContain("no apps");
+    expect(readme).toContain("no agents support");
+    expect(readme).not.toContain("skills-only");
+    expect(readme).not.toContain("no plugin integration");
     expect(readme).toContain("no live Codex harness claim");
     expect(readme).toContain("| Cursor |");
     expect(readme).toContain("| Gemini |");
     expect(readme).toContain("Not currently supported");
   });
 
-  test("codex install doc stays truthful about supported skills-only install limits", async () => {
+  test("codex install doc stays truthful about supported packaged local install limits", async () => {
     const codexDoc = await Bun.file(join(ROOT, "CODEX_INSTALL.md")).text();
 
-    expect(codexDoc).toContain("supported local install surface");
-    expect(codexDoc).toContain("skills-only");
+    expect(codexDoc).toContain("supported packaged local install surface");
     expect(codexDoc).toContain("agentic install local --surface codex");
     expect(codexDoc).toContain("./scripts/install-local-codex.sh");
-    expect(codexDoc).toContain("no plugin integration");
+    expect(codexDoc).toContain("~/plugins/imitation-machine");
+    expect(codexDoc).toContain("~/.agents/plugins/marketplace.json");
     expect(codexDoc).toContain("no bootstrap injection");
+    expect(codexDoc).toContain("no hooks");
+    expect(codexDoc).toContain("no `mcpServers`");
+    expect(codexDoc).toContain("no apps");
+    expect(codexDoc).toContain("no agents support");
+    expect(codexDoc).not.toContain("skills-only");
+    expect(codexDoc).not.toContain("no plugin integration");
     expect(codexDoc).toContain("no live Codex harness claim");
     expect(codexDoc).not.toContain("experimental");
   });
@@ -223,21 +236,36 @@ describe("install command", () => {
   test("codex verification docs describe the supported installer lane and current limits", async () => {
     const codexReadme = await Bun.file(join(ROOT, "tests", "codex", "README.md")).text();
 
-    expect(codexReadme).toContain("supported local install surface");
+    expect(codexReadme).toContain("supported packaged local install surface");
     expect(codexReadme).toContain("bun run test:codex");
     expect(codexReadme).toContain("CODEX_AGENTS_DIR");
-    expect(codexReadme).toContain("skills/imitation-machine");
-    expect(codexReadme).toContain("no plugin integration");
+    expect(codexReadme).toContain("~/plugins/imitation-machine");
+    expect(codexReadme).toContain("marketplace.json");
+    expect(codexReadme).toContain("plugin.json");
     expect(codexReadme).toContain("no bootstrap injection");
+    expect(codexReadme).toContain("no hooks");
+    expect(codexReadme).toContain("no `mcpServers`");
+    expect(codexReadme).toContain("no apps");
+    expect(codexReadme).toContain("no agents support");
+    expect(codexReadme).not.toContain("skills-only");
+    expect(codexReadme).not.toContain("no plugin integration");
     expect(codexReadme).toContain("no live Codex harness claim");
   });
 
-  test("codex install script links the skills bundle into the user agents directory", async () => {
+  test("codex install script encodes the durable local plugin install contract", async () => {
     const script = await Bun.file(join(ROOT, "scripts", "install-local-codex.sh")).text();
 
     expect(script).toContain('AGENTS_DIR="${CODEX_AGENTS_DIR:-$HOME/.agents}"');
-    expect(script).toContain('SKILLS_DIR="$AGENTS_DIR/skills"');
-    expect(script).toContain('ln -sfn "$REPO_ROOT/skills" "$SKILLS_DIR/imitation-machine"');
+    expect(script).toContain('PLUGIN_ROOT="$HOME/plugins/imitation-machine"');
+    expect(script).toContain('MARKETPLACE_PATH="$AGENTS_DIR/plugins/marketplace.json"');
+    expect(script).toContain('.codex-plugin/plugin.json');
+    expect(script).toContain('"./plugins/imitation-machine"');
+    expect(script).toContain('path: "./plugins/imitation-machine"');
+    expect(script).toContain('source: "local"');
+    expect(script).toContain('installation: "AVAILABLE"');
+    expect(script).toContain('authentication: "NONE"');
+    expect(script).toContain('category: "Development"');
+    expect(script).toContain('Installed Imitation Machine as a Codex local plugin.');
   });
 
   test("packaged opencode install docs prefer agentic local install with script fallback", async () => {
