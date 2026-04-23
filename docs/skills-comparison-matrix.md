@@ -19,7 +19,7 @@ This matrix compares `imitation-machine` to `superpowers` skill-by-skill. It foc
 
 | Imitation Machine Skill | Superpowers Equivalent | Coverage Status | Package Depth | Eval Coverage | Coverage Notes / Remaining Gap | Recommended Next File |
 |---|---|---|---|---|---|---|
-| `using-agentic` | `using-superpowers` | Comparable | Partial | Partial | OpenCode/Claude harness transcripts ship alongside a multi-turn `using-agentic -> tdd -> verify` workflow; the remaining gap is broader external install/distribution coverage and a few longer-running live-agent examples | `tests/multi-turn-workflows/using-agentic-to-tdd-to-verify.md` |
+| `using-agentic` | `using-superpowers` | Comparable | Partial | Partial | OpenCode/Claude harness transcripts ship alongside a multi-turn `using-agentic -> tdd -> verify` workflow; `imitation-machine` is still ahead on reproducible executable + installed/live harness evidence for those shared surfaces, while `superpowers` keeps a much larger install/distribution footprint plus more longer-running live-ecosystem examples | `tests/multi-turn-workflows/using-agentic-to-tdd-to-verify.md` |
 | `brainstorm` | `brainstorming` | Comparable | Partial | Partial | trigger/explicit-request fixtures ship, but the package still lacks richer design-pressure examples | `tests/multi-turn-workflows/brainstorm-to-plan.md` |
 | `plan` | `writing-plans` | Partial | Partial | Partial | still thinner than the richest plan packages, but includes serial + grouped example artifacts plus scoped multi-turn `repo -> plan -> subagent-driven-development` and scaffolded executable `plan -> subagent-driven-development -> review-spec -> review-quality -> verify` handoffs | `tests/multi-turn-workflows/plan-to-subagent-review-to-verify.md` |
 | `executing-plans` | `executing-plans` | Comparable | Partial | Partial | adds trigger/explicit-request pressure coverage for approved-plan direct-lane pressure, carried verification evidence, and stop-if-the-lane-expands cases, plus a scoped multi-turn `plan -> executing-plans` handoff; broader direct-execution failure/recovery cases are still thin | `tests/explicit-skill-requests/executing-plans-prompts.md` |
@@ -50,17 +50,19 @@ This matrix compares `imitation-machine` to `superpowers` skill-by-skill. It foc
 
 `superpowers` still leads most clearly in external packaging/distribution reach and total install footprint.
 
-That gap is narrower than before now that Codex is also a supported local install surface for `imitation-machine`, but `superpowers` still has the broader overall footprint. The remaining difference is more about where the package is distributed and demonstrated than about missing core workflow skills inside `imitation-machine`.
+It has materially broader current support across the Claude marketplace, Superpowers marketplace, OpenCode git install, Codex CLI/App guidance, Cursor, GitHub Copilot CLI, and Gemini.
+
+`imitation-machine` currently supports local OpenCode + Claude + minimal local Codex only. Codex support narrows the gap somewhat, but the footprint gap is still substantial even though `imitation-machine` remains ahead on workflow breadth and governance depth.
 
 ### 2. Long-Running Real-Agent Examples
 
-`superpowers` still has a few deeper long-running real-Claude autonomy/integration demos.
+`superpowers` still leads on longer-form/live ecosystem demos.
 
-`imitation-machine` is near parity on core workflow coverage and on documented OpenCode/Claude harness support, and it is ahead on executable harness design plus failure/recovery-path workflow coverage. It still has fewer long-running live-session examples.
+`imitation-machine` leads instead on reproducible executable + installed/live harness evidence for OpenCode/Claude, along with stronger failure/recovery-path workflow coverage on those shared surfaces. It still has fewer longer-running live-session examples.
 
 ### 3. Remaining Gaps Are Selective, Not Foundational
 
-Across the matrix, `imitation-machine` is ahead on workflow breadth (the number of distinct workflow areas covered), governance/review/release coverage, executable workflow fixtures, and failure/recovery handoffs. The remaining gaps are narrower: broader install/distribution reach, a few long-running real-agent demos, and selective depth in the thinnest packages rather than broad missing workflow categories.
+Across the matrix, `imitation-machine` is still ahead on workflow breadth (the number of distinct workflow areas covered), governance/review/release coverage, executable workflow fixtures, and failure/recovery handoffs. The remaining gaps are still selective in workflow terms, but the install/distribution footprint gap is broader than this doc previously implied: `superpowers` supports many more surfaces even after the new minimal local Codex coverage.
 
 ## Recommended Next Wave
 
@@ -70,6 +72,6 @@ Across the matrix, `imitation-machine` is ahead on workflow breadth (the number 
 
 ## Bottom Line
 
-`imitation-machine` is near parity with `superpowers` on core workflow-skill coverage and on documented OpenCode/Claude harness support.
+`imitation-machine` is near parity with `superpowers` on core workflow-skill coverage for shared surfaces, and it remains ahead on workflow breadth, governance/review/release coverage, and reproducible executable + installed/live harness evidence for OpenCode/Claude.
 
-It is ahead on workflow breadth, governance/review/release coverage, executable harness design, and failure/recovery-path workflow coverage. With Codex now supported as a local install surface, the install-surface gap is narrower than before, but `superpowers` still mainly leads in broader ecosystem/install footprint and a few deeper long-running real-agent examples.
+`superpowers` is materially ahead on install/distribution footprint and supported surfaces. Codex support narrows that gap somewhat, but `imitation-machine` currently supports local OpenCode + Claude + minimal local Codex only, while `superpowers` has much broader coverage across marketplace and assistant surfaces plus stronger longer-running live-ecosystem demos.
