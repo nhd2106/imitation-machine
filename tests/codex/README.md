@@ -1,12 +1,13 @@
 # Codex Installer Verification
 
-Codex is a supported local install surface in this repo.
+Codex is a supported packaged local install surface in this repo.
 
 That support is intentionally narrow today:
 
-- skills-only install into `CODEX_AGENTS_DIR/skills/imitation-machine`
-- no plugin integration
+- local plugin root at `~/plugins/imitation-machine`
+- local marketplace registration in `~/.agents/plugins/marketplace.json`
 - no bootstrap injection
+- minimal manifest only: no hooks, no `mcpServers`, no apps, and no agents support
 - no live Codex harness claim
 
 ## Automated lane
@@ -17,12 +18,11 @@ Run:
 bun run test:codex
 ```
 
-That command executes the real `scripts/install-local-codex.sh` installer against a temp `CODEX_AGENTS_DIR` and asserts `skills/imitation-machine` points at this repo's `skills/` tree.
+That command executes the real `scripts/install-local-codex.sh` installer against a temp `CODEX_AGENTS_DIR`, checks `plugin.json`, checks `marketplace.json`, and asserts the installed `skills` entry points at this repo's `skills/` tree.
 
 ## What this does not claim
 
 This repo does not currently claim:
 
-- Codex plugin integration
-- Codex bootstrap injection
+- bootstrap injection
 - a live Codex harness beyond the focused installer verification above

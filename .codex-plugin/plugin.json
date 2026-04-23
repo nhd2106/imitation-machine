@@ -1,0 +1,11 @@
+{
+  "name": "imitation-machine",
+  "version": "0.1.0",
+  "description": "Imitation Machine enterprise software development framework",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Imitation Machine",
+    "shortDescription": "Enterprise agentic SDLC workflows and skills.",
+    "category": "Development"
+  }
+}

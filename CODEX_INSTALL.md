@@ -1,8 +1,6 @@
 # Codex Install
 
-Codex is a supported local install surface in this repo.
-
-The current Codex install remains skills-only.
+Codex is a supported packaged local install surface in this repo.
 
 From this source checkout, use `./bin/agentic` unless `agentic` is already on your `PATH`.
 
@@ -31,16 +29,25 @@ If you prefer to run the script directly, use:
 
 ## What this does
 
-This install only creates a symlink from this repo's `skills/` directory to:
+This install creates a local plugin root at:
 
-- `~/.agents/skills/imitation-machine`
+- `~/plugins/imitation-machine`
 
-That gives Codex access to the imitation-machine skills bundle.
+Inside that root it:
+
+- links `plugin.json` back to this repo's checked-in `.codex-plugin/plugin.json`
+- links `skills` back to this repo's `skills/` directory
+- updates `~/.agents/plugins/marketplace.json` with a local `./plugins/imitation-machine` entry
+
+That gives Codex a minimal local plugin package with access to the imitation-machine skills bundle.
 
 ## Limits
 
-- no plugin integration
 - no bootstrap injection
+- no hooks
+- no `mcpServers`
+- no apps
+- no agents support
 - no live Codex harness claim
 
 ## Automated verification
@@ -51,7 +58,7 @@ From this source checkout, run:
 bun run test:codex
 ```
 
-That lane runs the real installer against a temp `CODEX_AGENTS_DIR` and asserts `skills/imitation-machine` points at this repo's `skills/` tree.
+That lane runs the real installer against a temp `CODEX_AGENTS_DIR`, asserts `~/plugins/imitation-machine/plugin.json` exists, checks `~/.agents/plugins/marketplace.json`, and confirms the installed `skills` symlink points at this repo's `skills/` tree.
 
 ## Verify
 
@@ -59,6 +66,7 @@ In a new Codex session, use the skill tool to list skills and load `using-agenti
 
 Expected:
 
+- the local plugin resolves from `~/plugins/imitation-machine`
 - `using-agentic` appears in the skill list
 - skills load from the linked bundle
 
@@ -70,4 +78,5 @@ If the skills do not appear, re-run:
 
 Then inspect:
 
-- `~/.agents/skills/imitation-machine`
+- `~/plugins/imitation-machine`
+- `~/.agents/plugins/marketplace.json`
