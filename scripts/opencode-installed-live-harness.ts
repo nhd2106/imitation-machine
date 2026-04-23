@@ -9,6 +9,7 @@ export type OpenCodeInstalledLiveStage =
   | "install-visible-skills"
   | "workflow-routing"
   | "plan-approved"
+  | "failing-test-observed"
   | "implementation-written"
   | "review-spec-passed"
   | "review-quality-passed"
@@ -40,7 +41,7 @@ export type OpenCodeInstalledLiveScenario = {
   expect?: OpenCodeInstalledLiveScenarioExpectation;
   turns?: OpenCodeInstalledLiveScenarioTurn[];
   scaffold: {
-    archetype: "docs-review";
+    archetype: "cli-service";
     planId: string;
     taskId: string;
   };
@@ -117,7 +118,7 @@ type RunOpenCodeInstalledLiveHarnessOptions = {
 
 const DEFAULT_MANIFEST_PATH = new URL("../tests/opencode/installed-live-scenarios.json", import.meta.url)
   .pathname;
-const DEFAULT_TIMEOUT_MS = 120_000;
+const DEFAULT_TIMEOUT_MS = 240_000;
 const REQUIRED_VISIBLE_SKILLS = [
   "using-agentic",
   "executing-plans",
@@ -134,6 +135,12 @@ function getTrimmedLines(transcript: string): string[] {
   return transcript
     .split("\n")
     .map((line) => line.trim())
+    .filter((line) => line !== "```" && line !== "```text")
+    .map((line) =>
+      line.startsWith("[")
+        ? line.replace(/[\s;]+$/, "").replace(/\.$/, "")
+        : line,
+    )
     .filter(Boolean);
 }
 
@@ -332,7 +339,13 @@ export function evaluateOpenCodeInstalledLiveTranscript(
   );
   const routeIndex = getLineIndex(lines, (line) => line.startsWith("[route] workflow: "));
   const planIndex = getLineIndex(lines, (line) => line === "[plan] status: approved");
+  const failingTestIndexes = getLineIndexes(
+    lines,
+    (line) => line.startsWith("[test-fail] command=bun test ") && /\bexit=[1-9]\d*\b/.test(line),
+  );
+  const failingTestIndex = failingTestIndexes[0] ?? -1;
   const implementationIndexes = getLineIndexes(lines, (line) => line.startsWith("[impl] wrote "));
+  const firstImplementationIndex = implementationIndexes[0] ?? -1;
   const implementationIndex = implementationIndexes.at(-1) ?? -1;
   const phaseStartIndex = implementationIndex >= 0 ? implementationIndex : -1;
   const reviewSpecIndexes = getLineIndexes(
@@ -400,6 +413,12 @@ export function evaluateOpenCodeInstalledLiveTranscript(
     issues.push("Missing approved plan evidence");
   }
 
+  if (failingTestIndex >= 0 && (firstImplementationIndex < 0 || failingTestIndex < firstImplementationIndex)) {
+    stages.push("failing-test-observed");
+  } else {
+    issues.push("Missing fail-to-pass evidence before implementation");
+  }
+
   if (implementationIndex >= 0) {
     stages.push("implementation-written");
   } else {
@@ -440,8 +459,16 @@ export function evaluateOpenCodeInstalledLiveTranscript(
     issues.push("Review sequence violated: review-spec must precede review-quality");
   }
 
-  if (planIndex >= 0 && implementationIndexes[0] !== undefined && planIndex > implementationIndexes[0]) {
+  if (planIndex >= 0 && firstImplementationIndex >= 0 && planIndex > firstImplementationIndex) {
     issues.push("Implementation sequence violated: approved plan must precede implementation");
+  }
+
+  if (failingTestIndex >= 0 && planIndex >= 0 && failingTestIndex < planIndex) {
+    issues.push("Fail-to-pass sequence violated: failing test must follow the approved plan");
+  }
+
+  if (failingTestIndex >= 0 && firstImplementationIndex >= 0 && failingTestIndex > firstImplementationIndex) {
+    issues.push("Fail-to-pass sequence violated: failing test must precede implementation");
   }
 
   if (
@@ -461,6 +488,7 @@ export function evaluateOpenCodeInstalledLiveTranscript(
     installIndex,
     routeIndex,
     planIndex,
+    failingTestIndex,
     implementationIndex,
     reviewSpecIndex,
     reviewQualityIndex,
@@ -476,12 +504,12 @@ export function evaluateOpenCodeInstalledLiveTranscript(
         continue;
       }
 
-      if (previousIndex >= currentIndex) {
-        issues.push(
-          "Out-of-order progression: install-visible-skills -> workflow-routing -> plan-approved -> implementation-written -> review-spec-passed -> review-quality-passed -> verification-fresh -> review-ready",
-        );
-        break;
-      }
+        if (previousIndex >= currentIndex) {
+          issues.push(
+          "Out-of-order progression: install-visible-skills -> workflow-routing -> plan-approved -> failing-test-observed -> implementation-written -> review-spec-passed -> review-quality-passed -> verification-fresh -> review-ready",
+          );
+          break;
+        }
     }
   }
 

@@ -19,7 +19,8 @@ const initialInstalledTranscript = [
   "[route] workflow: executing-plans",
   "[skill] workflow skill loaded: executing-plans",
   "[plan] status: approved",
-  "[impl] wrote src/docs/review.ts",
+  "[test-fail] command=bun test exit=1 stdout-sha256=fail-turn-1",
+  "[impl] wrote src/cli/service.ts",
   "[review-spec] command=bun scripts/review-spec.ts exit=0 evidence-sha256=spec-turn-1",
   "[review-quality] command=bun scripts/review-quality.ts exit=0 evidence-sha256=quality-turn-1",
   "[verify] evidence source=current-run command=bun test exit=0 stdout-sha256=verify-turn-1",
@@ -31,6 +32,22 @@ async function writeManifest(contents: object): Promise<string> {
   await Bun.write(path, JSON.stringify(contents));
   cleanupPaths.add(path);
   return path;
+}
+
+async function runBunTestInRepo(repoDir: string): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  const proc = Bun.spawn(["bun", "test"], {
+    cwd: repoDir,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ]);
+
+  return { stdout, stderr, exitCode };
 }
 
 afterEach(async () => {
@@ -55,9 +72,18 @@ describe("OpenCode installed live harness", () => {
     const manifest = await loadOpenCodeInstalledLiveScenarioManifest(manifestPath);
 
     expect(manifest.scenarios.map((scenario) => scenario.id)).toEqual([
-      "installed-docs-review-long-running-happy-path",
+      "installed-cli-service-long-running-happy-path",
     ]);
     expect(manifest.scenarios[0]?.turns).toHaveLength(3);
+    expect(manifest.scenarios[0]?.turns?.[0]?.prompt).toContain(
+      "[install] surface=opencode imitation-machine active",
+    );
+    expect(manifest.scenarios[0]?.turns?.[0]?.prompt).toContain(
+      "[test-fail] command=bun test exit=1",
+    );
+    expect(manifest.scenarios[0]?.turns?.[1]?.prompt).toContain(
+      "[state] carrying-forward prior installed OpenCode session context",
+    );
   });
 
   test("builds direct OpenCode argv for first and continued installed turns", () => {
@@ -95,7 +121,7 @@ describe("OpenCode installed live harness", () => {
     expect(executed).toBe(false);
   });
 
-  test("scaffolds the installed docs-review temp repo from the executable harness", async () => {
+  test("scaffolds the installed cli-service temp repo from the executable harness", async () => {
     const manifest = await loadOpenCodeInstalledLiveScenarioManifest(manifestPath);
     const scenario = manifest.scenarios[0]!;
     const scaffold = await scaffoldOpenCodeInstalledLiveHarnessScenario(scenario);
@@ -104,11 +130,11 @@ describe("OpenCode installed live harness", () => {
     expect(scaffold.files).toEqual({
       packageJson: join(scaffold.repoDir, "package.json"),
       prompt: join(scaffold.repoDir, "prompts", "opencode-installed-live.txt"),
-      plan: join(scaffold.repoDir, "plans", "PLN-PR37.md"),
-      implementation: join(scaffold.repoDir, "src", "docs", "review.ts"),
+      plan: join(scaffold.repoDir, "plans", "PLN-PR50.md"),
+      implementation: join(scaffold.repoDir, "src", "cli", "service.ts"),
       reviewSpec: join(scaffold.repoDir, "scripts", "review-spec.ts"),
       reviewQuality: join(scaffold.repoDir, "scripts", "review-quality.ts"),
-      test: join(scaffold.repoDir, "tests", "docs", "review.test.ts"),
+      test: join(scaffold.repoDir, "tests", "cli", "service.test.ts"),
       transcript: join(scaffold.repoDir, "artifacts", "opencode-installed-live.log"),
     });
 
@@ -121,25 +147,44 @@ describe("OpenCode installed live harness", () => {
     await expect(access(scaffold.files.test)).resolves.toBeNull();
     await expect(access(scaffold.files.transcript)).resolves.toBeNull();
 
-    expect(await readFile(scaffold.files.prompt, "utf8")).toContain("docs-review");
+    expect(await readFile(scaffold.files.prompt, "utf8")).toContain("cli-service");
     expect(await readFile(scaffold.files.plan, "utf8")).toContain("Status: approved");
-    expect(await readFile(scaffold.files.test, "utf8")).toContain("summarizeDocReview");
+    expect(await readFile(scaffold.files.test, "utf8")).toContain("formatCommandResult");
   });
 
-  test("runs the installed harness with one reused docs-review scaffold across three continued turns", async () => {
+  test("proves the scaffolded cli-service repo fails before implementation and passes after the minimal write", async () => {
+    const manifest = await loadOpenCodeInstalledLiveScenarioManifest(manifestPath);
+    const scenario = manifest.scenarios[0]!;
+    const scaffold = await scaffoldOpenCodeInstalledLiveHarnessScenario(scenario);
+    cleanupPaths.add(scaffold.repoDir);
+
+    const failingRun = await runBunTestInRepo(scaffold.repoDir);
+    expect(failingRun.exitCode).toBeGreaterThan(0);
+
+    await Bun.write(
+      scaffold.files.implementation,
+      'export function formatCommandResult(commandName: string): string {\n  return `cli-service:${commandName}`;\n}\n',
+    );
+
+    const passingRun = await runBunTestInRepo(scaffold.repoDir);
+    expect(passingRun.exitCode).toBe(0);
+  });
+
+  test("runs the installed harness with one reused cli-service scaffold across three continued turns", async () => {
     const customManifestPath = await writeManifest({
       scenarios: [
         {
-          id: "installed-docs-review-long-running",
+          id: "installed-cli-service-long-running",
           turns: [
             {
-              prompt: "start the docs-review lane",
+              prompt: "start the cli-service lane",
               expect: {
                 valid: true,
                 stages: [
                   "install-visible-skills",
                   "workflow-routing",
                   "plan-approved",
+                  "failing-test-observed",
                   "implementation-written",
                   "review-spec-passed",
                   "review-quality-passed",
@@ -149,13 +194,14 @@ describe("OpenCode installed live harness", () => {
               },
             },
             {
-              prompt: "continue the docs-review lane",
+              prompt: "continue the cli-service lane",
               expect: {
                 valid: true,
                 stages: [
                   "install-visible-skills",
                   "workflow-routing",
                   "plan-approved",
+                  "failing-test-observed",
                   "implementation-written",
                   "review-spec-passed",
                   "review-quality-passed",
@@ -165,13 +211,14 @@ describe("OpenCode installed live harness", () => {
               },
             },
             {
-              prompt: "continue the docs-review lane one more time",
+              prompt: "continue the cli-service lane one more time",
               expect: {
                 valid: true,
                 stages: [
                   "install-visible-skills",
                   "workflow-routing",
                   "plan-approved",
+                  "failing-test-observed",
                   "implementation-written",
                   "review-spec-passed",
                   "review-quality-passed",
@@ -182,9 +229,9 @@ describe("OpenCode installed live harness", () => {
             },
           ],
           scaffold: {
-            archetype: "docs-review",
-            planId: "PLN-PR37",
-            taskId: "TSK-PR37-1",
+            archetype: "cli-service",
+            planId: "PLN-PR50",
+            taskId: "TSK-PR50-1",
           },
         },
       ],
@@ -204,7 +251,7 @@ describe("OpenCode installed live harness", () => {
             executions === 2
               ? [
                   "[state] carrying-forward prior installed OpenCode session context",
-                  "[impl] wrote src/docs/review.ts",
+                  "[impl] wrote src/cli/service.ts",
                   "[review-spec] command=bun scripts/review-spec.ts exit=0 evidence-sha256=spec-turn-2",
                   "[review-quality] command=bun scripts/review-quality.ts exit=0 evidence-sha256=quality-turn-2",
                   "[verify] evidence source=current-run command=bun test exit=0 stdout-sha256=verify-turn-2",
@@ -213,7 +260,7 @@ describe("OpenCode installed live harness", () => {
               : executions === 3
                 ? [
                     "[state] carrying-forward prior installed OpenCode session context",
-                    "[impl] wrote src/docs/review.ts",
+                    "[impl] wrote src/cli/service.ts",
                     "[review-spec] command=bun scripts/review-spec.ts exit=0 evidence-sha256=spec-turn-3",
                     "[review-quality] command=bun scripts/review-quality.ts exit=0 evidence-sha256=quality-turn-3",
                     "[verify] evidence source=current-run command=bun test exit=0 stdout-sha256=verify-turn-3",
@@ -231,17 +278,17 @@ describe("OpenCode installed live harness", () => {
     expect(commands).toEqual([
       {
         executable: "opencode",
-        args: ["run", "--print-logs", "start the docs-review lane"],
+        args: ["run", "--print-logs", "start the cli-service lane"],
         cwd: expect.stringContaining("executable-workflow-harness-"),
       },
       {
         executable: "opencode",
-        args: ["run", "--print-logs", "--continue", "continue the docs-review lane"],
+        args: ["run", "--print-logs", "--continue", "continue the cli-service lane"],
         cwd: expect.stringContaining("executable-workflow-harness-"),
       },
       {
         executable: "opencode",
-        args: ["run", "--print-logs", "--continue", "continue the docs-review lane one more time"],
+        args: ["run", "--print-logs", "--continue", "continue the cli-service lane one more time"],
         cwd: expect.stringContaining("executable-workflow-harness-"),
       },
     ]);
@@ -255,6 +302,7 @@ describe("OpenCode installed live harness", () => {
         "install-visible-skills",
         "workflow-routing",
         "plan-approved",
+        "failing-test-observed",
         "implementation-written",
         "review-spec-passed",
         "review-quality-passed",
@@ -267,18 +315,18 @@ describe("OpenCode installed live harness", () => {
       {
         index: 0,
         ok: true,
-        command: { args: ["run", "--print-logs", "start the docs-review lane"] },
+        command: { args: ["run", "--print-logs", "start the cli-service lane"] },
       },
       {
         index: 1,
         ok: true,
-        command: { args: ["run", "--print-logs", "--continue", "continue the docs-review lane"] },
+        command: { args: ["run", "--print-logs", "--continue", "continue the cli-service lane"] },
       },
       {
         index: 2,
         ok: true,
         command: {
-          args: ["run", "--print-logs", "--continue", "continue the docs-review lane one more time"],
+          args: ["run", "--print-logs", "--continue", "continue the cli-service lane one more time"],
         },
       },
     ]);
@@ -286,15 +334,15 @@ describe("OpenCode installed live harness", () => {
 
   test("evaluates the checked-in three-turn installed happy path fixtures", async () => {
     const turnTwoTranscript = await Bun.file(
-      "tests/harness-fixtures/opencode-installed-long-running-happy-turn-2.log",
+      "tests/harness-fixtures/opencode-installed-cli-service-happy-turn-2.log",
     ).text();
     const turnThreeTranscript = await Bun.file(
-      "tests/harness-fixtures/opencode-installed-long-running-happy-turn-3.log",
+      "tests/harness-fixtures/opencode-installed-cli-service-happy-turn-3.log",
     ).text();
     const transcripts = new Map([
-      ["installed-docs-review-long-running-happy-path:0", initialInstalledTranscript],
-      ["installed-docs-review-long-running-happy-path:1", turnTwoTranscript],
-      ["installed-docs-review-long-running-happy-path:2", turnThreeTranscript],
+      ["installed-cli-service-long-running-happy-path:0", initialInstalledTranscript],
+      ["installed-cli-service-long-running-happy-path:1", turnTwoTranscript],
+      ["installed-cli-service-long-running-happy-path:2", turnThreeTranscript],
     ]);
     const turnCounts = new Map<string, number>();
 
@@ -318,7 +366,7 @@ describe("OpenCode installed live harness", () => {
     expect(result.summary).toEqual({ total: 1, passed: 1, failed: 0 });
     expect(result.results).toMatchObject([
       {
-        id: "installed-docs-review-long-running-happy-path",
+        id: "installed-cli-service-long-running-happy-path",
         ok: true,
         evaluation: {
           valid: true,
@@ -327,6 +375,7 @@ describe("OpenCode installed live harness", () => {
             "install-visible-skills",
             "workflow-routing",
             "plan-approved",
+            "failing-test-observed",
             "implementation-written",
             "review-spec-passed",
             "review-quality-passed",
@@ -352,6 +401,41 @@ describe("OpenCode installed live harness", () => {
     ]);
   });
 
+  test("accepts real installed transcripts when marker lines end with punctuation", () => {
+    const evaluation = evaluateOpenCodeInstalledLiveTranscript(`
+Inspecting the scaffolded cli-service repo first.
+\`\`\`text
+[install] surface=opencode imitation-machine active ;
+[skills] visible: using-agentic, executing-plans, review-spec, review-quality, verify ;
+[route] workflow: executing-plans ;
+[plan] status: approved ;
+[test-fail] command=bun test exit=1 stdout-sha256=fail-turn-1 ;
+[impl] wrote src/cli/service.ts ;
+[review-spec] command=bun scripts/review-spec.ts exit=0 evidence-sha256=spec-turn-1 ;
+[review-quality] command=bun scripts/review-quality.ts exit=0 evidence-sha256=quality-turn-1 ;
+[verify] evidence source=current-run command=bun test exit=0 stdout-sha256=verify-turn-1 ;
+[state] review-ready.
+\`\`\`
+`);
+
+    expect(evaluation).toEqual({
+      valid: true,
+      workflowRoute: "executing-plans",
+      stages: [
+        "install-visible-skills",
+        "workflow-routing",
+        "plan-approved",
+        "failing-test-observed",
+        "implementation-written",
+        "review-spec-passed",
+        "review-quality-passed",
+        "verification-fresh",
+        "review-ready",
+      ],
+      issues: [],
+    });
+  });
+
   test("rejects wrong review order and stale or missing verify evidence", () => {
     const reversed = evaluateOpenCodeInstalledLiveTranscript(`
 [install] surface=opencode imitation-machine active
@@ -359,7 +443,8 @@ describe("OpenCode installed live harness", () => {
 [route] workflow: executing-plans
 [skill] workflow skill loaded: executing-plans
 [plan] status: approved
-[impl] wrote src/docs/review.ts
+[test-fail] command=bun test exit=1 stdout-sha256=fail
+[impl] wrote src/cli/service.ts
 [review-quality] command=bun scripts/review-quality.ts exit=0 evidence-sha256=quality
 [review-spec] command=bun scripts/review-spec.ts exit=0 evidence-sha256=spec
 [state] review-ready
@@ -370,7 +455,8 @@ describe("OpenCode installed live harness", () => {
 [route] workflow: executing-plans
 [skill] workflow skill loaded: executing-plans
 [plan] status: approved
-[impl] wrote src/docs/review.ts
+[test-fail] command=bun test exit=1 stdout-sha256=fail
+[impl] wrote src/cli/service.ts
 [review-spec] command=bun scripts/review-spec.ts exit=0 evidence-sha256=spec
 [review-quality] command=bun scripts/review-quality.ts exit=0 evidence-sha256=quality
 [verify] evidence source=previous-run age=2h command=bun test
@@ -393,7 +479,7 @@ describe("OpenCode installed live harness", () => {
 [skills] visible: using-agentic, executing-plans, review-spec, review-quality, verify
 [route] workflow: executing-plans
 [skill] workflow skill loaded: executing-plans
-[impl] wrote src/docs/review.ts
+[impl] wrote src/cli/service.ts
 [plan] status: approved
 [review-spec] command=bun scripts/review-spec.ts exit=0 evidence-sha256=spec
 [review-quality] command=bun scripts/review-quality.ts exit=0 evidence-sha256=quality
@@ -407,6 +493,24 @@ describe("OpenCode installed live harness", () => {
     );
   });
 
+  test("rejects transcripts missing fail-to-pass evidence before implementation", () => {
+    const evaluation = evaluateOpenCodeInstalledLiveTranscript(`
+[install] surface=opencode imitation-machine active
+[skills] visible: using-agentic, executing-plans, review-spec, review-quality, verify
+[route] workflow: executing-plans
+[skill] workflow skill loaded: executing-plans
+[plan] status: approved
+[impl] wrote src/cli/service.ts
+[review-spec] command=bun scripts/review-spec.ts exit=0 evidence-sha256=spec
+[review-quality] command=bun scripts/review-quality.ts exit=0 evidence-sha256=quality
+[verify] evidence source=current-run command=bun test exit=0 stdout-sha256=verify
+[state] review-ready
+`);
+
+    expect(evaluation.valid).toBe(false);
+    expect(evaluation.issues).toContain("Missing fail-to-pass evidence before implementation");
+  });
+
   test("rejects review-ready before fresh verify", () => {
     const evaluation = evaluateOpenCodeInstalledLiveTranscript(`
 [install] surface=opencode imitation-machine active
@@ -414,7 +518,8 @@ describe("OpenCode installed live harness", () => {
 [route] workflow: executing-plans
 [skill] workflow skill loaded: executing-plans
 [plan] status: approved
-[impl] wrote src/docs/review.ts
+[test-fail] command=bun test exit=1 stdout-sha256=fail
+[impl] wrote src/cli/service.ts
 [review-spec] command=bun scripts/review-spec.ts exit=0 evidence-sha256=spec
 [review-quality] command=bun scripts/review-quality.ts exit=0 evidence-sha256=quality
 [state] review-ready
@@ -434,13 +539,14 @@ describe("OpenCode installed live harness", () => {
 [route] workflow: executing-plans
 [skill] workflow skill loaded: executing-plans
 [plan] status: approved
-[impl] wrote src/docs/review.ts
+[test-fail] command=bun test exit=1 stdout-sha256=fail-turn-1
+[impl] wrote src/cli/service.ts
 [review-spec] command=bun scripts/review-spec.ts exit=0 evidence-sha256=spec-turn-1
 [review-quality] command=bun scripts/review-quality.ts exit=0 evidence-sha256=quality-turn-1
 [verify] evidence source=current-run command=bun test exit=0 stdout-sha256=verify-turn-1
 [state] review-ready
 [state] carrying-forward prior installed OpenCode session context
-[impl] wrote src/docs/review.ts
+[impl] wrote src/cli/service.ts
 [state] review-ready
 `);
 
@@ -449,6 +555,7 @@ describe("OpenCode installed live harness", () => {
       "install-visible-skills",
       "workflow-routing",
       "plan-approved",
+      "failing-test-observed",
       "implementation-written",
     ]);
     expect(evaluation.issues).toContain(
