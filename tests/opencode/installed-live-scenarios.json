@@ -1,10 +1,10 @@
 {
   "scenarios": [
     {
-      "id": "installed-docs-review-long-running-happy-path",
+      "id": "installed-cli-service-long-running-happy-path",
       "turns": [
         {
-          "prompt": "Use the docs-review temp repo already scaffolded here. Load using-agentic, route through executing-plans, follow the approved plan, run bun test before implementation so it fails, write the minimal docs-review implementation to pass, run review-spec before review-quality, then run fresh bun test verification and end review-ready. In your final printed logs include deterministic marker lines for install visibility, workflow route, approved plan, implementation write, review-spec, review-quality, fresh verify, and review-ready.",
+          "prompt": "Use the cli-service temp repo already scaffolded here. Load using-agentic, route through executing-plans, follow the approved plan, run bun test before implementation so it fails, write the minimal cli-service implementation to pass, run review-spec before review-quality, then run fresh bun test verification and end review-ready. If you need a shell variable while running under zsh, do not use the reserved name `status`; use a different name like `exitCode`. In your final printed logs include these exact literal marker lines in order: [install] surface=opencode imitation-machine active ; [skills] visible: using-agentic, executing-plans, review-spec, review-quality, verify ; [route] workflow: executing-plans ; [plan] status: approved ; [test-fail] command=bun test exit=1 ; [impl] wrote src/cli/service.ts ; [review-spec] command=bun scripts/review-spec.ts exit=0 evidence-sha256=<value> ; [review-quality] command=bun scripts/review-quality.ts exit=0 evidence-sha256=<value> ; [verify] evidence source=current-run command=bun test exit=0 stdout-sha256=<value> ; [state] review-ready.",
           "expect": {
             "valid": true,
             "workflowRoute": "executing-plans",
@@ -12,6 +12,7 @@
               "install-visible-skills",
               "workflow-routing",
               "plan-approved",
+              "failing-test-observed",
               "implementation-written",
               "review-spec-passed",
               "review-quality-passed",
@@ -21,7 +22,7 @@
           }
         },
         {
-          "prompt": "Continue the same installed OpenCode session with --continue. Make one more bounded docs-review write, rerun review-spec, rerun review-quality, rerun fresh bun test verification, and end review-ready with deterministic transcript markers for the continued write, rerun reviews, rerun verify, and review-ready.",
+          "prompt": "Continue the same installed OpenCode session with --continue. Make one more bounded cli-service write, rerun review-spec, rerun review-quality, rerun fresh bun test verification, and end review-ready. In your final printed logs include these exact literal marker lines in order: [state] carrying-forward prior installed OpenCode session context ; [impl] wrote src/cli/service.ts ; [review-spec] command=bun scripts/review-spec.ts exit=0 evidence-sha256=<value> ; [review-quality] command=bun scripts/review-quality.ts exit=0 evidence-sha256=<value> ; [verify] evidence source=current-run command=bun test exit=0 stdout-sha256=<value> ; [state] review-ready.",
           "expect": {
             "valid": true,
             "workflowRoute": "executing-plans",
@@ -29,6 +30,7 @@
               "install-visible-skills",
               "workflow-routing",
               "plan-approved",
+              "failing-test-observed",
               "implementation-written",
               "review-spec-passed",
               "review-quality-passed",
@@ -38,7 +40,7 @@
           }
         },
         {
-          "prompt": "Continue the same installed OpenCode session with --continue one final time. Make one more bounded docs-review write, rerun review-spec, rerun review-quality, rerun fresh bun test verification, and end review-ready with deterministic transcript markers for the final continued write, rerun reviews, rerun verify, and review-ready.",
+          "prompt": "Continue the same installed OpenCode session with --continue one final time. Make one more bounded cli-service write, rerun review-spec, rerun review-quality, rerun fresh bun test verification, and end review-ready. In your final printed logs include these exact literal marker lines in order: [state] carrying-forward prior installed OpenCode session context ; [impl] wrote src/cli/service.ts ; [review-spec] command=bun scripts/review-spec.ts exit=0 evidence-sha256=<value> ; [review-quality] command=bun scripts/review-quality.ts exit=0 evidence-sha256=<value> ; [verify] evidence source=current-run command=bun test exit=0 stdout-sha256=<value> ; [state] review-ready.",
           "expect": {
             "valid": true,
             "workflowRoute": "executing-plans",
@@ -46,6 +48,7 @@
               "install-visible-skills",
               "workflow-routing",
               "plan-approved",
+              "failing-test-observed",
               "implementation-written",
               "review-spec-passed",
               "review-quality-passed",
@@ -56,9 +59,9 @@
         }
       ],
       "scaffold": {
-        "archetype": "docs-review",
-        "planId": "PLN-PR37",
-        "taskId": "TSK-PR37-1"
+        "archetype": "cli-service",
+        "planId": "PLN-PR50",
+        "taskId": "TSK-PR50-1"
       }
     }
   ]
