@@ -5,7 +5,7 @@ description: Use when opening or reviewing a pull request after implementation a
 
 # Pull Requests
 
-Open a PR only after the branch is verified and the work is review-ready.
+Open a PR only after the branch is verified and the work is review-ready. The `pr` skill owns PR creation and the review-readiness body.
 
 ## When To Use
 
@@ -65,4 +65,5 @@ Stop if:
 
 ## Runtime Agent
 
-- In OpenCode, prefer `@release` when the task is preparing a review-ready PR summary and gate evidence.
+- In OpenCode, use this skill for PR creation, gate evidence, test plan, and the review-ready body.
+- `@release` may coordinate with this skill when packaging a delivery unit, but `@release` is not the sole owner of `gh PR` creation.

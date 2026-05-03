@@ -2,11 +2,16 @@
 
 ## Default sequence
 
+Canonical final sequence:
+
 1. Load `using-agentic`
 2. Load a process skill
 3. Do discovery or implementation work
-4. Load review/release skills when needed
-5. Run `agentic verify all` before claiming completion
+4. Complete implementation and task-level reviews (`review-spec`, `review-quality`)
+5. Run specialized checks/updates as needed: `review-security` / `@security`, `@qa`, `@docs`
+6. Run `agentic verify all` to gather fresh verification evidence
+7. Run `review-final` via `@reviewer-final` for holistic readiness
+8. `@release` / PR / handoff (PR/release handoff)
 
 ## Typical mappings
 
@@ -21,6 +26,8 @@
 - asking others to review verified work -> `requesting-code-review`
 - review feedback response -> `receiving-code-review`
 - completion claim -> `verify`
+- final holistic readiness after fresh verification -> `review-final`
+- PR/release handoff -> `pr` or `release` / `@release`
 
 ## OpenCode Agent Map
 
@@ -30,6 +37,7 @@
 - `@coder` -> bounded implementation
 - `@reviewer-spec` -> Stage 1 review
 - `@reviewer-quality` -> Stage 2 review
+- `@reviewer-final` -> final holistic readiness review
 - `@security` -> security review
 - `@qa` -> test strategy review
 - `@docs` -> docs updates
@@ -40,3 +48,4 @@
 - process-skill selection
 - review ordering
 - fresh verification evidence
+- final readiness review before PR/release handoff

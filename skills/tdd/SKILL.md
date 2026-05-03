@@ -11,6 +11,8 @@ Write the test first. Watch it fail. Write minimal code to pass. If production c
 
 If you did not watch the test fail, you do not know whether it proves the right thing.
 
+**Violating the letter of the rules is violating the spirit of the rules.** TDD is the evidence that the behavior was missing before your change, not a ceremony to explain away after coding.
+
 ## When To Use
 
 Always for:
@@ -39,8 +41,9 @@ No exceptions:
 - do not keep it as reference
 - do not adapt it while writing the test
 - do not claim tests-after is the same thing
+- delete means delete: remove the code, stop looking at it, and re-implement from the failing test
 
-## Workflow
+## RED-GREEN-REFACTOR Workflow
 
 ```dot
 digraph tdd_flow {
@@ -70,6 +73,22 @@ digraph tdd_flow {
 }
 ```
 
+### RED - Write Failing Test
+
+Write one minimal automated test for the next observable behavior. Name the behavior, call the public interface, and assert the required result. For a bug fix, RED is the regression test that reproduces the bug before the fix.
+
+Run the focused test and watch it fail for the expected reason. If it errors because of typos or setup, fix the test until it fails because the behavior is missing.
+
+### GREEN - Minimal Code
+
+Write the minimal code needed to make that one test pass. Do not add options, generalized helpers, cleanup, or nearby improvements that the test did not require.
+
+Run the same focused test and read the passing output. If other focused tests break, fix the implementation before continuing.
+
+### REFACTOR - Clean Up While Green
+
+Only refactor after GREEN. Improve names, remove duplication, or simplify shape without adding behavior. Run the focused tests after each refactor step. If a refactor breaks tests, get back to GREEN before changing anything else.
+
 ## Good And Bad Tests
 
 Good:
@@ -95,6 +114,56 @@ Prefer one clear behavior over vague coverage.
 - tests written after code often pass immediately and prove nothing
 - tests-first forces you to validate the behavior was actually missing
 - manual testing is not repeatable proof
+- if a test passes immediately, it may be testing existing behavior, a mock, or the wrong assertion; fix the test and verify RED before writing production code
+- RED and GREEN verification are mandatory: run the focused test, read the failure, then run it again after the minimal implementation
+- manual testing is a useful exploration aid, but it is not the RED step; reject manual-test shortcuts because they leave no repeatable regression proof
+
+## Example: Bug Fix Regression
+
+Bug: duplicate task names are accepted.
+
+**RED**
+
+```ts
+test("rejects duplicate task names", () => {
+  const board = createBoard([{ name: "ship" }]);
+
+  expect(() => board.addTask({ name: "ship" })).toThrow("duplicate task");
+});
+```
+
+Focused failure to observe before coding:
+
+```text
+FAIL expected function to throw "duplicate task"
+```
+
+**GREEN**
+
+```ts
+addTask(task: Task) {
+  if (this.tasks.some((existing) => existing.name === task.name)) {
+    throw new Error("duplicate task");
+  }
+  this.tasks.push(task);
+}
+```
+
+**REFACTOR**
+
+Only after the regression test passes, extract a `hasTaskNamed` helper if it makes the code clearer. Do not add case-insensitive matching or cross-project uniqueness until a failing test requires it.
+
+## Rationalization Prevention
+
+| Excuse | Reality |
+|---|---|
+| "I will test after" | Tests-after are biased by the implementation and may pass immediately. |
+| "This is too small" | Small code still needs proof. |
+| "I need to keep the code as reference" | Delete means delete; keeping it turns the cycle into tests-after. |
+| "The test passes immediately, so that's fine" | A test passes immediately only proves the behavior already existed or the test is weak. |
+| "The spirit matters more than the ritual" | Violating the letter of TDD removes the evidence TDD exists to provide. |
+| "I manually tested it" | Manual testing is not repeatable and cannot guard future regressions. |
+| "I am stuck on the test" | Stop and simplify the desired public API; ask for help before coding around the missing test. |
 
 ## Red Flags
 
@@ -105,6 +174,8 @@ Stop if you catch yourself thinking:
 - "I will add tests after"
 - "Deleting this code would waste time"
 - "This one exception is fine"
+- "The test passes immediately, but I can continue"
+- "I can keep the implementation open while I write the test"
 
 Those are TDD rationalizations.
 
@@ -114,6 +185,17 @@ Those are TDD rationalizations.
 - prefer behavior assertions over implementation-detail assertions
 - avoid mocks unless the boundary is external I/O
 - if the test passes immediately, fix the test before proceeding
+- if production code was written before RED, delete it and start over with TDD
+
+## When Stuck
+
+| Problem | Move |
+|---|---|
+| You do not know how to test it | Write the wished-for public API in the test first, then ask whether that interface is right. |
+| The test setup is huge | The design may be too coupled; simplify the interface or inject the external boundary. |
+| The failure is not about the missing behavior | Fix the test until RED fails for the right reason. |
+| You already wrote the fix | Delete the production code, stop looking at it, and start over with TDD. |
+| A manual test seems faster | Use it only to learn; still write the automated regression before changing production code. |
 
 ## Companion Files
 

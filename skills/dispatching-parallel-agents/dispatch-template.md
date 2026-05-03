@@ -4,5 +4,10 @@
 - Scope:
 - Inputs:
 - Forbidden overlap:
-- Output format:
+- Verification/evidence to collect:
+- Expected output:
+  - Summary of findings or changes:
+  - Files read/changed:
+  - Verification run and result:
+  - Conflicts, blockers, or assumptions:
 - Stop condition:

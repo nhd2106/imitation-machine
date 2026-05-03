@@ -9,6 +9,15 @@ function expectContainsAll(content: string, fragments: readonly string[]): void 
   }
 }
 
+function expectOrdered(content: string, earlier: string, later: string): void {
+  const earlierIndex = content.indexOf(earlier);
+  const laterIndex = content.indexOf(later);
+
+  expect(earlierIndex, `${earlier} should exist`).toBeGreaterThanOrEqual(0);
+  expect(laterIndex, `${later} should exist`).toBeGreaterThanOrEqual(0);
+  expect(earlierIndex, `${earlier} should appear before ${later}`).toBeLessThan(laterIndex);
+}
+
 const CORE_SKILLS = [
   "using-agentic",
   "brainstorm",
@@ -18,6 +27,7 @@ const CORE_SKILLS = [
   "subagent-driven-development",
   "tdd",
   "review-security",
+  "review-final",
   "design",
 ] as const;
 
@@ -72,6 +82,33 @@ describe("core skill content", () => {
     expect(content.includes("receiving-code-review")).toBe(true);
   });
 
+  test("using-agentic places fresh verification before final review and handoff", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "using-agentic", "SKILL.md")).text();
+    const workflow = content.slice(content.indexOf("## Workflow"));
+
+    expectContainsAll(workflow, ["task-level reviews", "agentic verify all", "review-final", "@reviewer-final", "@release / PR / handoff"]);
+    expectOrdered(workflow, "task-level reviews", "agentic verify all");
+    expectOrdered(workflow, "agentic verify all", "review-final");
+    expectOrdered(workflow, "review-final", "@release / PR / handoff");
+  });
+
+  test("using-agentic documents canonical final sequencing", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "using-agentic", "SKILL.md")).text();
+    const sequence = content.slice(content.indexOf("Preferred sequence:"));
+
+    expectContainsAll(sequence, [
+      "implementation and task-level `review-spec` / `review-quality`",
+      "specialized checks/updates as needed: `review-security` / `@security`, `@qa`, `@docs`",
+      "fresh `agentic verify all`",
+      "`review-final` / `@reviewer-final`",
+      "`@release` / PR / handoff",
+    ]);
+    expectOrdered(sequence, "implementation and task-level `review-spec` / `review-quality`", "specialized checks/updates");
+    expectOrdered(sequence, "specialized checks/updates", "fresh `agentic verify all`");
+    expectOrdered(sequence, "fresh `agentic verify all`", "`review-final` / `@reviewer-final`");
+    expectOrdered(sequence, "`review-final` / `@reviewer-final`", "`@release` / PR / handoff");
+  });
+
   test("workflow cheatsheet mentions new workflow skills in decision points", async () => {
     const content = await Bun.file(
       join(ROOT, "skills", "using-agentic", "references", "workflow-cheatsheet.md"),
@@ -85,6 +122,49 @@ describe("core skill content", () => {
     expect(content.includes("receiving-code-review")).toBe(true);
   });
 
+  test("workflow cheatsheet includes final review after fresh verification before handoff", async () => {
+    const content = await Bun.file(
+      join(ROOT, "skills", "using-agentic", "references", "workflow-cheatsheet.md"),
+    ).text();
+
+    expectContainsAll(content, ["review-final", "@reviewer-final", "PR/release handoff"]);
+    expectOrdered(content, "task-level reviews", "agentic verify all");
+    expectOrdered(content, "agentic verify all", "review-final");
+    expectOrdered(content, "review-final", "PR/release handoff");
+  });
+
+  test("public workflow docs keep docs and specialized checks before verify and final review", async () => {
+    for (const relativePath of [
+      "skills/using-agentic/references/workflow-cheatsheet.md",
+      "README.md",
+      "CONTRIBUTING.md",
+      "skills/subagent-driven-development/SKILL.md",
+    ] as const) {
+      const content = await Bun.file(join(ROOT, relativePath)).text();
+      const canonicalSequence = content.slice(content.indexOf("Canonical final sequence:"));
+
+      expectContainsAll(canonicalSequence, ["review-spec", "review-quality", "@security", "@qa", "@docs", "agentic verify all", "@reviewer-final", "@release"]);
+      expectOrdered(canonicalSequence, "review-spec", "@security");
+      expectOrdered(canonicalSequence, "review-quality", "@security");
+      expectOrdered(canonicalSequence, "@security", "agentic verify all");
+      expectOrdered(canonicalSequence, "@qa", "agentic verify all");
+      expectOrdered(canonicalSequence, "@docs", "agentic verify all");
+      expectOrdered(canonicalSequence, "agentic verify all", "@reviewer-final");
+      expectOrdered(canonicalSequence, "@reviewer-final", "@release");
+    }
+  });
+
+  test("README tiny workflow runs verification before final review and handoff", async () => {
+    const content = await Bun.file(join(ROOT, "README.md")).text();
+    const start = content.indexOf("### Tiny example workflow");
+    const end = content.indexOf("## Contributing");
+    const tinyWorkflow = content.slice(start, end);
+
+    expectContainsAll(tinyWorkflow, ["agentic verify all", "review-final", "@reviewer-final", "PR/release/handoff"]);
+    expectOrdered(tinyWorkflow, "agentic verify all", "review-final");
+    expectOrdered(tinyWorkflow, "review-final", "PR/release/handoff");
+  });
+
   test("workflow-facing install docs mention expanded skill inventory", async () => {
     for (const relativePath of ["README.md", "CLAUDE_INSTALL.md", "tests/claude-code/README.md"] as const) {
       const content = await Bun.file(join(ROOT, relativePath)).text();
@@ -94,6 +174,14 @@ describe("core skill content", () => {
       expect(content.includes("finishing-a-development-branch")).toBe(true);
       expect(content.includes("requesting-code-review")).toBe(true);
       expect(content.includes("receiving-code-review")).toBe(true);
+    }
+  });
+
+  test("public workflow docs mention final readiness review", async () => {
+    for (const relativePath of ["README.md", "CONTRIBUTING.md", ".github/PULL_REQUEST_TEMPLATE.md"] as const) {
+      const content = await Bun.file(join(ROOT, relativePath)).text();
+      expect(content.includes("review-final")).toBe(true);
+      expect(content.includes("@reviewer-final")).toBe(true);
     }
   });
 
@@ -162,6 +250,73 @@ describe("core skill content", () => {
     expectContainsAll(lowerContent, ["write code before", "delete it", "start over"]);
   });
 
+  test("tdd documents full red-green-refactor depth and shortcut handling", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "tdd", "SKILL.md")).text();
+    const lowerContent = content.toLowerCase();
+
+    expectContainsAll(content, ["### RED", "### GREEN", "### REFACTOR", "## Example: Bug Fix Regression"]);
+    expectContainsAll(lowerContent, [
+      "minimal code",
+      "test passes immediately",
+      "manual testing",
+      "when stuck",
+      "delete means delete",
+      "start over with tdd",
+    ]);
+  });
+
+  test("receiving-code-review documents rigorous response handling", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "receiving-code-review", "SKILL.md")).text();
+    const lowerContent = content.toLowerCase();
+
+    expectContainsAll(content, ["## Source-Specific Handling", "## Handling Unclear Feedback", "## YAGNI Check", "## GitHub Thread Replies", "## Good And Bad Examples"]);
+    expectContainsAll(lowerContent, [
+      "external reviewer",
+      "stop",
+      "ask for clarification",
+      "not as a top-level pr comment",
+      "performative agreement",
+      "technical reasoning",
+    ]);
+  });
+
+  test("review-final is a distinct final holistic readiness review", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "review-final", "SKILL.md")).text();
+    const lowerContent = content.toLowerCase();
+
+    expect(content.includes("description: Use when")).toBe(true);
+    expect(content.includes("```dot")).toBe(true);
+    expect(content.includes("## Red Flags")).toBe(true);
+    expectContainsAll(lowerContent, [
+      "final holistic",
+      "after task-level reviews",
+      "before release/pr",
+      "integrated diff",
+      "verification evidence",
+      "security",
+      "qa",
+      "documentation",
+      "does not replace",
+      "review-spec",
+      "review-quality",
+    ]);
+    expect(content.includes("QA is the `@qa` agent")).toBe(true);
+  });
+
+  test("executing-plans requires isolation checks before non-trivial coding", async () => {
+    const skill = await Bun.file(join(ROOT, "skills", "executing-plans", "SKILL.md")).text();
+    const checklist = await Bun.file(join(ROOT, "skills", "executing-plans", "references", "execution-checklist.md")).text();
+    const combined = `${skill}\n${checklist}`.toLowerCase();
+
+    expectContainsAll(combined, [
+      "worktree",
+      "isolation",
+      "non-trivial coding",
+      "main/master",
+      "unverified isolation",
+    ]);
+  });
+
   test("verify includes a claim matrix and stronger proof guidance", async () => {
     const content = await Bun.file(join(ROOT, "skills", "verify", "SKILL.md")).text();
     const lowerContent = content.toLowerCase();
@@ -193,6 +348,23 @@ describe("core skill content", () => {
     expect(content.includes("force removal")).toBe(true);
   });
 
+  test("worktree ignore safety checks the chosen directory independently", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "worktree", "SKILL.md")).text();
+
+    expect(content.includes("git check-ignore -q <chosen-worktree-dir>")).toBe(true);
+    expect(content.includes("Each selected project-local root must be checked independently")).toBe(true);
+    expect(content.includes("git check-ignore -q .worktrees 2>/dev/null || git check-ignore -q worktrees 2>/dev/null")).toBe(false);
+  });
+
+  test("code quality reviewer prompt separates must-fix findings from advisory notes", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "subagent-driven-development", "code-quality-reviewer-prompt.md")).text();
+
+    expect(content.includes("Must-fix findings:")).toBe(true);
+    expect(content.includes("Advisory notes:")).toBe(true);
+    expect(content.includes("Blocking issues:")).toBe(false);
+    expect(content.includes("[Low]")).toBe(true);
+  });
+
   test("worktree cleanup guide documents ordered merged cleanup", async () => {
     const content = await Bun.file(join(ROOT, "skills", "worktree", "cleanup-guide.md")).text();
     const lowerContent = content.toLowerCase();
@@ -221,6 +393,31 @@ describe("core skill content", () => {
     expect(readme.includes("agentic worktree cleanup-merged --json")).toBe(true);
   });
 
+  test("release workflow preserves fresh evidence before cleanup", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "release", "SKILL.md")).text();
+    const workflow = content.slice(content.indexOf("## Workflow"), content.indexOf("## Required Steps"));
+    const requiredSteps = content.slice(content.indexOf("## Required Steps"), content.indexOf("## Rules"));
+
+    expectContainsAll(workflow, [
+      "Run fresh verification",
+      "Preserve release evidence",
+      "Tag and publish release artifacts",
+      "Post-release cleanup",
+    ]);
+    expectOrdered(workflow, "Run fresh verification", "Preserve release evidence");
+    expectOrdered(workflow, "Preserve release evidence", "Tag and publish release artifacts");
+    expectOrdered(workflow, "Tag and publish release artifacts", "Post-release cleanup");
+
+    expectContainsAll(requiredSteps, [
+      "run fresh verification",
+      "preserve release evidence before cleanup",
+      "post-release or follow-on work",
+      "safe preflight only when already-merged worktrees are being cleaned separately",
+    ]);
+    expectOrdered(requiredSteps, "run fresh verification", "preserve release evidence before cleanup");
+    expectOrdered(requiredSteps, "preserve release evidence before cleanup", "post-release or follow-on work");
+  });
+
   test("gate documents blocker handling and review-stage gates", async () => {
     const content = await Bun.file(join(ROOT, "skills", "gate", "SKILL.md")).text();
     const lowerContent = content.toLowerCase();
@@ -233,12 +430,18 @@ describe("core skill content", () => {
   test("delivery skills document grouped delivery lanes and cleanup", async () => {
     const release = await Bun.file(join(ROOT, "skills", "release", "SKILL.md")).text();
     const pr = await Bun.file(join(ROOT, "skills", "pr", "SKILL.md")).text();
+    const usingAgentic = await Bun.file(join(ROOT, "skills", "using-agentic", "SKILL.md")).text();
     const sdd = await Bun.file(join(ROOT, "skills", "subagent-driven-development", "SKILL.md")).text();
 
-    expect(release.includes("commit + gh PR creation")).toBe(true);
+    expect(release.includes("release readiness, versioning/changelog/tag/publish")).toBe(true);
+    expect(release.includes("coordinate with `pr` only when packaging a delivery unit")).toBe(true);
+    expect(release.includes("own commit + gh PR creation")).toBe(false);
     expect(release.includes("delivery units or grouped tasks")).toBe(true);
     expect(release.includes("check merged PRs")).toBe(true);
     expect(release.includes("optional remote branch")).toBe(true);
+    expect(pr.includes("owns PR creation and the review-readiness body")).toBe(true);
+    expect(usingAgentic.includes("| PR creation and review-readiness body | `pr` |")).toBe(true);
+    expect(usingAgentic.includes("| Release readiness, versioning/changelog/tag/publish | `release` |")).toBe(true);
     expect(pr.includes("delivery unit")).toBe(true);
     expect(pr.includes("grouped tasks")).toBe(true);
     expect(sdd.includes("independent planned task groups")).toBe(true);

@@ -17,6 +17,7 @@
 - Final verification: `./bin/agentic verify all`
 - `review-spec`:
 - `review-quality`:
+- `review-final` / `@reviewer-final`:
 - `review-security` (if sensitive):
 - Additional focused checks:
 

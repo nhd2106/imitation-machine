@@ -3,8 +3,12 @@ export type PersonaId =
   | "po"
   | "planner"
   | "coder"
+  | "reviewer-spec"
+  | "reviewer-quality"
   | "qa"
   | "security"
+  | "reviewer-final"
+  /** Legacy alias for reviewer-final; accepted for compatibility, not used in canonical runtime order. */
   | "reviewer"
   | "docs"
   | "release";

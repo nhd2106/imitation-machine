@@ -11,9 +11,12 @@ async function expectTimedTest(filePath: string, testName: string): Promise<void
 describe("subprocess-heavy test time budgets", () => {
   test("assign explicit timeouts to known verification hotspots", async () => {
     await expectTimedTest("tests/orchestrate.test.ts", "executes real persona commands when not in dry-run");
-    await expectTimedTest("tests/orchestrate.test.ts", "runs build personas in parallel within a task");
-    await expectTimedTest("tests/orchestrate.test.ts", "keeps per-task build personas parallel even when maxParallel limits task groups");
-    await expectTimedTest("tests/orchestrate.test.ts", "stops governance stage on first failure when continueOnError is false");
+    await expectTimedTest("tests/orchestrate.test.ts", "runs canonical task checks before plan-level final review and release");
+    await expectTimedTest("tests/orchestrate.test.ts", "runs one final review and release only after all task verifications and plan verification");
+    await expectTimedTest("tests/orchestrate.test.ts", "failed sibling blocks delivery finalization");
+    await expectTimedTest("tests/orchestrate.test.ts", "runs specialized evidence personas in parallel within a task");
+    await expectTimedTest("tests/orchestrate.test.ts", "keeps per-task specialized evidence personas parallel even when maxParallel limits task groups");
+    await expectTimedTest("tests/orchestrate.test.ts", "stops before final review when specialized evidence fails and continueOnError is false");
     await expectTimedTest("tests/orchestrate.test.ts", "runs independent execution groups in parallel while preserving in-group order");
     await expectTimedTest("tests/orchestrate.test.ts", "keeps same execution-group tasks ordered even without dependsOnTaskIds");
     await expectTimedTest("tests/orchestrate.test.ts", "blocks a task in a different execution group until dependsOnTaskIds completes");

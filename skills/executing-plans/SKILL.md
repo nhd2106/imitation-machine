@@ -21,6 +21,7 @@ Do not use this to invent or rewrite the plan while implementing.
 ```dot
 digraph executing_plans_flow {
   "Approved plan" [shape=doublecircle];
+  "Verify worktree/isolation" [shape=box];
   "Direct lane still appropriate?" [shape=diamond];
   "Switch to subagent-driven-development" [shape=box];
   "Pick next planned task" [shape=box];
@@ -31,7 +32,8 @@ digraph executing_plans_flow {
   "More approved tasks?" [shape=diamond];
   "Run final verify" [shape=box];
 
-  "Approved plan" -> "Direct lane still appropriate?";
+  "Approved plan" -> "Verify worktree/isolation";
+  "Verify worktree/isolation" -> "Direct lane still appropriate?";
   "Direct lane still appropriate?" -> "Switch to subagent-driven-development" [label="no"];
   "Direct lane still appropriate?" -> "Pick next planned task" [label="yes"];
   "Pick next planned task" -> "Load task-specific skill";
@@ -47,10 +49,22 @@ digraph executing_plans_flow {
 ## Core Rules
 
 1. Execute only approved tasks.
-2. Work one task at a time.
-3. Load the right implementation skill for the task itself, usually `tdd`.
-4. Re-check whether direct execution is still safe after each task.
-5. Run `agentic verify all` before claiming the plan is complete.
+2. Before non-trivial coding, verify worktree/isolation and branch safety.
+3. Work one task at a time.
+4. Load the right implementation skill for the task itself, usually `tdd`.
+5. Re-check whether direct execution is still safe after each task.
+6. Run `agentic verify all` before claiming the plan is complete.
+
+## Isolation Gate
+
+Before any non-trivial coding in this direct lane:
+
+- confirm the session is already in an isolated worktree, or use `@worktree` / `worktree` to create or verify one
+- check that the current branch is not `main`/`master` unless the user explicitly approved working there
+- name the workspace path, branch, and isolation evidence in the progress update
+- stop on unverified isolation instead of assuming "this repo is probably safe"
+
+Tiny read-only checks and truly trivial single-line edits may skip new worktree setup, but still state why isolation is unnecessary.
 
 ## Choosing The Lane
 
@@ -90,8 +104,10 @@ Stop if you catch yourself thinking:
 - "I do not need to report progress until the end"
 - "This direct lane quietly turned into a multi-lane implementation"
 - "I can skip final verification because each task passed"
+- "I can code on main/master because this is quick"
+- "The worktree is probably isolated; I do not need to verify it"
 
-Those are signals to pause, tighten scope, or switch to `subagent-driven-development`.
+Those are signals to pause, tighten scope, verify isolation, or switch to `subagent-driven-development`.
 
 ## Runtime Agent
 

@@ -57,6 +57,8 @@ describe("skill packages", () => {
     expect(await exists("skills/review-spec/review-report-template.md")).toBe(true);
     expect(await exists("skills/review-quality/references/quality-review-checklist.md")).toBe(true);
     expect(await exists("skills/review-quality/review-severity-guide.md")).toBe(true);
+    expect(await exists("skills/review-final/references/final-review-checklist.md")).toBe(true);
+    expect(await exists("skills/review-final/final-review-template.md")).toBe(true);
   });
 
   test("delivery and governance skills ship helper assets", async () => {

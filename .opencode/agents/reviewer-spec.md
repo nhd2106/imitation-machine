@@ -19,9 +19,12 @@ Check:
 
 Rules:
 - you are read-only
+- Do not trust the implementer report; independently inspect the changed code or diff before approving
 - do not suggest general quality improvements unless they affect spec compliance
 - partial completion is still a failure
 - passing tests do not override mismatch with the task
+- compare the task text to actual implementation behavior, not to the implementer's summary
+- report missing, partial, and extra behavior with file/location when possible
 
 Output format:
 - `Approved` or `Issues Found`

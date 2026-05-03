@@ -11,6 +11,18 @@ Evidence comes before claims. If you have not run fresh verification for the cla
 
 The rule is simple: identify the proof, run it now, read the output, then make the claim.
 
+## Gate Function
+
+Before claiming completion, correctness, readiness, or success:
+
+1. IDENTIFY: Name the command or evidence that proves the exact claim.
+2. RUN: Execute the full command fresh in the current workspace.
+3. READ: Inspect output, exit code, failure counts, and warnings.
+4. VERIFY: Decide whether the output actually supports the claim.
+5. REPORT: State the result with evidence, or report the failure honestly.
+
+Skipping any step is not verification.
+
 ## Iron Law
 
 ```text
@@ -67,6 +79,7 @@ digraph verify_flow {
 | Ready for PR | fresh `agentic verify all` + review readiness | passing one gate |
 | Bug is fixed | verification of the original symptom | code changed, assumed fixed |
 | Work is complete | verification evidence matching the scope | implementation report alone |
+| Agent completed | independent diff and verification evidence | Agent reports success |
 
 ## Regression Proof For Fixes
 
@@ -87,6 +100,8 @@ Stop if you are about to say:
 
 without a fresh verification run that proves it.
 
+Agent reports success only starts verification. Check what changed, rerun the relevant command, and report the actual state. Do not trust delegated success reports without independent evidence.
+
 ## Rationalization Prevention
 
 | Excuse | Reality |
@@ -96,6 +111,7 @@ without a fresh verification run that proves it.
 | "Just this once" | No exceptions |
 | "A partial check is enough" | Partial proof does not justify broad claims |
 | "I already ran it earlier" | Stale output does not prove current state |
+| "The agent said it passed" | Agent reports success are not evidence until independently checked |
 
 ## Failure Policy
 

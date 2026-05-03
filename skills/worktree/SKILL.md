@@ -11,6 +11,23 @@ Use worktrees to isolate implementation streams. They reduce branch drift, keep 
 
 The goal is reliable isolation: choose the right directory, verify it is safe, then start from a clean baseline.
 
+## Directory Selection
+
+Use this priority order:
+
+1. Existing `.worktrees/` directory in the repo.
+2. Existing `worktrees/` directory in the repo.
+3. Repo-local instructions that name a worktree directory.
+4. Ask the user whether to use a project-local directory or an external workspace location.
+
+For project-local directories, verify ignore safety for the actual chosen directory before creating or trusting the location. Each selected project-local root must be checked independently:
+
+```sh
+git check-ignore -q <chosen-worktree-dir>
+```
+
+If the chosen project-local directory is not ignored, stop and report the safety problem instead of creating nested tracked worktrees.
+
 ## When To Use
 
 - starting a new requirement or plan branch
@@ -65,8 +82,11 @@ agentic worktree remove --path .worktrees/feat/req-123 --delete-branch --delete-
 - independent planned groups may use multiple worktrees, but shared groups stay together
 - do not implement directly on `main` or `master` unless explicitly approved
 - verify project-local worktree directories are safely ignored before using them
+- use `git check-ignore` for project-local worktree directory safety checks
 - run setup and baseline validation before heavy implementation work
+- use Bun as the Node-family setup baseline: run `bun install` when dependencies are needed and `package.json` is present
 - inspect worktree status before removal
+- report the final worktree path, branch, setup command, and baseline verification result before implementation starts
 - before starting later work, check merged PRs or merged branches and clean stale local branches/worktrees safely
 - treat merged-branch cleanup as an ordered flow: status check first, worktree removal second, local branch deletion third, optional remote deletion last
 - delete remote branches only when the user explicitly requests it
@@ -74,9 +94,18 @@ agentic worktree remove --path .worktrees/feat/req-123 --delete-branch --delete-
 
 ## Safety Verification
 
-For project-local worktree directories, verify they are ignored before trusting them.
+For project-local worktree directories, verify each selected project-local root is ignored before trusting it. Use `git check-ignore` so local, global, and system ignore rules are respected.
 
 If the baseline in the worktree is already failing, report that before starting implementation so new failures are not confused with existing ones.
+
+After setup, report:
+
+```text
+Worktree ready at <full-path>
+Branch: <branch>
+Setup: <command run, or skipped with reason>
+Baseline: <verification command and result>
+```
 
 If a plan fans out into independent lanes, create or verify multiple worktrees only for those independent groups. Shared groups stay together in one lane until their common work is done.
 

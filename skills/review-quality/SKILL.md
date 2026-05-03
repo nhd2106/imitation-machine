@@ -41,9 +41,12 @@ digraph quality_review_flow {
 - names are clear and aligned with behavior
 - control flow is understandable without heroic effort
 - code is sensibly scoped and not over-abstracted
+- each changed file has one clear responsibility with a boundary a maintainer can understand
+- units are decomposed enough to test and reason about independently, without scattering one behavior across needless files
 - duplication is reasonable
 - debug leftovers and incidental complexity are removed
 - changes follow established repo patterns
+- tests actually exercise the logic and edge cases that make the change risky
 
 ## What Not To Re-Do
 
@@ -78,6 +81,14 @@ agentic gate quality --ref <task-id>
 ```
 
 On failure, report severity, location, and why the issue matters.
+
+For each non-trivial finding, include:
+
+- severity based on real risk
+- file/location when possible
+- what is wrong
+- why it matters for correctness, maintenance, testing, or repo fit
+- how to fix it when the next step is not obvious
 
 ## Companion Files
 

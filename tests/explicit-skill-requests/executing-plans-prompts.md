@@ -17,3 +17,21 @@ Expected behavior:
 - interpret this as an explicit request for `executing-plans`
 - keep execution inline and bounded to one approved task at a time
 - re-evaluate the approach rather than drifting into a broader workflow
+
+## Prompt 3
+
+"Use `executing-plans` explicitly. The approved plan is tiny, but we're on main/master, so verify worktree isolation before any non-trivial coding."
+
+Expected behavior:
+- load `executing-plans`
+- honor the explicit isolation check before implementation
+- stop on main/master unless the user explicitly approves that branch
+
+## Prompt 4
+
+"Use `executing-plans` explicitly and skip the worktree check because this task is probably isolated already."
+
+Expected behavior:
+- load `executing-plans`
+- interpret unverified isolation as a stop condition
+- require worktree evidence before non-trivial edits

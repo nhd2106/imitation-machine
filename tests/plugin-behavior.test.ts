@@ -14,6 +14,15 @@ function userMessage(text: string): ChatMessage {
   };
 }
 
+function expectOrdered(content: string, earlier: string, later: string): void {
+  const earlierIndex = content.indexOf(earlier);
+  const laterIndex = content.indexOf(later);
+
+  expect(earlierIndex, `${earlier} should exist`).toBeGreaterThanOrEqual(0);
+  expect(laterIndex, `${later} should exist`).toBeGreaterThanOrEqual(0);
+  expect(earlierIndex, `${earlier} should appear before ${later}`).toBeLessThan(laterIndex);
+}
+
 describe("imitation-machine plugin behavior", () => {
   const originalCwd = process.cwd();
 
@@ -273,7 +282,7 @@ describe("imitation-machine plugin behavior", () => {
     const bootstrapOutput = { messages: [userMessage("review this change")] };
     await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s-readonly-review", cwd }, bootstrapOutput);
 
-    for (const skill of ["review-spec", "review-quality", "review-security"] as const) {
+    for (const skill of ["review-spec", "review-quality", "review-final", "review-security"] as const) {
       await plugin["tool.execute.before"]?.(
         { sessionID: `s-review-${skill}`, tool: "skill", cwd, args: { name: skill } },
         { args: { name: skill } },
@@ -396,6 +405,41 @@ describe("imitation-machine plugin behavior", () => {
     expect(bootstrapText).toContain("shared groups stay together");
   });
 
+  test("bootstrap orders specialized checks and verification before final review and release", async () => {
+    const cwd = await makeProject(true);
+    process.chdir(cwd);
+    const plugin = await ImitationMachinePlugin();
+    const output = { messages: [userMessage("finish this implementation")] };
+
+    await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s-canonical-bootstrap", cwd }, output);
+    const bootstrapText = output.messages[0]?.parts[0]?.text ?? "";
+
+    expect(bootstrapText).toContain("Canonical delivery sequence");
+    expectOrdered(bootstrapText, "@coder", "@reviewer-spec");
+    expectOrdered(bootstrapText, "@reviewer-spec", "@reviewer-quality");
+    for (const specializedCheck of ["@security", "@qa", "@docs"] as const) {
+      expectOrdered(bootstrapText, "@reviewer-quality", specializedCheck);
+      expectOrdered(bootstrapText, specializedCheck, "fresh verification");
+      expectOrdered(bootstrapText, specializedCheck, "@reviewer-final");
+    }
+    expectOrdered(bootstrapText, "fresh verification", "@reviewer-final");
+    expectOrdered(bootstrapText, "@reviewer-final", "@release");
+  });
+
+  test("bootstrap routes PR creation through pr guidance separately from release coordination", async () => {
+    const cwd = await makeProject(true);
+    process.chdir(cwd);
+    const plugin = await ImitationMachinePlugin();
+    const output = { messages: [userMessage("prepare this for review and release")] };
+
+    await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s-pr-release-routing", cwd }, output);
+    const bootstrapText = output.messages[0]?.parts[0]?.text ?? "";
+
+    expect(bootstrapText).not.toContain("PR/release → dispatch @release");
+    expect(bootstrapText).toContain("PR creation/review-readiness → load `pr`");
+    expect(bootstrapText).toContain("release readiness/version/changelog/tag/publish → coordinate with @release / `release`");
+  });
+
   test("does not activate strict mode from project-local plugin config alone", async () => {
     const cwd = await makeProject(false);
     await writeFile(join(cwd, ".opencode", "opencode.json"), '{"plugin":["imitation-machine"]}\n');
@@ -481,6 +525,11 @@ describe("imitation-machine plugin behavior", () => {
     expect(bootstrapText).toContain("hono-patterns");
     expect(bootstrapText).toContain("How we use Hono in this project");
     expect(bootstrapText).toContain("Project-Local Skills");
+    const projectSkillDelegationLine = bootstrapText.split("\n")
+      .find((line) => line.includes("project skill names")) ?? "";
+    for (const subagent of ["@coder", "@planner", "@architect", "@reviewer-spec", "@reviewer-quality", "@reviewer-final", "@security", "@qa", "@docs"] as const) {
+      expect(projectSkillDelegationLine).toContain(subagent);
+    }
   });
 
   test("bootstrap works without project-local skills", async () => {
@@ -532,6 +581,7 @@ describe("imitation-machine plugin behavior", () => {
     expect(config.agent?.coder?.mode).toBe("subagent");
     expect(config.agent?.["reviewer-spec"]?.mode).toBe("subagent");
     expect(config.agent?.["reviewer-quality"]?.mode).toBe("subagent");
+    expect(config.agent?.["reviewer-final"]?.mode).toBe("subagent");
     expect(config.agent?.security?.mode).toBe("subagent");
     expect(String(config.agent?.planner?.prompt ?? "")).toContain("You are the Planner agent.");
     expect(String(config.agent?.coder?.prompt ?? "")).toContain("You are the Coder agent.");

@@ -27,11 +27,13 @@ type CommandExecution = {
   output: string;
 };
 
-type PersonaPhase = "plan" | "build" | "governance";
+type PersonaPhase = "plan" | "implementation" | "specialized" | "final-review" | "release";
 
 const PLAN_PHASE: readonly PersonaId[] = ["architect", "po", "planner"];
-const BUILD_PHASE: readonly PersonaId[] = ["coder", "qa", "docs"];
-const GOVERNANCE_PHASE: readonly PersonaId[] = ["security", "reviewer", "release"];
+const IMPLEMENTATION_REVIEW_PHASE: readonly PersonaId[] = ["coder", "reviewer-spec", "reviewer-quality"];
+const SPECIALIZED_PHASE: readonly PersonaId[] = ["security", "qa", "docs"];
+const FINAL_REVIEW_PHASE: readonly PersonaId[] = ["reviewer-final"];
+const RELEASE_PHASE: readonly PersonaId[] = ["release"];
 const planPersistenceQueues = new Map<string, Promise<void>>();
 let planPersistenceDelayHookForTests: ((planId: string, tasks: PlanTaskWithPersonaCommands[]) => Promise<void> | void) | undefined;
 
@@ -51,8 +53,10 @@ USAGE
 NOTES
   - Orchestration uses phased execution:
     - plan phase: sequential (architect -> po -> planner)
-    - build phase: parallel (coder, qa, docs)
-    - governance phase: sequential (security -> reviewer -> release)
+    - implementation/task-level review phase: sequential (coder -> reviewer-spec -> reviewer-quality)
+    - specialized evidence phase: parallel (security, qa, docs)
+    - verification phase: fresh task verification command
+    - delivery finalization: after all plan tasks complete, fresh plan verification, reviewer-final, then release/handoff
   - In normal mode, persona stages execute real commands.
   - In --dry-run mode, stages are simulated and only audit records are written.
 `.trim();
@@ -110,6 +114,15 @@ export async function executeOrchestration(options: OrchestrateOptions): Promise
     const executionResult = await executeTaskGroups(options, planRow.id, tasks, selectedTasks);
     runCount += executionResult.runCount;
     failedRunCount += executionResult.failedRunCount;
+
+    if (isDeliveryFinalizationDue(tasks)) {
+      const finalizationResult = await executeDeliveryFinalization(planRow.id, tasks, options);
+      runCount += finalizationResult.runCount;
+      failedRunCount += finalizationResult.failedRunCount;
+      if (finalizationResult.failedRunCount > 0) {
+        throw new Error(finalizationResult.firstError ?? `Delivery finalization failed for plan ${planRow.id}`);
+      }
+    }
 
     db.update(plans)
       .set({
@@ -300,7 +313,13 @@ async function orchestrateStatus(args: string[]): Promise<void> {
 }
 
 function resolvePersonaOrder(): PersonaId[] {
-  return [...PLAN_PHASE, ...BUILD_PHASE, ...GOVERNANCE_PHASE];
+  return [
+    ...PLAN_PHASE,
+    ...IMPLEMENTATION_REVIEW_PHASE,
+    ...SPECIALIZED_PHASE,
+    ...FINAL_REVIEW_PHASE,
+    ...RELEASE_PHASE,
+  ];
 }
 
 function resolvePlanStatus(tasks: PlanTaskWithPersonaCommands[]): "executing" | "done" | "failed" {
@@ -313,6 +332,10 @@ function resolvePlanStatus(tasks: PlanTaskWithPersonaCommands[]): "executing" | 
   }
 
   return "executing";
+}
+
+function isDeliveryFinalizationDue(tasks: PlanTaskWithPersonaCommands[]): boolean {
+  return tasks.length > 0 && tasks.every((task) => task.status === "completed");
 }
 
 function resolveSelectedTasks(
@@ -533,6 +556,7 @@ async function executePersonaStage(
   personaId: PersonaId,
   task: PlanTaskWithPersonaCommands,
   options: OrchestrateOptions,
+  subjectLabel: string = `task ${task.id}`,
 ): Promise<{ success: boolean; executions: CommandExecution[]; error: string }> {
   if (options.dryRun) {
     return {
@@ -541,7 +565,7 @@ async function executePersonaStage(
         command: "(dry-run) simulated stage",
         success: true,
         exitCode: 0,
-        output: `Simulated ${personaId} stage for task ${task.id}`,
+        output: `Simulated ${personaId} stage for ${subjectLabel}`,
       }],
       error: "",
     };
@@ -549,14 +573,17 @@ async function executePersonaStage(
 
   const commands = getCommandsForPersona(personaId, task);
   if (commands.length === 0) {
+    if (personaId === "reviewer-final") {
+      return {
+        success: false,
+        executions: [],
+        error: `reviewer-final command is required before release for ${subjectLabel}. Configure personaCommands["reviewer-final"] with an explicit final review command or subagent dispatch.`,
+      };
+    }
+
     return {
       success: true,
-      executions: [{
-        command: "(no-op)",
-        success: true,
-        exitCode: 0,
-        output: `No command defined for persona ${personaId}`,
-      }],
+      executions: [buildSkippedExecution(personaId)],
       error: "",
     };
   }
@@ -569,7 +596,7 @@ async function executePersonaStage(
       return {
         success: false,
         executions,
-        error: `Persona ${personaId} failed for task ${task.id}: ${command}`,
+        error: `Persona ${personaId} failed for ${subjectLabel}: ${command}`,
       };
     }
   }
@@ -598,34 +625,171 @@ async function executeTaskWorkflow(
     };
   }
 
-  const buildResult = await runParallelPhase("build", BUILD_PHASE, task, planId, options, BUILD_PHASE.length);
-  runCount += buildResult.runCount;
-  failedRunCount += buildResult.failedRunCount;
-  if (buildResult.failedRunCount > 0) {
+  const implementationResult = await runSequentialPhase("implementation", IMPLEMENTATION_REVIEW_PHASE, task, planId, options);
+  runCount += implementationResult.runCount;
+  failedRunCount += implementationResult.failedRunCount;
+  if (implementationResult.failedRunCount > 0) {
     await updateTaskStatus(options.cwd, planId, allTasks, task.id, "failed");
     return {
       success: false,
       runCount,
       failedRunCount,
-      error: buildResult.firstError ?? `Build phase failed for task ${task.id}`,
+      error: implementationResult.firstError ?? `Implementation review phase failed for task ${task.id}`,
     };
   }
 
-  const governanceResult = await runSequentialPhase("governance", GOVERNANCE_PHASE, task, planId, options);
-  runCount += governanceResult.runCount;
-  failedRunCount += governanceResult.failedRunCount;
-  if (governanceResult.failedRunCount > 0) {
+  const specializedResult = await runParallelPhase("specialized", SPECIALIZED_PHASE, task, planId, options, SPECIALIZED_PHASE.length);
+  runCount += specializedResult.runCount;
+  failedRunCount += specializedResult.failedRunCount;
+  if (specializedResult.failedRunCount > 0) {
     await updateTaskStatus(options.cwd, planId, allTasks, task.id, "failed");
     return {
       success: false,
       runCount,
       failedRunCount,
-      error: governanceResult.firstError ?? `Governance phase failed for task ${task.id}`,
+      error: specializedResult.firstError ?? `Specialized evidence phase failed for task ${task.id}`,
+    };
+  }
+
+  const verificationResult = await executeVerificationStage(task, options);
+  if (!verificationResult.success) {
+    await updateTaskStatus(options.cwd, planId, allTasks, task.id, "failed");
+    return {
+      success: false,
+      runCount,
+      failedRunCount,
+      error: verificationResult.error ?? `Verification phase failed for task ${task.id}`,
     };
   }
 
   await updateTaskStatus(options.cwd, planId, allTasks, task.id, "completed");
   return { success: true, runCount, failedRunCount };
+}
+
+async function executeDeliveryFinalization(
+  planId: string,
+  tasks: PlanTaskWithPersonaCommands[],
+  options: OrchestrateOptions,
+): Promise<{ runCount: number; failedRunCount: number; firstError?: string }> {
+  const verificationResult = await executePlanVerificationStage(planId, options);
+  if (!verificationResult.success) {
+    return {
+      runCount: 0,
+      failedRunCount: 1,
+      firstError: verificationResult.error ?? `Plan verification failed for plan ${planId}`,
+    };
+  }
+
+  const deliveryTask = buildDeliveryFinalizationTask(planId, tasks);
+  const finalReviewResult = await runSequentialPhase("final-review", FINAL_REVIEW_PHASE, deliveryTask, planId, options, "plan");
+  let runCount = finalReviewResult.runCount;
+  let failedRunCount = finalReviewResult.failedRunCount;
+  if (finalReviewResult.failedRunCount > 0) {
+    return {
+      runCount,
+      failedRunCount,
+      firstError: finalReviewResult.firstError ?? `Final review phase failed for plan ${planId}`,
+    };
+  }
+
+  const releaseResult = await runSequentialPhase("release", RELEASE_PHASE, deliveryTask, planId, options, "plan");
+  runCount += releaseResult.runCount;
+  failedRunCount += releaseResult.failedRunCount;
+  if (releaseResult.failedRunCount > 0) {
+    return {
+      runCount,
+      failedRunCount,
+      firstError: releaseResult.firstError ?? `Release phase failed for plan ${planId}`,
+    };
+  }
+
+  return { runCount, failedRunCount };
+}
+
+async function executePlanVerificationStage(
+  planId: string,
+  options: OrchestrateOptions,
+): Promise<{ success: boolean; error?: string }> {
+  if (options.dryRun) {
+    return { success: true };
+  }
+
+  const command = buildPlanVerificationCommand(planId);
+  const execution = await runShellCommand(command, options.cwd);
+  if (!execution.success) {
+    return {
+      success: false,
+      error: `Plan verification failed for plan ${planId}: ${command}`,
+    };
+  }
+
+  return { success: true };
+}
+
+function buildDeliveryFinalizationTask(
+  planId: string,
+  tasks: PlanTaskWithPersonaCommands[],
+): PlanTaskWithPersonaCommands {
+  const deliveryPersonaCommands: Partial<Record<PersonaId, string[]>> = {};
+  for (const personaId of [...FINAL_REVIEW_PHASE, ...RELEASE_PHASE]) {
+    const configuredCommands = tasks
+      .map((task) => task.personaCommands?.[personaId])
+      .find((commands): commands is string[] => Array.isArray(commands) && commands.length > 0);
+    if (configuredCommands) {
+      deliveryPersonaCommands[personaId] = configuredCommands;
+    }
+  }
+
+  return {
+    id: planId,
+    title: `Delivery finalization for ${planId}`,
+    description: `Final integrated review and release handoff for plan ${planId}`,
+    filePaths: Array.from(new Set(tasks.flatMap((task) => task.filePaths))),
+    verificationCommand: buildPlanVerificationCommand(planId),
+    expectedOutput: "Plan-level verification passes",
+    estimatedMinutes: 0,
+    executionGroupId: "delivery-finalization",
+    prGroupId: "delivery-finalization",
+    independence: "shared",
+    dependsOnTaskIds: tasks.map((task) => task.id),
+    status: "completed",
+    personaCommands: deliveryPersonaCommands,
+  };
+}
+
+async function executeVerificationStage(
+  task: PlanTaskWithPersonaCommands,
+  options: OrchestrateOptions,
+): Promise<{ success: boolean; error?: string }> {
+  const verificationCommand = task.verificationCommand?.trim() ?? "";
+  if (options.dryRun) {
+    return { success: true };
+  }
+
+  const commands = [
+    ...(verificationCommand.length > 0 ? [verificationCommand] : []),
+    buildFullVerificationCommand(task),
+  ];
+
+  for (const command of commands) {
+    const execution = await runShellCommand(command, options.cwd);
+    if (!execution.success) {
+      return {
+        success: false,
+        error: `Verification failed for task ${task.id}: ${command}`,
+      };
+    }
+  }
+
+  return { success: true };
+}
+
+function buildFullVerificationCommand(task: PlanTaskWithPersonaCommands): string {
+  return `bun cli/index.ts verify all --ref ${task.id}`;
+}
+
+function buildPlanVerificationCommand(planId: string): string {
+  return `bun cli/index.ts verify all --ref ${planId}`;
 }
 
 async function runSequentialPhase(
@@ -634,13 +798,14 @@ async function runSequentialPhase(
   task: PlanTaskWithPersonaCommands,
   planId: string,
   options: OrchestrateOptions,
+  scope: "task" | "plan" = "task",
 ): Promise<{ runCount: number; failedRunCount: number; firstError?: string }> {
   let runCount = 0;
   let failedRunCount = 0;
   let firstError: string | undefined;
 
   for (const personaId of personas) {
-    const result = await runPersonaStage(phase, personaId, task, planId, options, undefined);
+    const result = await runPersonaStage(phase, personaId, task, planId, options, undefined, scope);
     runCount += 1;
     if (!result.success) {
       failedRunCount += 1;
@@ -672,7 +837,7 @@ async function runParallelPhase(
       const personaId = queue.shift();
       if (!personaId) return startedRunCount;
       startedRunCount += 1;
-      const result = await runPersonaStage(phase, personaId, task, planId, options, `build-worker-${index + 1}`);
+      const result = await runPersonaStage(phase, personaId, task, planId, options, `${phase}-worker-${index + 1}`);
       if (!result.success) {
         failedRunCount += 1;
         firstError = firstError ?? result.error;
@@ -702,12 +867,14 @@ async function runPersonaStage(
   planId: string,
   options: OrchestrateOptions,
   parallelGroupId: string | undefined,
+  scope: "task" | "plan" = "task",
 ): Promise<{ success: boolean; error?: string }> {
   const persona = getPersona(personaId);
+  const subjectLabel = scope === "plan" ? `plan ${planId}` : `task ${task.id}`;
   const run = startAgentRun({
     persona: personaId,
     planId,
-    taskId: task.id,
+    taskId: scope === "plan" ? undefined : task.id,
     sessionId: options.sessionId,
     inputs: {
       taskTitle: task.title,
@@ -718,20 +885,24 @@ async function runPersonaStage(
       dryRun: options.dryRun,
       role: persona.responsibility,
       phase,
+      scope,
       parallelGroupId,
     },
   });
 
-  const result = await executePersonaStage(personaId, task, options);
+  const result = await executePersonaStage(personaId, task, options, subjectLabel);
   if (result.success) {
+    const skipped = result.executions.every((execution) => execution.command === "(skipped)");
     run.complete({
       simulated: options.dryRun,
       dryRun: options.dryRun,
       phase,
       parallelGroupId,
-      summary: `${persona.name} completed stage for task ${task.id}`,
+      summary: skipped
+        ? `${persona.name} skipped stage for ${subjectLabel}`
+        : `${persona.name} completed stage for ${subjectLabel}`,
       executions: result.executions,
-      nextGate: personaId === "reviewer" ? "quality" : undefined,
+      nextGate: personaId === "reviewer-spec" ? "quality" : undefined,
     });
     return { success: true };
   }
@@ -750,22 +921,43 @@ function getCommandsForPersona(personaId: PersonaId, task: PlanTaskWithPersonaCo
     case "coder":
       return task.verificationCommand ? [task.verificationCommand] : [];
     case "qa":
-      return task.verificationCommand ? [task.verificationCommand] : [];
+      return [];
     case "security":
       return [
         `bun cli/index.ts gate security-secrets --ref ${task.id}`,
         `bun cli/index.ts gate security-sast --ref ${task.id}`,
       ];
-    case "reviewer":
+    case "reviewer-spec":
       return [
         `bun cli/index.ts gate spec --ref ${task.id}`,
+      ];
+    case "reviewer-quality":
+      return [
         `bun cli/index.ts gate quality --ref ${task.id}`,
       ];
+    case "reviewer-final":
+    case "reviewer":
+      return [];
     case "release":
-      return [`bun cli/index.ts verify all --ref ${task.id}`];
+      return [];
     default:
       return [];
   }
+}
+
+function buildSkippedExecution(personaId: PersonaId): CommandExecution {
+  const output = personaId === "qa"
+    ? "Skipped QA stage: no configured QA command. Configure personaCommands.qa to run a real QA dispatch command."
+    : personaId === "release"
+      ? "Skipped release stage: no configured release command. Configure personaCommands.release to run an explicit release-readiness handoff command."
+      : `Skipped ${personaId} stage: no configured command.`;
+
+  return {
+    command: "(skipped)",
+    success: true,
+    exitCode: 0,
+    output,
+  };
 }
 
 async function runShellCommand(command: string, cwd: string): Promise<CommandExecution> {
