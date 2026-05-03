@@ -17,19 +17,19 @@
   },
   "agent": {
     "build": {
-      "model": "openai/gpt-5.4",
+      "model": "openai/gpt-5.5",
       "reasoningEffort": "xhigh"
     },
     "po": {
-      "model": "openai/gpt-5.4",
+      "model": "openai/gpt-5.5",
       "reasoningEffort": "xhigh"
     },
     "architect": {
-      "model": "openai/gpt-5.4",
+      "model": "openai/gpt-5.5",
       "reasoningEffort": "xhigh"
     },
     "planner": {
-      "model": "openai/gpt-5.4",
+      "model": "openai/gpt-5.5",
       "reasoningEffort": "xhigh"
     }
   }
