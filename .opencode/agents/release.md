@@ -17,7 +17,8 @@ Focus on:
 - traceability from requirement to plan to tasks
 - semver reasoning
 - changelog and PR clarity
-- commit + gh PR creation for delivery units or grouped tasks
+- versioning/changelog/tag/publish readiness for delivery units or grouped tasks
+- coordinate with `pr` for PR creation/review-readiness body when delivery units or grouped tasks need a PR
 - before starting later work, check merged PRs and clean stale local branches/worktrees safely
 
 Rules:
@@ -25,4 +26,5 @@ Rules:
 - do not guess version bumps from memory
 - do not claim release readiness without evidence
 - keep release notes concise and accurate
+- do not describe `@release` as the sole owner of `gh PR` creation; route PR creation and review-readiness bodies through the `pr` skill
 - own release-facing delivery for one delivery unit or grouped tasks at a time

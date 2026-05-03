@@ -51,6 +51,25 @@ const DEEPENED_FIXTURE_EXPECTATIONS = {
     ["execute the next task", "work through the plan", "inline"],
     ["verification evidence", "verification", "proof"],
     ["stop if", "re-evaluate", "scope grows"],
+    ["worktree", "isolation", "main/master"],
+  ],
+  "tests/skill-triggering/tdd-prompts.md": [
+    ["red-green-refactor", "red/green/refactor"],
+    ["bug", "regression"],
+    ["manual test", "manual testing"],
+    ["delete", "start over"],
+  ],
+  "tests/skill-triggering/receiving-code-review-prompts.md": [
+    ["external reviewer", "reviewer feedback"],
+    ["unclear", "clarification"],
+    ["yagni"],
+    ["github", "thread"],
+  ],
+  "tests/skill-triggering/review-final-prompts.md": [
+    ["final holistic", "production readiness"],
+    ["integrated diff"],
+    ["verification evidence"],
+    ["does not replace", "review-spec", "review-quality"],
   ],
   "tests/skill-triggering/dispatching-parallel-agents-prompts.md": [
     ["parallel", "independent", "separate"],
@@ -96,6 +115,25 @@ const DEEPENED_FIXTURE_EXPECTATIONS = {
     ["`executing-plans`"],
     ["approved plan", "approved task"],
     ["work through the plan", "inline", "one planned task at a time"],
+    ["worktree", "isolation", "main/master"],
+  ],
+  "tests/explicit-skill-requests/tdd-prompts.md": [
+    ["explicit"],
+    ["`tdd`"],
+    ["red-green-refactor", "red/green/refactor"],
+    ["manual test", "manual testing"],
+  ],
+  "tests/explicit-skill-requests/receiving-code-review-prompts.md": [
+    ["explicit"],
+    ["`receiving-code-review`"],
+    ["external reviewer", "unclear feedback"],
+    ["github thread", "yagni"],
+  ],
+  "tests/explicit-skill-requests/review-final-prompts.md": [
+    ["explicit"],
+    ["`review-final`"],
+    ["final holistic", "production readiness"],
+    ["after task-level reviews", "before release/pr"],
   ],
   "tests/explicit-skill-requests/dispatching-parallel-agents-prompts.md": [
     ["explicit"],
@@ -149,6 +187,9 @@ const EXPECTED_PRESSURE_MATRIX_FIXTURES = {
   adr: "tests/explicit-skill-requests/adr-prompts.md",
   commit: "tests/explicit-skill-requests/commit-prompts.md",
   "executing-plans": "tests/explicit-skill-requests/executing-plans-prompts.md",
+  tdd: "tests/explicit-skill-requests/tdd-prompts.md",
+  "receiving-code-review": "tests/explicit-skill-requests/receiving-code-review-prompts.md",
+  "review-final": "tests/explicit-skill-requests/review-final-prompts.md",
   "dispatching-parallel-agents": "tests/explicit-skill-requests/dispatching-parallel-agents-prompts.md",
   "review-security": "tests/explicit-skill-requests/review-security-prompts.md",
   "systematic-debugging": "tests/explicit-skill-requests/systematic-debugging-prompts.md",
@@ -162,6 +203,8 @@ const EXPLICIT_PER_PROMPT_FIXTURES = [
   "tests/explicit-skill-requests/design-prompts.md",
   "tests/explicit-skill-requests/worktree-prompts.md",
   "tests/explicit-skill-requests/requesting-code-review-prompts.md",
+  "tests/explicit-skill-requests/receiving-code-review-prompts.md",
+  "tests/explicit-skill-requests/review-final-prompts.md",
   "tests/explicit-skill-requests/verify-prompts.md",
   "tests/explicit-skill-requests/gate-prompts.md",
   "tests/explicit-skill-requests/pr-prompts.md",
@@ -175,6 +218,12 @@ const EXPLICIT_PER_PROMPT_FIXTURES = [
   "tests/explicit-skill-requests/review-security-prompts.md",
   "tests/explicit-skill-requests/systematic-debugging-prompts.md",
 ] as const;
+
+const SKILL_TRIGGER_LOAD_EXPECTATIONS = {
+  "tests/skill-triggering/tdd-prompts.md": "`tdd`",
+  "tests/skill-triggering/receiving-code-review-prompts.md": "`receiving-code-review`",
+  "tests/skill-triggering/review-final-prompts.md": "`review-final`",
+} as const;
 
 const AVOID_JARGON_PHRASES = {
   "tests/skill-triggering/verify-prompts.md": ["confidence-only"],
@@ -202,6 +251,44 @@ const AVOID_JARGON_PHRASES = {
 } as const;
 
 const DISTINCT_SCENARIO_EXPECTATIONS = {
+  "tests/skill-triggering/tdd-prompts.md": [
+    [/bug|regression/, /failing test|red/, /green/],
+    [/manual test|manual testing/, /reject|not enough|automated/],
+    [/code already written|wrote code first/, /delete|start over/],
+  ],
+  "tests/explicit-skill-requests/tdd-prompts.md": [
+    [/`tdd`/, /red-green-refactor|red\/green\/refactor/],
+    [/`tdd`/, /passes immediately|immediate pass/, /fix the test|red/],
+    [/`tdd`/, /manual test|manual testing/, /automated/],
+  ],
+  "tests/skill-triggering/receiving-code-review-prompts.md": [
+    [/external reviewer/, /check|verify/, /technical reasoning|push back/],
+    [/unclear feedback|unclear/, /stop|clarification/, /do not implement/],
+    [/github|thread/, /top-level pr comment|inline/, /reply/],
+  ],
+  "tests/explicit-skill-requests/receiving-code-review-prompts.md": [
+    [/`receiving-code-review`/, /external reviewer/, /suggestion|not an order/],
+    [/`receiving-code-review`/, /unclear feedback|clarification/, /stop/],
+    [/`receiving-code-review`/, /yagni/, /github thread|thread reply/],
+  ],
+  "tests/skill-triggering/executing-plans-prompts.md": [
+    [/approved plan/, /next task|work through/, /verification/],
+    [/worktree|isolation/, /non-trivial|main\/master/, /verify|check/],
+    [/scope grows|extra work/, /stop|re-evaluate/],
+  ],
+  "tests/explicit-skill-requests/executing-plans-prompts.md": [
+    [/`executing-plans`/, /approved plan|approved task/, /one planned task/],
+    [/`executing-plans`/, /main\/master|unverified isolation/, /stop|worktree/],
+  ],
+  "tests/skill-triggering/review-final-prompts.md": [
+    [/final holistic|production readiness/, /integrated diff/, /verification evidence/],
+    [/after task-level/, /review-spec|review-quality/, /does not replace/],
+    [/security|qa|documentation/, /risk/, /before release\/pr|before pr/],
+  ],
+  "tests/explicit-skill-requests/review-final-prompts.md": [
+    [/`review-final`/, /final holistic|production readiness/, /integrated diff/],
+    [/`review-final`/, /after task-level reviews/, /before release\/pr/],
+  ],
   "tests/skill-triggering/review-security-prompts.md": [
     [/auth|authorization/, /input|validation|untrusted input/, /block|merge/],
     [/secret|token/, /severity|high-severity|critical|high/],
@@ -456,6 +543,7 @@ const STRONG_INTENT_PHRASES = {
   "subagent-driven-development": ["task by task", "fresh workers", "review gates"],
   "executing-plans": ["approved plan", "one planned task at a time", "work through the plan"],
   "review-quality": ["review quality", "maintainability", "severity calibration"],
+  "review-final": ["final holistic", "production readiness", "integrated diff"],
   "review-security": ["review security", "security finding", "severity"],
   "review-spec": ["review spec", "spec review", "compliance"],
   "requesting-code-review": ["review request", "ask for review", "reviewers should focus"],
@@ -832,6 +920,20 @@ describe("prompt fixture suites", () => {
     }
   });
 
+  test("critical trigger fixtures declare the skill load in every expected behavior block", async () => {
+    for (const [fixture, skillName] of Object.entries(SKILL_TRIGGER_LOAD_EXPECTATIONS)) {
+      const content = await readFixture(fixture);
+
+      for (const section of structuredPromptSections(content)) {
+        expect(section.toLowerCase()).toContain(`- load ${skillName}`.toLowerCase());
+      }
+    }
+  });
+
+  test("critical trigger load guard covers final readiness review triggers", () => {
+    expect(SKILL_TRIGGER_LOAD_EXPECTATIONS["tests/skill-triggering/review-final-prompts.md"]).toBe("`review-final`");
+  });
+
   test("ships the bounded eval deepening fixtures for the current pressure-wave skills", async () => {
     for (const [fixture, requiredPhrases] of Object.entries(DEEPENED_FIXTURE_EXPECTATIONS)) {
       expect(await exists(fixture), `${fixture} should exist`).toBe(true);
@@ -914,6 +1016,7 @@ describe("prompt fixture suites", () => {
         "subagent-driven-development",
       "review-spec",
       "review-quality",
+      "review-final",
       "review-security",
         "requesting-code-review",
         "receiving-code-review",
@@ -1002,6 +1105,24 @@ describe("prompt fixture suites", () => {
       const row = getComparisonMatrixRow(content, skill).toLowerCase();
       expectContainsAll(row, ["multi-turn", "plan -> subagent-driven-development -> review-spec -> review-quality -> verify"]);
     }
+  });
+
+  test("comparison matrix reflects closed quality/delegation/coding-control gaps", async () => {
+    const content = await readFixture("docs/skills-comparison-matrix.md");
+
+    const tddRow = getComparisonMatrixRow(content, "tdd").toLowerCase();
+    expectContainsAll(tddRow, ["red-green-refactor", "bug-fix", "manual", "delete-and-restart"]);
+
+    const receivingRow = getComparisonMatrixRow(content, "receiving-code-review").toLowerCase();
+    expectContainsAll(receivingRow, ["external reviewer", "unclear feedback", "yagni", "github thread"]);
+
+    const executingRow = getComparisonMatrixRow(content, "executing-plans").toLowerCase();
+    expectContainsAll(executingRow, ["worktree", "isolation", "main/master"]);
+
+    const reviewFinalRow = getComparisonMatrixRow(content, "review-final").toLowerCase();
+    expectContainsAll(reviewFinalRow, ["final holistic", "integrated diff", "before release/pr"]);
+
+    expect(content.toLowerCase()).toContain("qa/persona drift closed");
   });
 
   test("writing-skills docs avoid contradictory force-load links and keep deep testing guidance in the companion reference", async () => {

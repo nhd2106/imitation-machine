@@ -3,7 +3,7 @@
 Enterprise-oriented agentic SDLC framework with:
 
 - Skill-driven workflow (brainstorm, plan, tdd, staged reviews)
-- Expanded workflow inventory (`systematic-debugging`, `dispatching-parallel-agents`, `executing-plans`, `finishing-a-development-branch`, `requesting-code-review`, `receiving-code-review`)
+- Expanded workflow inventory (`systematic-debugging`, `dispatching-parallel-agents`, `executing-plans`, `finishing-a-development-branch`, `requesting-code-review`, `receiving-code-review`, `review-final`)
 - Hard gates (coverage/typecheck/security)
 - Verification-before-completion (`agentic verify all`)
 - Mono-repo impact tooling (`agentic repo *`)
@@ -31,12 +31,17 @@ From this source checkout, use `./bin/agentic` unless you already installed `age
 
 ### Tiny example workflow
 
+Canonical final sequence:
+
 ```text
 1. Open a repo that opted into imitation-machine.
 2. Load `using-agentic`.
 3. Pick the process skill that matches the task (for example `plan` or `tdd`).
-4. Do the work with the right personas and review steps.
-5. Run `./bin/agentic verify all` before calling it done.
+4. Do implementation and task-level `review-spec` / `review-quality`.
+5. Run specialized checks/updates as needed: `review-security` / `@security`, `@qa`, `@docs`.
+6. Run `./bin/agentic verify all` for fresh verification evidence.
+7. Run `review-final` via `@reviewer-final`.
+8. `@release` / PR / handoff (PR/release/handoff).
 ```
 
 ## Contributing
@@ -72,7 +77,7 @@ The core idea is simple: start with `using-agentic`, let the matching workflow s
 `imitation-machine` ships a broad workflow surface plus bounded behavioral evaluation for:
 
 - workflow entry and execution (`using-agentic`, `plan`, `executing-plans`, `tdd`, `subagent-driven-development`)
-- review and release flow (`requesting-code-review`, `receiving-code-review`, `review-spec`, `review-quality`, `review-security`, `pr`, `release`, `finishing-a-development-branch`)
+- review and release flow (`requesting-code-review`, `receiving-code-review`, `review-spec`, `review-quality`, `review-final` / `@reviewer-final`, `review-security`, `pr`, `release`, `finishing-a-development-branch`)
 - repo/workspace discipline (`repo`, `worktree`, `gate`, `verify`, `commit`, `adr`)
 - debugging, design, and coordination (`systematic-debugging`, `design`, `dispatching-parallel-agents`)
 

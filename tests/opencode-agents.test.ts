@@ -20,9 +20,18 @@ function extractFrontmatterDescription(content: string): string {
   return "";
 }
 
+function expectOrdered(content: string, earlier: string, later: string): void {
+  const earlierIndex = content.indexOf(earlier);
+  const laterIndex = content.indexOf(later);
+
+  expect(earlierIndex, `${earlier} should exist`).toBeGreaterThanOrEqual(0);
+  expect(laterIndex, `${later} should exist`).toBeGreaterThanOrEqual(0);
+  expect(earlierIndex, `${earlier} should appear before ${later}`).toBeLessThan(laterIndex);
+}
+
 describe("OpenCode agents", () => {
   test("core persona agents exist as subagents", async () => {
-    for (const agent of ["architect", "po", "planner", "worktree", "coder", "qa", "security", "reviewer-spec", "reviewer-quality", "docs", "release"] as const) {
+    for (const agent of ["architect", "po", "planner", "worktree", "coder", "qa", "security", "reviewer-spec", "reviewer-quality", "reviewer-final", "docs", "release"] as const) {
       const content = await readAgent(agent);
       expect(content.includes("mode: subagent")).toBe(true);
       expect(content.includes("description:")).toBe(true);
@@ -38,7 +47,7 @@ describe("OpenCode agents", () => {
 
     await plugin.config(config);
 
-    for (const agent of ["architect", "po", "planner", "worktree", "coder", "qa", "security", "reviewer-spec", "reviewer-quality", "docs", "release"] as const) {
+    for (const agent of ["architect", "po", "planner", "worktree", "coder", "qa", "security", "reviewer-spec", "reviewer-quality", "reviewer-final", "docs", "release"] as const) {
       const content = await readAgent(agent);
       const description = extractFrontmatterDescription(content);
       expect(description.length).toBeGreaterThan(0);
@@ -63,10 +72,31 @@ describe("OpenCode agents", () => {
     expect(content.includes("receiving-code-review")).toBe(true);
   });
 
+  test("project build agent runs specialized checks and fresh verification before final review", async () => {
+    const content = await readAgent("build");
+    const preferredSequence = content.slice(content.indexOf("## Preferred Sequence"));
+
+    expect(preferredSequence).toContain("task-level reviews");
+    expect(preferredSequence).toContain("@security");
+    expect(preferredSequence).toContain("@qa");
+    expect(preferredSequence).toContain("@docs");
+    expect(preferredSequence).toContain("agentic verify all");
+    expect(preferredSequence).toContain("@reviewer-final");
+    expect(preferredSequence).toContain("PR/release/handoff");
+    expectOrdered(preferredSequence, "task-level reviews", "agentic verify all");
+    for (const specializedCheck of ["@security", "@qa", "@docs"] as const) {
+      expectOrdered(preferredSequence, specializedCheck, "agentic verify all");
+      expectOrdered(preferredSequence, specializedCheck, "@reviewer-final");
+    }
+    expectOrdered(preferredSequence, "agentic verify all", "@reviewer-final");
+    expectOrdered(preferredSequence, "@reviewer-final", "PR/release/handoff");
+  });
+
   test("coder can edit while reviewers are read-only", async () => {
     const coder = await readAgent("coder");
     const reviewerSpec = await readAgent("reviewer-spec");
     const reviewerQuality = await readAgent("reviewer-quality");
+    const reviewerFinal = await readAgent("reviewer-final");
     const security = await readAgent("security");
     const qa = await readAgent("qa");
     const docs = await readAgent("docs");
@@ -75,10 +105,27 @@ describe("OpenCode agents", () => {
     expect(coder.includes("edit: allow")).toBe(true);
     expect(reviewerSpec.includes("edit: deny")).toBe(true);
     expect(reviewerQuality.includes("edit: deny")).toBe(true);
+    expect(reviewerFinal.includes("edit: deny")).toBe(true);
     expect(security.includes("edit: deny")).toBe(true);
     expect(qa.includes("edit: deny")).toBe(true);
     expect(docs.includes("edit: allow")).toBe(true);
     expect(release.includes("edit: ask")).toBe(true);
+  });
+
+  test("reviewer-quality reports scoped Stage 2 quality gate readiness", async () => {
+    const reviewerQuality = await readAgent("reviewer-quality");
+
+    expect(reviewerQuality).toContain("Quality gate: Pass | Fail | Pass with advisory notes");
+    expect(reviewerQuality).not.toMatch(/Ready to merge/i);
+  });
+
+  test("reviewer-final owns final holistic readiness without replacing earlier gates", async () => {
+    const reviewerFinal = await readAgent("reviewer-final");
+
+    expect(reviewerFinal).toContain("Final readiness: Pass | Fail | Pass with concerns");
+    expect(reviewerFinal).toContain("after task-level spec and quality reviews");
+    expect(reviewerFinal).toContain("integrated diff");
+    expect(reviewerFinal).toContain("does not replace @reviewer-spec or @reviewer-quality");
   });
 
   test("planner and po stay non-implementation focused", async () => {
@@ -99,6 +146,7 @@ describe("OpenCode agents", () => {
     expect(content.includes("@coder")).toBe(true);
     expect(content.includes("@reviewer-spec")).toBe(true);
     expect(content.includes("@reviewer-quality")).toBe(true);
+    expect(content.includes("@reviewer-final")).toBe(true);
     expect(content.includes("@po")).toBe(true);
     expect(content.includes("@planner")).toBe(true);
     expect(content.includes("@worktree")).toBe(true);
@@ -118,6 +166,7 @@ describe("OpenCode agents", () => {
       ["skills/adr/SKILL.md", "@architect"],
       ["skills/review-spec/SKILL.md", "@reviewer-spec"],
       ["skills/review-quality/SKILL.md", "@reviewer-quality"],
+      ["skills/review-final/SKILL.md", "@reviewer-final"],
       ["skills/review-security/SKILL.md", "@security"],
       ["skills/pr/SKILL.md", "@release"],
       ["skills/release/SKILL.md", "@release"],
@@ -139,9 +188,16 @@ describe("OpenCode agents", () => {
     expect(content.includes("clean stale local branches/worktrees safely")).toBe(true);
   });
 
-  test("release agent owns delivery-unit commits and PR creation", async () => {
+  test("build and release agents route PR creation to pr skill", async () => {
+    const build = await readAgent("build");
     const content = await readAgent("release");
-    expect(content.includes("commit + gh PR creation")).toBe(true);
+
+    expect(build.includes("`pr` skill owns PR creation/review-readiness body")).toBe(true);
+    expect(build.includes("`release` owns release readiness, versioning/changelog/tag/publish")).toBe(true);
+    expect(build.includes("@release` owns commit + gh PR creation")).toBe(false);
+
+    expect(content.includes("coordinate with `pr` for PR creation/review-readiness body")).toBe(true);
+    expect(content.includes("commit + gh PR creation")).toBe(false);
     expect(content.includes("delivery units or grouped tasks")).toBe(true);
     expect(content.includes("check merged PRs")).toBe(true);
     expect(content.includes("clean stale local branches/worktrees safely")).toBe(true);

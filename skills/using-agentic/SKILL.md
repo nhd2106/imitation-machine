@@ -40,17 +40,33 @@ digraph agentic_flow {
   "Load using-agentic" [shape=box];
   "Load process skill" [shape=box];
   "Do work under workflow rules" [shape=box];
-  "Load review/release skills as needed" [shape=box];
+  "Complete task-level reviews" [shape=box];
+  "Run specialized checks/updates as needed" [shape=box];
   "Run agentic verify all" [shape=box];
+  "Run review-final / @reviewer-final" [shape=box];
+  "@release / PR / handoff" [shape=box];
 
   "Task in opted-in repo" -> "Need full workflow discipline?";
   "Need full workflow discipline?" -> "Load using-agentic" [label="yes"];
   "Load using-agentic" -> "Load process skill";
   "Load process skill" -> "Do work under workflow rules";
-  "Do work under workflow rules" -> "Load review/release skills as needed";
-  "Load review/release skills as needed" -> "Run agentic verify all";
+  "Do work under workflow rules" -> "Complete task-level reviews";
+  "Complete task-level reviews" -> "Run specialized checks/updates as needed";
+  "Run specialized checks/updates as needed" -> "Run agentic verify all";
+  "Run agentic verify all" -> "Run review-final / @reviewer-final";
+  "Run review-final / @reviewer-final" -> "@release / PR / handoff";
 }
 ```
+
+Preferred sequence:
+
+Canonical final sequence:
+
+1. implementation and task-level `review-spec` / `review-quality`
+2. specialized checks/updates as needed: `review-security` / `@security`, `@qa`, `@docs`
+3. fresh `agentic verify all`
+4. `review-final` / `@reviewer-final`
+5. `@release` / PR / handoff
 
 ## Skill Order
 
@@ -81,9 +97,12 @@ digraph agentic_flow {
 | Preparing a clear review request | `requesting-code-review` |
 | Responding to review feedback | `receiving-code-review` |
 | Final branch cleanup and handoff | `finishing-a-development-branch` |
-| PR creation | `pr` |
-| Release work | `release` |
+| Final holistic production-readiness review | `review-final` |
+| PR creation and review-readiness body | `pr` |
+| Release readiness, versioning/changelog/tag/publish | `release` |
 | Completion verification | `verify` |
+
+Use `release` / `@release` to package release evidence and coordinate delivery-unit packaging. Use `pr` for the actual PR creation path and review-ready body; do not treat `@release` as the sole owner of `gh PR` creation.
 
 ## Red Flags
 
@@ -98,7 +117,7 @@ Those are overreach errors, not rigor.
 
 ## Completion Rule
 
-In opted-in workflow sessions, do not claim completion without fresh evidence from:
+In opted-in workflow sessions, do not claim completion or start final holistic review without fresh evidence from:
 
 ```sh
 agentic verify all

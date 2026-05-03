@@ -7,6 +7,10 @@ description: Use when executing an approved implementation plan task-by-task wit
 
 Execute an approved plan one task at a time with fresh task context and two mandatory review stages.
 
+Why delegation works: the controller keeps coordination context while each runtime agent gets a small, purpose-built prompt. Use a fresh subagent per task so `@coder`, `@reviewer-spec`, and `@reviewer-quality` do not inherit stale assumptions from earlier work. Give each agent exactly the task text, boundaries, and evidence it needs; do not make it rediscover the plan from ambient session history.
+
+Core principle: fresh subagent per task + spec review before quality review = focused implementation with fewer context leaks.
+
 ## When To Use
 
 - The plan is approved
@@ -27,6 +31,14 @@ Every task follows this order:
 6. move to next task
 
 Stage 2 never starts before Stage 1 passes.
+
+Canonical final sequence:
+
+1. implementation and task-level `review-spec` / `review-quality`
+2. specialized checks/updates as needed: `review-security` / `@security`, `@qa`, `@docs`
+3. fresh `agentic verify all`
+4. `review-final` / `@reviewer-final`
+5. `@release` / PR / handoff
 
 ## Controller Workflow
 
@@ -77,7 +89,7 @@ digraph sdd_flow {
 - Answer questions before work proceeds
 - Record and respect review outcomes
 - Handle implementer status explicitly instead of guessing
-- Use real OpenCode subagents when available: `@coder`, `@reviewer-spec`, `@reviewer-quality`
+- Use real OpenCode subagents when available: `@coder`, `@reviewer-spec`, `@reviewer-quality`, specialized `@security` / `@qa` / `@docs` checks or updates as needed, fresh `agentic verify all`, then `@reviewer-final` before `@release` / PR / handoff
 
 ## Companion Files
 
@@ -90,6 +102,16 @@ digraph sdd_flow {
 - `@coder` for implementation
 - `@reviewer-spec` for Stage 1 review
 - `@reviewer-quality` for Stage 2 review
+- `@reviewer-final` for final holistic production-readiness after task-level reviews, specialized evidence, and fresh verification, before `@release` / PR / handoff
+
+## Model Selection
+
+Use the least powerful model that can reliably complete the role, then escalate deliberately when the task demands judgment.
+
+- Mechanical implementation with a complete spec and 1-2 focused files: use a fast model through `@coder`.
+- Multi-file integration, debugging, or pattern matching: use a standard model.
+- Architecture, design tradeoffs, ambiguous requirements, or high-risk reviews: use the most capable available model and involve the appropriate reviewer or `@architect`.
+- If `@coder` reports uncertainty, repeated failure, or a need for broader reasoning, change the prompt, scope, or model before trying again.
 
 ## Persona Agent Map
 
@@ -104,6 +126,7 @@ Use the real OpenCode subagents according to role:
 - `@security` for read-only security review
 - `@reviewer-spec` for Stage 1 spec compliance
 - `@reviewer-quality` for Stage 2 code quality review
+- `@reviewer-final` for integrated final holistic readiness review
 - `@docs` for bounded documentation updates
 - `@release` for PR/release readiness, changelog, and traceability
 
@@ -129,6 +152,10 @@ Implementers should report one of these statuses:
 - `BLOCKED`: the task cannot proceed without changing context, scope, or plan
 
 Never ignore `NEEDS_CONTEXT` or `BLOCKED`. Change the conditions before redispatching.
+
+Read `DONE_WITH_CONCERNS` before review. If the concern is correctness, scope, architecture, or file growth beyond the plan, resolve it before Stage 1. If `@coder` is blocked, decide whether to add context, narrow the task, choose a more capable model, or escalate the plan back to the human.
+
+**Never ignore an escalation** or force the same agent/model to retry without changing something meaningful.
 
 ## Stage 1: Spec Review
 
@@ -169,6 +196,9 @@ Never:
 - make the subagent read the whole plan file if you can provide the exact task text
 - ignore implementer questions
 - treat reviewer findings as optional
+- force a blocked `@coder` to retry without adding context, narrowing scope, or selecting a more suitable model
+- accept `DONE_WITH_CONCERNS` without reading the concerns before review
+- allow one agent to carry context across unrelated tasks instead of dispatching a fresh subagent per task
 
 ## Escalation
 
@@ -219,4 +249,6 @@ For deeper in-chat orchestration, route work by role instead of asking one agent
 7. `@security` reviews risk-sensitive changes
 8. `@qa` reviews test strategy gaps when useful
 9. `@docs` updates documentation if behavior changed
-10. `@release` prepares PR/release evidence and traceability
+10. Run fresh `agentic verify all`
+11. `@reviewer-final` checks the integrated diff, verification, security/QA/docs risks, and PR/release readiness without replacing Stage 1 or Stage 2 gates
+12. `@release` prepares PR/release evidence and traceability

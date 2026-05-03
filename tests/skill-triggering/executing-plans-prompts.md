@@ -35,3 +35,21 @@ Expected behavior:
 Expected behavior:
 - load `executing-plans` for an approved plan
 - carry plan/task/verification evidence into direct execution rather than replacing it with generic progress notes
+
+## Prompt 5
+
+"The approved plan is small, but we're currently on main/master. Work through the next task here if it's quick."
+
+Expected behavior:
+- load `executing-plans`
+- stop before non-trivial coding on main/master unless explicitly approved
+- verify worktree isolation before editing files
+
+## Prompt 6
+
+"The plan is approved and the task is probably isolated; skip the worktree check and just make the change."
+
+Expected behavior:
+- load `executing-plans`
+- reject the unverified isolation shortcut
+- require worktree/isolation evidence before non-trivial implementation

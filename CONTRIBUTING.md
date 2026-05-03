@@ -22,9 +22,15 @@ bun install
 
 Before calling work complete, use the staged review order:
 
-`review-spec` → `review-quality` → `verify`
+Canonical final sequence:
 
-If the change touches auth, secrets, user input, API handlers, payments, or other sensitive paths, include `review-security` before `verify`.
+1. implementation and task-level `review-spec` / `review-quality`
+2. specialized checks/updates as needed: `review-security` / `@security`, `@qa`, `@docs`
+3. fresh `agentic verify all`
+4. `review-final` / `@reviewer-final`
+5. `@release` / PR / handoff
+
+If the change touches auth, secrets, user input, API handlers, payments, or other sensitive paths, include `review-security` / `@security` before fresh `agentic verify all`.
 
 ## Final verification
 
