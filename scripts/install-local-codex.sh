@@ -21,8 +21,9 @@ cleanup() {
 }
 trap cleanup EXIT
 
-ln -sfn "$REPO_ROOT/.codex-plugin/plugin.json" "$STAGED_PLUGIN_ROOT/plugin.json"
-ln -sfn "$REPO_ROOT/skills" "$STAGED_PLUGIN_ROOT/skills"
+mkdir -p "$STAGED_PLUGIN_ROOT/.codex-plugin"
+cp "$REPO_ROOT/.codex-plugin/plugin.json" "$STAGED_PLUGIN_ROOT/.codex-plugin/plugin.json"
+cp -R "$REPO_ROOT/skills" "$STAGED_PLUGIN_ROOT/skills"
 
 MARKETPLACE_PATH="$MARKETPLACE_PATH" STAGED_MARKETPLACE_PATH="$STAGED_MARKETPLACE_PATH" bun -e '
 const marketplacePath = process.env.MARKETPLACE_PATH;
@@ -39,9 +40,15 @@ const requiredEntry = {
   },
   policy: {
     installation: "AVAILABLE",
-    authentication: "NONE",
+    authentication: "ON_INSTALL",
   },
   category: "Development",
+};
+const requiredMarketplace = {
+  name: "local-repo",
+  interface: {
+    displayName: "Local Repo",
+  },
 };
 
 function isObject(value) {
@@ -62,6 +69,16 @@ if (await file.exists()) {
 
   if (!isObject(marketplace)) {
     console.error("marketplace.json must contain a JSON object root to merge local plugins safely");
+    process.exit(1);
+  }
+
+  if ("name" in marketplace && typeof marketplace.name !== "string") {
+    console.error("marketplace.json name must be a string to merge local plugins safely");
+    process.exit(1);
+  }
+
+  if ("interface" in marketplace && !isObject(marketplace.interface)) {
+    console.error("marketplace.json interface must be an object to merge local plugins safely");
     process.exit(1);
   }
 
@@ -100,10 +117,22 @@ const updatedEntry = {
   },
   category: requiredEntry.category,
 };
+const existingInterface = isObject(marketplace.interface) ? marketplace.interface : {};
+const updatedMarketplace = {
+  ...marketplace,
+  name: typeof marketplace.name === "string" && marketplace.name.trim().length > 0
+    ? marketplace.name
+    : requiredMarketplace.name,
+  interface: {
+    ...requiredMarketplace.interface,
+    ...existingInterface,
+  },
+  plugins: [...preservedPlugins, updatedEntry],
+};
 
 await Bun.write(
   stagedMarketplacePath,
-  `${JSON.stringify({ ...(isObject(marketplace) ? marketplace : {}), plugins: [...preservedPlugins, updatedEntry] }, null, 2)}\n`,
+  `${JSON.stringify(updatedMarketplace, null, 2)}\n`,
 );
 '
 
@@ -121,9 +150,9 @@ Plugin root:
   $PLUGIN_ROOT
 
 Manifest:
-  $PLUGIN_ROOT/plugin.json
+  $PLUGIN_ROOT/.codex-plugin/plugin.json
 
-Skills symlink:
+Skills directory:
   $PLUGIN_ROOT/skills
 
 Marketplace:

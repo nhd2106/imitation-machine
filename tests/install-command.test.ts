@@ -263,7 +263,9 @@ describe("install command", () => {
     expect(script).toContain('path: "./plugins/imitation-machine"');
     expect(script).toContain('source: "local"');
     expect(script).toContain('installation: "AVAILABLE"');
-    expect(script).toContain('authentication: "NONE"');
+    expect(script).toContain('authentication: "ON_INSTALL"');
+    expect(script).toContain('name: "local-repo"');
+    expect(script).toContain('displayName: "Local Repo"');
     expect(script).toContain('category: "Development"');
     expect(script).toContain('Installed Imitation Machine as a Codex local plugin.');
   });

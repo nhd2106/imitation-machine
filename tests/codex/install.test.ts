@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, readdir, readlink, rm } from "node:fs/promises";
+import { lstat, mkdir, mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -81,7 +81,7 @@ describe("codex local installer", () => {
     expect(exitCode).toBe(0);
     expect(stderr).toBe("");
 
-    const pluginJson = await Bun.file(join(pluginRoot, "plugin.json")).json() as {
+    const pluginJson = await Bun.file(join(pluginRoot, ".codex-plugin", "plugin.json")).json() as {
       name?: string;
       skills?: string;
       hooks?: unknown;
@@ -95,6 +95,10 @@ describe("codex local installer", () => {
       };
     };
     const marketplace = await Bun.file(join(agentsDir, "plugins", "marketplace.json")).json() as {
+      name?: string;
+      interface?: {
+        displayName?: string;
+      };
       plugins?: Array<{
         name?: string;
         source?: { source?: string; path?: string };
@@ -110,9 +114,15 @@ describe("codex local installer", () => {
     expect(pluginJson.mcpServers).toBeUndefined();
     expect(pluginJson.apps).toBeUndefined();
     expect(pluginJson.agents).toBeUndefined();
-    expect(await readlink(join(pluginRoot, "skills"))).toBe(join(ROOT, "skills"));
-    expect((await readdir(pluginRoot)).sort()).toEqual(["plugin.json", "skills"]);
+    expect(await Bun.file(join(pluginRoot, "plugin.json")).exists()).toBe(false);
+    expect((await readdir(pluginRoot)).sort()).toEqual([".codex-plugin", "skills"]);
+    expect((await readdir(join(pluginRoot, ".codex-plugin"))).sort()).toEqual(["plugin.json"]);
+    expect((await lstat(join(pluginRoot, ".codex-plugin", "plugin.json"))).isSymbolicLink()).toBe(false);
+    expect((await lstat(join(pluginRoot, "skills"))).isSymbolicLink()).toBe(false);
+    expect(await Bun.file(join(pluginRoot, "skills", "using-agentic", "SKILL.md")).exists()).toBe(true);
     expect(await Bun.file(join(agentsDir, "AGENTS.md")).exists()).toBe(false);
+    expect(marketplace.name).toBe("local-repo");
+    expect(marketplace.interface?.displayName).toBe("Local Repo");
     expect(marketplace.plugins).toContainEqual({
       name: "imitation-machine",
       source: {
@@ -121,7 +131,7 @@ describe("codex local installer", () => {
       },
       policy: {
         installation: "AVAILABLE",
-        authentication: "NONE",
+        authentication: "ON_INSTALL",
       },
       category: "Development",
     });
@@ -146,11 +156,16 @@ describe("codex local installer", () => {
       join(agentsDir, "plugins", "marketplace.json"),
       JSON.stringify(
         {
+          name: "team-marketplace",
+          interface: {
+            displayName: "Team Marketplace",
+            owner: "workflow",
+          },
           plugins: [
             {
               name: "other-plugin",
               source: { source: "local", path: "./plugins/other-plugin" },
-              policy: { installation: "AVAILABLE", authentication: "NONE" },
+              policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" },
               category: "Utilities",
             },
             {
@@ -171,14 +186,21 @@ describe("codex local installer", () => {
     expect(exitCode).toBe(0);
 
     const marketplace = await Bun.file(join(agentsDir, "plugins", "marketplace.json")).json() as {
+      name?: string;
+      interface?: Record<string, unknown>;
       plugins?: Array<Record<string, unknown>>;
     };
 
+    expect(marketplace.name).toBe("team-marketplace");
+    expect(marketplace.interface).toEqual({
+      displayName: "Team Marketplace",
+      owner: "workflow",
+    });
     expect(marketplace.plugins?.filter((plugin) => plugin.name === "imitation-machine")).toEqual([
       {
         name: "imitation-machine",
         source: { source: "local", path: "./plugins/imitation-machine", mirror: "cached" },
-        policy: { installation: "AVAILABLE", authentication: "NONE", review: "keep-me" },
+        policy: { installation: "AVAILABLE", authentication: "ON_INSTALL", review: "keep-me" },
         category: "Development",
         owner: { team: "workflow" },
       },
@@ -186,7 +208,7 @@ describe("codex local installer", () => {
     expect(marketplace.plugins).toContainEqual({
       name: "other-plugin",
       source: { source: "local", path: "./plugins/other-plugin" },
-      policy: { installation: "AVAILABLE", authentication: "NONE" },
+      policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" },
       category: "Utilities",
     });
   });
@@ -223,7 +245,7 @@ describe("codex local installer", () => {
     expect(exitCode).toBe(1);
     expect(stderr).toContain("marketplace.json must contain a JSON object root");
     expect(await Bun.file(marketplacePath).text()).toBe(`${nonObjectRoot}\n`);
-    expect(await Bun.file(join(tempRoot, "plugins", "imitation-machine", "plugin.json")).exists()).toBe(false);
+    expect(await Bun.file(join(tempRoot, "plugins", "imitation-machine", ".codex-plugin", "plugin.json")).exists()).toBe(false);
   });
 
   test("installer fails without overwriting a marketplace with a non-array plugins field", async () => {
@@ -241,7 +263,7 @@ describe("codex local installer", () => {
     expect(exitCode).toBe(1);
     expect(stderr).toContain("marketplace.json plugins must be an array");
     expect(await Bun.file(marketplacePath).text()).toBe(`${invalidPluginsRoot}\n`);
-    expect(await Bun.file(join(tempRoot, "plugins", "imitation-machine", "plugin.json")).exists()).toBe(false);
+    expect(await Bun.file(join(tempRoot, "plugins", "imitation-machine", ".codex-plugin", "plugin.json")).exists()).toBe(false);
   });
 
   test("installer does not update marketplace when plugin-root staging fails", async () => {
@@ -257,7 +279,7 @@ describe("codex local installer", () => {
           {
             name: "other-plugin",
             source: { source: "local", path: "./plugins/other-plugin" },
-            policy: { installation: "AVAILABLE", authentication: "NONE" },
+            policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" },
             category: "Utilities",
           },
         ],
@@ -273,7 +295,7 @@ describe("codex local installer", () => {
     expect(exitCode).toBe(1);
     expect(stderr).not.toBe("");
     expect(await Bun.file(marketplacePath).text()).toBe(`${originalMarketplace}\n`);
-    expect(await Bun.file(join(tempRoot, "plugins", "imitation-machine", "plugin.json")).exists()).toBe(false);
+    expect(await Bun.file(join(tempRoot, "plugins", "imitation-machine", ".codex-plugin", "plugin.json")).exists()).toBe(false);
   });
 
   test("installer rerun removes stale files and restages a minimal plugin root", async () => {
@@ -288,9 +310,12 @@ describe("codex local installer", () => {
     const { exitCode } = await runInstaller(tempRoot);
 
     expect(exitCode).toBe(0);
-    expect((await readdir(pluginRoot)).sort()).toEqual(["plugin.json", "skills"]);
+    expect((await readdir(pluginRoot)).sort()).toEqual([".codex-plugin", "skills"]);
     expect(await Bun.file(join(pluginRoot, "stale.txt")).exists()).toBe(false);
     expect(await Bun.file(join(pluginRoot, "old-manifest.json")).exists()).toBe(false);
-    expect(await readlink(join(pluginRoot, "skills"))).toBe(join(ROOT, "skills"));
+    expect(await Bun.file(join(pluginRoot, "plugin.json")).exists()).toBe(false);
+    expect((await lstat(join(pluginRoot, ".codex-plugin", "plugin.json"))).isSymbolicLink()).toBe(false);
+    expect((await lstat(join(pluginRoot, "skills"))).isSymbolicLink()).toBe(false);
+    expect(await Bun.file(join(pluginRoot, "skills", "using-agentic", "SKILL.md")).exists()).toBe(true);
   });
 });

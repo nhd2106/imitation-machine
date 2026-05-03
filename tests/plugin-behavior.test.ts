@@ -23,6 +23,10 @@ function expectOrdered(content: string, earlier: string, later: string): void {
   expect(earlierIndex, `${earlier} should appear before ${later}`).toBeLessThan(laterIndex);
 }
 
+function countOccurrences(content: string, needle: string): number {
+  return content.split(needle).length - 1;
+}
+
 describe("imitation-machine plugin behavior", () => {
   const originalCwd = process.cwd();
 
@@ -315,6 +319,43 @@ describe("imitation-machine plugin behavior", () => {
     ).resolves.toBeUndefined();
 
     expect(output.args.command).toContain('export AGENTIC_CLI_PATH=');
+    expect(output.args.command).toContain('bun "$AGENTIC_CLI_PATH" verify all');
+  });
+
+  test("does not duplicate bash resolver when the hook runs twice on the same output", async () => {
+    const cwd = await makeProject(true);
+    process.chdir(cwd);
+    const plugin = await ImitationMachinePlugin();
+    const output = { args: { command: "bun cli/index.ts verify all" } };
+
+    const chatOutput = { messages: [userMessage("hello")] };
+    await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s-idempotent", cwd }, chatOutput);
+    await plugin["tool.execute.before"]?.({ sessionID: "s-idempotent", tool: "skill", cwd, args: { name: "tdd" } }, { args: { name: "tdd" } });
+
+    await plugin["tool.execute.before"]?.({ sessionID: "s-idempotent", tool: "bash", cwd }, output);
+    await plugin["tool.execute.before"]?.({ sessionID: "s-idempotent", tool: "bash", cwd }, output);
+
+    expect(countOccurrences(output.args.command, "export AGENTIC_PLUGIN_ROOT=")).toBe(1);
+    expect(countOccurrences(output.args.command, "if ! command -v agentic")).toBe(1);
+    expect(output.args.command).toContain('bun "$AGENTIC_CLI_PATH" verify all');
+  });
+
+  test("does not duplicate bash resolver across duplicate plugin instances", async () => {
+    const cwd = await makeProject(true);
+    process.chdir(cwd);
+    const firstPlugin = await ImitationMachinePlugin();
+    const secondPlugin = await ImitationMachinePlugin();
+    const output = { args: { command: "bun cli/index.ts verify all" } };
+
+    const chatOutput = { messages: [userMessage("hello")] };
+    await firstPlugin["experimental.chat.messages.transform"]?.({ sessionID: "s-duplicate-plugin", cwd }, chatOutput);
+    await firstPlugin["tool.execute.before"]?.({ sessionID: "s-duplicate-plugin", tool: "skill", cwd, args: { name: "tdd" } }, { args: { name: "tdd" } });
+
+    await firstPlugin["tool.execute.before"]?.({ sessionID: "s-duplicate-plugin", tool: "bash", cwd }, output);
+    await secondPlugin["tool.execute.before"]?.({ sessionID: "s-duplicate-plugin", tool: "bash", cwd }, output);
+
+    expect(countOccurrences(output.args.command, "export AGENTIC_PLUGIN_ROOT=")).toBe(1);
+    expect(countOccurrences(output.args.command, "if ! command -v agentic")).toBe(1);
     expect(output.args.command).toContain('bun "$AGENTIC_CLI_PATH" verify all');
   });
 

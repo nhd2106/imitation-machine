@@ -35,9 +35,9 @@ This install creates a local plugin root at:
 
 Inside that root it:
 
-- links `plugin.json` back to this repo's checked-in `.codex-plugin/plugin.json`
-- links `skills` back to this repo's `skills/` directory
-- updates `~/.agents/plugins/marketplace.json` with a local `./plugins/imitation-machine` entry
+- copies this repo's checked-in `.codex-plugin/plugin.json`
+- copies this repo's `skills/` directory
+- updates `~/.agents/plugins/marketplace.json` with Codex marketplace metadata and a local `./plugins/imitation-machine` entry
 
 That gives Codex a minimal local plugin package with access to the imitation-machine skills bundle.
 
@@ -58,7 +58,7 @@ From this source checkout, run:
 bun run test:codex
 ```
 
-That lane runs the real installer against a temp `CODEX_AGENTS_DIR`, asserts `~/plugins/imitation-machine/plugin.json` exists, checks `~/.agents/plugins/marketplace.json`, and confirms the installed `skills` symlink points at this repo's `skills/` tree.
+That lane runs the real installer against a temp `CODEX_AGENTS_DIR`, asserts `~/plugins/imitation-machine/.codex-plugin/plugin.json` exists, checks `~/.agents/plugins/marketplace.json`, and confirms the installed `skills` directory contains the packaged skills.
 
 ## Verify
 
@@ -76,7 +76,14 @@ If the skills do not appear, re-run:
 ./bin/agentic install local --surface codex
 ```
 
+If Codex does not list the `Local Repo` marketplace after a restart, register the home marketplace with:
+
+```bash
+codex plugin marketplace add "$HOME"
+```
+
 Then inspect:
 
 - `~/plugins/imitation-machine`
 - `~/.agents/plugins/marketplace.json`
+- `~/.codex/config.toml`

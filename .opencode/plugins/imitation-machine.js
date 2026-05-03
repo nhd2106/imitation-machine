@@ -367,7 +367,11 @@ async function enforceToolPolicy(input, output) {
       `if ! command -v agentic >/dev/null 2>&1; then agentic() { bun \"$AGENTIC_CLI_PATH\" \"$@\"; }; fi`,
     ].join("; ");
 
-    args.command = `${resolver}; ${normalized}`;
+    const alreadyHasResolver = normalized.includes("AGENTIC_PLUGIN_ROOT=")
+      && normalized.includes("AGENTIC_CLI_PATH=")
+      && normalized.includes("if ! command -v agentic");
+
+    args.command = alreadyHasResolver ? normalized : `${resolver}; ${normalized}`;
   }
 }
 
