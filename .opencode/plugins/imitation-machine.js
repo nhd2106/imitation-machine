@@ -380,9 +380,7 @@ const ImitationMachinePlugin = async () => {
     config: async (config) => {
       config.skills = config.skills || {};
       config.skills.paths = config.skills.paths || [];
-      if (!config.skills.paths.includes(skillsDir)) {
-        config.skills.paths.push(skillsDir);
-      }
+      config.skills.paths = [skillsDir, ...config.skills.paths.filter((skillPath) => skillPath !== skillsDir)];
 
       config.agent = config.agent || {};
       for (const [agentName, agentConfig] of Object.entries(PACKAGED_AGENT_CONFIGS)) {
