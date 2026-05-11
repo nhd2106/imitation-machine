@@ -607,6 +607,29 @@ describe("imitation-machine plugin behavior", () => {
     expect(architectPrompt).toContain("project skill");
   });
 
+  test("prioritizes packaged skills before existing OpenCode skill paths without duplicates", async () => {
+    const plugin = await ImitationMachinePlugin();
+    const packagedSkillsPath = join(originalCwd, "skills");
+    const repoAgentsSkillsPath = join(originalCwd, ".agents", "skills");
+    const repoOpencodeSkillsPath = join(originalCwd, ".opencode", "skills");
+    const config = {
+      skills: {
+        paths: [repoAgentsSkillsPath, packagedSkillsPath, repoOpencodeSkillsPath],
+      },
+    } as {
+      skills?: { paths?: string[] };
+    };
+
+    await plugin.config?.(config);
+
+    expect(config.skills?.paths).toEqual([
+      packagedSkillsPath,
+      repoAgentsSkillsPath,
+      repoOpencodeSkillsPath,
+    ]);
+    expect(config.skills?.paths?.filter((skillPath) => skillPath === packagedSkillsPath)).toHaveLength(1);
+  });
+
   test("registers packaged persona agents in OpenCode config", async () => {
     const plugin = await ImitationMachinePlugin();
     const config = {} as {
