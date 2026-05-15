@@ -3,7 +3,7 @@
 Enterprise-oriented agentic SDLC framework with:
 
 - Skill-driven workflow (brainstorm, plan, tdd, staged reviews)
-- Expanded workflow inventory (`systematic-debugging`, `dispatching-parallel-agents`, `executing-plans`, `finishing-a-development-branch`, `requesting-code-review`, `receiving-code-review`, `review-final`)
+- Expanded workflow inventory (`grill-me`, `systematic-debugging`, `dispatching-parallel-agents`, `executing-plans`, `finishing-a-development-branch`, `requesting-code-review`, `receiving-code-review`, `review-final`)
 - Hard gates (coverage/typecheck/security)
 - Verification-before-completion (`agentic verify all`)
 - Mono-repo impact tooling (`agentic repo *`)
@@ -79,7 +79,7 @@ The core idea is simple: start with `using-agentic`, let the matching workflow s
 - workflow entry and execution (`using-agentic`, `plan`, `executing-plans`, `tdd`, `subagent-driven-development`)
 - review and release flow (`requesting-code-review`, `receiving-code-review`, `review-spec`, `review-quality`, `review-final` / `@reviewer-final`, `review-security`, `pr`, `release`, `finishing-a-development-branch`)
 - repo/workspace discipline (`repo`, `worktree`, `gate`, `verify`, `commit`, `adr`)
-- debugging, design, and coordination (`systematic-debugging`, `design`, `dispatching-parallel-agents`)
+- clarification, debugging, design, and coordination (`grill-me`, `systematic-debugging`, `design`, `dispatching-parallel-agents`)
 
 - strong workflow breadth and review/release specialization
 - bounded OpenCode and Claude harness coverage

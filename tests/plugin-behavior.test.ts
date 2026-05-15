@@ -301,6 +301,32 @@ describe("imitation-machine plugin behavior", () => {
     }
   });
 
+  test("grill-me is advertised for adversarial clarification without unlocking writes", async () => {
+    const cwd = await makeProject(true);
+    process.chdir(cwd);
+    const plugin = await ImitationMachinePlugin();
+
+    const bootstrapOutput = { messages: [userMessage("grill me before we commit to this feature")] };
+    await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s-grill-me", cwd }, bootstrapOutput);
+
+    await plugin["tool.execute.before"]?.(
+      { sessionID: "s-grill-me", tool: "skill", cwd, args: { name: "grill-me" } },
+      { args: { name: "grill-me" } },
+    );
+
+    await expect(
+      plugin["tool.execute.before"]?.(
+        { sessionID: "s-grill-me", tool: "edit", cwd },
+        { args: { filePath: "/tmp/grill-me.md" } },
+      ),
+    ).rejects.toThrow("implementation workflow skill");
+
+    const bootstrapText = bootstrapOutput.messages[0]?.parts[0]?.text ?? "";
+    expect(bootstrapText).toContain("grill-me");
+    expect(bootstrapText).toContain("adversarial clarification");
+    expect(bootstrapText).toContain("stress testing");
+  });
+
   test("rewrites bash commands after workflow skill loaded in opted-in repos", async () => {
     const cwd = await makeProject(true);
     process.chdir(cwd);

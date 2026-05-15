@@ -71,6 +71,49 @@ describe("core skill content", () => {
     expect(content.includes("Ask one question per message.")).toBe(true);
   });
 
+  test("grill-me skill codifies adversarial clarification without write or planning authority", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "grill-me", "SKILL.md")).text();
+    const descriptionLine = content.split("\n").find((line) => line.startsWith("description:"));
+
+    expect(content.startsWith("---\nname: grill-me\n")).toBe(true);
+    expect(descriptionLine).toBeDefined();
+    expect(descriptionLine).toStartWith("description: Use when");
+    expect(descriptionLine).toContain("grill me");
+    expect(descriptionLine).toContain("stress-test");
+    expect(descriptionLine).toContain("challenge");
+    expect(descriptionLine?.toLowerCase()).not.toContain("ask one question");
+    expect(descriptionLine?.toLowerCase()).not.toContain("summary");
+
+    expectContainsAll(content, [
+      "Do not auto-trigger for ordinary vague requests",
+      "normal clarification → `brainstorm` or `@po`",
+      "planning waits for approved requirements or design",
+      "Ask one question per message.",
+      "Wait for the user's answer before continuing.",
+      "Every question includes a recommended/default answer or hypothesis.",
+      "Inspect repo files/docs instead of asking when the answer is discoverable.",
+      "Problem",
+      "success criteria",
+      "scope boundaries",
+      "assumptions",
+      "risks",
+      "edge cases",
+      "decision dependencies",
+      "## Grill Summary",
+      "resolved decisions",
+      "remaining open questions",
+      "scope/out-of-scope boundaries",
+      "testable acceptance criteria",
+      "recommended next skill/persona",
+      "`brainstorm`",
+      "`plan`",
+      "`@po`",
+      "Must not implement",
+      "Must not produce task plans",
+      "Must not write code",
+    ]);
+  });
+
   test("using-agentic is scoped to opted-in repos", async () => {
     const content = await Bun.file(join(ROOT, "skills", "using-agentic", "SKILL.md")).text();
     expect(content.includes("explicitly opts into the Imitation Machine workflow")).toBe(true);
@@ -80,6 +123,7 @@ describe("core skill content", () => {
     expect(content.includes("finishing-a-development-branch")).toBe(true);
     expect(content.includes("requesting-code-review")).toBe(true);
     expect(content.includes("receiving-code-review")).toBe(true);
+    expect(content.includes("grill-me")).toBe(true);
   });
 
   test("using-agentic places fresh verification before final review and handoff", async () => {
@@ -120,6 +164,7 @@ describe("core skill content", () => {
     expect(content.includes("finishing-a-development-branch")).toBe(true);
     expect(content.includes("requesting-code-review")).toBe(true);
     expect(content.includes("receiving-code-review")).toBe(true);
+    expect(content.includes("grill-me")).toBe(true);
   });
 
   test("workflow cheatsheet includes final review after fresh verification before handoff", async () => {
@@ -174,6 +219,7 @@ describe("core skill content", () => {
       expect(content.includes("finishing-a-development-branch")).toBe(true);
       expect(content.includes("requesting-code-review")).toBe(true);
       expect(content.includes("receiving-code-review")).toBe(true);
+      expect(content.includes("grill-me")).toBe(true);
     }
   });
 

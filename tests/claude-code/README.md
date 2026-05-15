@@ -139,6 +139,7 @@ Use Skill tool to list available skills.
 Expected broader inventory examples:
 - `using-agentic`
 - `brainstorm`
+- `grill-me`
 - `plan`
 - `tdd`
 - `systematic-debugging`
@@ -161,6 +162,7 @@ We have an approved design. Use the right workflow to plan and execute this safe
 Expected behavior:
 - Claude should prefer the Imitation Machine workflow only because the repo opted in
 - planning should route through `plan`
+- explicit grill-me or stress-test requests should route through `grill-me` before design or planning commitment
 - approved-plan direct execution should be able to route through `executing-plans`
 - debugging prompts should be able to route through `systematic-debugging`
 - deeper orchestration should mention persona subagents

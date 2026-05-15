@@ -57,7 +57,7 @@ Expected:
 - `using-agentic` appears in skill list
 - `using-agentic` loads successfully
 - workflow then routes through process skills (`brainstorm`/`plan`/`tdd`) before implementation actions
-- expanded workflow skills appear, including `systematic-debugging`, `dispatching-parallel-agents`, `executing-plans`, `finishing-a-development-branch`, `requesting-code-review`, and `receiving-code-review`
+- expanded workflow skills appear, including `grill-me`, `systematic-debugging`, `dispatching-parallel-agents`, `executing-plans`, `finishing-a-development-branch`, `requesting-code-review`, and `receiving-code-review`
 
 If the skills do not appear, first re-run:
 
@@ -84,7 +84,7 @@ The `using-agentic` skill is the policy entrypoint and enforces:
 2. process-skill before implementation
 3. `./bin/agentic verify all` evidence before completion claim
 
-Typical follow-on workflow choices now include `systematic-debugging` for stubborn failures, `dispatching-parallel-agents` for safe concurrency, `executing-plans` for approved-plan direct execution, `requesting-code-review` for pre-PR review asks, `receiving-code-review` for reply/fix loops, and `finishing-a-development-branch` for final handoff cleanup.
+Typical follow-on workflow choices now include `grill-me` for explicit adversarial clarification or stress testing before commitment, `systematic-debugging` for stubborn failures, `dispatching-parallel-agents` for safe concurrency, `executing-plans` for approved-plan direct execution, `requesting-code-review` for pre-PR review asks, `receiving-code-review` for reply/fix loops, and `finishing-a-development-branch` for final handoff cleanup.
 
 ## Bounded harness verification
 

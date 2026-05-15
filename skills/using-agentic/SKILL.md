@@ -79,6 +79,7 @@ Canonical final sequence:
 | Situation | Skill |
 |---|---|
 | New idea or under-specified behavior | `brainstorm` |
+| Explicit adversarial clarification before commitment | `grill-me` |
 | Approved requirement needs executable tasks | `plan` |
 | Approved plan should be executed directly in-session | `executing-plans` |
 | Implementation or bug fix | `tdd` |
