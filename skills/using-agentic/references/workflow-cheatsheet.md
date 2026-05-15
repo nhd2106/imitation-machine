@@ -16,6 +16,7 @@ Canonical final sequence:
 ## Typical mappings
 
 - idea -> `brainstorm`
+- explicit grill-me / stress-test / challenge-my-assumptions request -> `grill-me`
 - approved requirement -> `plan`
 - approved plan, direct in-session execution -> `executing-plans`
 - implementation -> `tdd`

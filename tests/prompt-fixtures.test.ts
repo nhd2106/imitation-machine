@@ -89,6 +89,12 @@ const DEEPENED_FIXTURE_EXPECTATIONS = {
     ["evidence", "narrow"],
     ["random fixes", "guessing", "fixes first"],
   ],
+  "tests/skill-triggering/grill-me-prompts.md": [
+    ["grill me", "stress-test", "challenge my assumptions"],
+    ["one question", "wait for the answer"],
+    ["recommended answer", "default answer", "hypothesis"],
+    ["do not implement", "no code", "not write code"],
+  ],
   "tests/explicit-skill-requests/design-prompts.md": [["explicit"], ["`design`"], ["interaction quality", "responsive layout"], ["browser validation", "browser"]],
   "tests/explicit-skill-requests/verify-prompts.md": [["explicit"], ["`verify`"], ["exact reproduction", "exact bug repro"], ["fresh evidence", "evidence"]],
   "tests/explicit-skill-requests/gate-prompts.md": [["explicit"], ["`gate`"], ["coverage"], ["security scan", "security"]],
@@ -154,6 +160,12 @@ const DEEPENED_FIXTURE_EXPECTATIONS = {
     ["reproduce", "reproduction"],
     ["hypothesis log", "evidence"],
   ],
+  "tests/explicit-skill-requests/grill-me-prompts.md": [
+    ["explicit"],
+    ["`grill-me`"],
+    ["stress-test", "challenge"],
+    ["one question", "recommended answer", "hypothesis"],
+  ],
   "tests/skill-triggering/worktree-prompts.md": [["merged cleanup order", "merged cleanup"], ["uncommitted work", "uncommitted changes"], ["remote branch deletion", "remote branch"]],
   "tests/explicit-skill-requests/worktree-prompts.md": [["explicit"], ["`worktree`"], ["local merged-branch cleanup", "local branch"], ["remote branch deletion", "remote branch"]],
   "tests/skill-triggering/finishing-a-development-branch-prompts.md": [["uncommitted work", "uncommitted changes"], ["merged-cleanup sequencing", "merged cleanup"], ["remote deletion optional", "optional remote deletion"]],
@@ -193,6 +205,7 @@ const EXPECTED_PRESSURE_MATRIX_FIXTURES = {
   "dispatching-parallel-agents": "tests/explicit-skill-requests/dispatching-parallel-agents-prompts.md",
   "review-security": "tests/explicit-skill-requests/review-security-prompts.md",
   "systematic-debugging": "tests/explicit-skill-requests/systematic-debugging-prompts.md",
+  "grill-me": "tests/explicit-skill-requests/grill-me-prompts.md",
 } as const;
 
 const EXPLICIT_PER_PROMPT_FIXTURES = [
@@ -217,6 +230,7 @@ const EXPLICIT_PER_PROMPT_FIXTURES = [
   "tests/explicit-skill-requests/dispatching-parallel-agents-prompts.md",
   "tests/explicit-skill-requests/review-security-prompts.md",
   "tests/explicit-skill-requests/systematic-debugging-prompts.md",
+  "tests/explicit-skill-requests/grill-me-prompts.md",
 ] as const;
 
 const SKILL_TRIGGER_LOAD_EXPECTATIONS = {
@@ -306,6 +320,16 @@ const DISTINCT_SCENARIO_EXPECTATIONS = {
   "tests/explicit-skill-requests/systematic-debugging-prompts.md": [
     [/reproduce|reproducible/, /hypothesis log|logged hypotheses/],
     [/random patches/, /evidence/, /likely cause|narrows the cause/],
+  ],
+  "tests/skill-triggering/grill-me-prompts.md": [
+    [/grill me/, /one question/, /recommended answer|default answer|hypothesis/],
+    [/stress-test|stress test/, /assumption|risk|edge case/, /do not implement|no code/],
+    [/vague request|normal clarification/, /brainstorm|@po/, /do not auto-trigger/],
+  ],
+  "tests/explicit-skill-requests/grill-me-prompts.md": [
+    [/`grill-me`/, /explicit/, /hard interview|challenge/],
+    [/`grill-me`/, /stress-test|stress test/, /recommended answer|hypothesis/],
+    [/`grill-me`/, /do not implement|no code/, /summary|grill summary/],
   ],
   "tests/skill-triggering/dispatching-parallel-agents-prompts.md": [
     [/parallel|split/, /independent|independence/],
@@ -551,6 +575,7 @@ const STRONG_INTENT_PHRASES = {
   "systematic-debugging": ["hypothesis log", "systematic debugging", "reproducible"],
   "dispatching-parallel-agents": ["parallel", "independent", "runtime agents"],
   "finishing-a-development-branch": ["finish the branch", "branch-finish", "handoff"],
+  "grill-me": ["grill me", "stress-test", "challenge my assumptions"],
 } as const satisfies Record<string, readonly string[]>;
 
 async function exists(relativePath: string): Promise<boolean> {
