@@ -240,6 +240,8 @@ describe("imitation-machine plugin behavior", () => {
       "dispatching-parallel-agents",
       "finishing-a-development-branch",
       "receiving-code-review",
+      "requirements-brief",
+      "issue-slicing",
     ] as const) {
       await plugin["tool.execute.before"]?.(
         { sessionID: `s-${skill}`, tool: "skill", cwd, args: { name: skill } },
