@@ -17,7 +17,9 @@ Canonical final sequence:
 
 - idea -> `brainstorm`
 - explicit grill-me / stress-test / challenge-my-assumptions request -> `grill-me`
-- approved requirement -> `plan`
+- fuzzy requirements -> `requirements-brief`
+- approved requirements brief -> `issue-slicing`
+- approved issue slices or requirement -> `plan`
 - approved plan, direct in-session execution -> `executing-plans`
 - implementation -> `tdd`
 - stubborn regression or unclear failure -> `systematic-debugging`

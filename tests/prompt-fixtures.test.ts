@@ -95,6 +95,21 @@ const DEEPENED_FIXTURE_EXPECTATIONS = {
     ["recommended answer", "default answer", "hypothesis"],
     ["do not implement", "no code", "not write code"],
   ],
+  "tests/skill-triggering/requirements-brief-prompts.md": [
+    ["prd", "requirements brief", "requirements synthesis"],
+    ["current context", "existing context"],
+    ["out-of-scope", "out of scope"],
+    ["issue-slicing", "plan"],
+  ],
+  "tests/skill-triggering/issue-slicing-prompts.md": [
+    ["approved brief", "approved plan"],
+    ["vertical drafts", "vertical-slice issue drafts"],
+    ["dependencies"],
+    ["hitl"],
+    ["afk"],
+    ["uncertainty"],
+    ["approval"],
+  ],
   "tests/explicit-skill-requests/design-prompts.md": [["explicit"], ["`design`"], ["interaction quality", "responsive layout"], ["browser validation", "browser"]],
   "tests/explicit-skill-requests/verify-prompts.md": [["explicit"], ["`verify`"], ["exact reproduction", "exact bug repro"], ["fresh evidence", "evidence"]],
   "tests/explicit-skill-requests/gate-prompts.md": [["explicit"], ["`gate`"], ["coverage"], ["security scan", "security"]],
@@ -166,6 +181,21 @@ const DEEPENED_FIXTURE_EXPECTATIONS = {
     ["stress-test", "challenge"],
     ["one question", "recommended answer", "hypothesis"],
   ],
+  "tests/explicit-skill-requests/requirements-brief-prompts.md": [
+    ["explicit"],
+    ["`requirements-brief`"],
+    ["prd", "requirements brief"],
+    ["issue-slicing", "plan"],
+  ],
+  "tests/explicit-skill-requests/issue-slicing-prompts.md": [
+    ["explicit"],
+    ["`issue-slicing`"],
+    ["vertical drafts", "vertical-slice issue drafts"],
+    ["dependencies"],
+    ["hitl"],
+    ["afk"],
+    ["read-only", "no-tracker", "approval"],
+  ],
   "tests/skill-triggering/worktree-prompts.md": [["merged cleanup order", "merged cleanup"], ["uncommitted work", "uncommitted changes"], ["remote branch deletion", "remote branch"]],
   "tests/explicit-skill-requests/worktree-prompts.md": [["explicit"], ["`worktree`"], ["local merged-branch cleanup", "local branch"], ["remote branch deletion", "remote branch"]],
   "tests/skill-triggering/finishing-a-development-branch-prompts.md": [["uncommitted work", "uncommitted changes"], ["merged-cleanup sequencing", "merged cleanup"], ["remote deletion optional", "optional remote deletion"]],
@@ -231,12 +261,16 @@ const EXPLICIT_PER_PROMPT_FIXTURES = [
   "tests/explicit-skill-requests/review-security-prompts.md",
   "tests/explicit-skill-requests/systematic-debugging-prompts.md",
   "tests/explicit-skill-requests/grill-me-prompts.md",
+  "tests/explicit-skill-requests/requirements-brief-prompts.md",
+  "tests/explicit-skill-requests/issue-slicing-prompts.md",
 ] as const;
 
 const SKILL_TRIGGER_LOAD_EXPECTATIONS = {
   "tests/skill-triggering/tdd-prompts.md": "`tdd`",
   "tests/skill-triggering/receiving-code-review-prompts.md": "`receiving-code-review`",
   "tests/skill-triggering/review-final-prompts.md": "`review-final`",
+  "tests/skill-triggering/requirements-brief-prompts.md": "`requirements-brief`",
+  "tests/skill-triggering/issue-slicing-prompts.md": "`issue-slicing`",
 } as const;
 
 const AVOID_JARGON_PHRASES = {
@@ -330,6 +364,26 @@ const DISTINCT_SCENARIO_EXPECTATIONS = {
     [/`grill-me`/, /explicit/, /hard interview|challenge/],
     [/`grill-me`/, /stress-test|stress test/, /recommended answer|hypothesis/],
     [/`grill-me`/, /do not implement|no code/, /summary|grill summary/],
+  ],
+  "tests/skill-triggering/requirements-brief-prompts.md": [
+    [/current context|existing context/, /prd|requirements brief/, /planning|issue-slicing/],
+    [/no-new-interviewing|do not interview|without another interview/, /blocked ambiguity|blocking ambiguity/, /inspect|repo|docs/],
+    [/out-of-scope|out of scope/, /acceptance criteria|test notes/, /handoff|next skill|issue-slicing|plan/],
+  ],
+  "tests/skill-triggering/issue-slicing-prompts.md": [
+    [/approved brief|approved requirements brief|approved plan/, /vertical drafts|vertical-slice issue drafts/, /read-only/],
+    [/dependencies/, /hitl/, /afk/],
+    [/uncertainty/, /approval-gated|approval/, /handoff|plan|@po|implementation/],
+  ],
+  "tests/explicit-skill-requests/requirements-brief-prompts.md": [
+    [/`requirements-brief`/, /explicit/, /prd|requirements brief/],
+    [/`requirements-brief`/, /explicit/, /no-new-interviewing|without another interview|blocking ambiguity/],
+    [/`requirements-brief`/, /explicit/, /out-of-scope|issue-slicing|plan/],
+  ],
+  "tests/explicit-skill-requests/issue-slicing-prompts.md": [
+    [/`issue-slicing`/, /explicit/, /vertical drafts|vertical-slice issue drafts/, /issue drafts/],
+    [/`issue-slicing`/, /explicit/, /dependencies/, /hitl/, /afk/],
+    [/`issue-slicing`/, /explicit/, /read-only/, /no-tracker|no tracker/, /approval|implementation/],
   ],
   "tests/skill-triggering/dispatching-parallel-agents-prompts.md": [
     [/parallel|split/, /independent|independence/],
@@ -1094,6 +1148,33 @@ describe("prompt fixture suites", () => {
       expect(row).toContain("explicit-request");
       expect(row).toContain("trigger");
     }
+  });
+
+  test("comparison matrix rows for intake skills preserve read-only routing coverage", async () => {
+    const content = await readFixture("docs/skills-comparison-matrix.md");
+
+    const requirementsBriefRow = getComparisonMatrixRow(content, "requirements-brief").toLowerCase();
+    expectContainsAll(requirementsBriefRow, [
+      "read-only",
+      "requirements brief",
+      "requirements synthesis",
+      "trigger",
+      "explicit-request",
+      "tests/explicit-skill-requests/requirements-brief-prompts.md",
+    ]);
+
+    const issueSlicingRow = getComparisonMatrixRow(content, "issue-slicing").toLowerCase();
+    expectContainsAll(issueSlicingRow, [
+      "read-only",
+      "issue drafts",
+      "vertical",
+      "dependencies",
+      "hitl",
+      "afk",
+      "trigger",
+      "explicit-request",
+      "tests/explicit-skill-requests/issue-slicing-prompts.md",
+    ]);
   });
 
   test("comparison matrix rows for deeper review and debugging coverage stay honest", async () => {

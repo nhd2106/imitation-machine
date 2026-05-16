@@ -80,6 +80,8 @@ Canonical final sequence:
 |---|---|
 | New idea or under-specified behavior | `brainstorm` |
 | Explicit adversarial clarification before commitment | `grill-me` |
+| Requirements intake before issue slicing | `requirements-brief` |
+| Approved intake needs vertical issue drafts | `issue-slicing` |
 | Approved requirement needs executable tasks | `plan` |
 | Approved plan should be executed directly in-session | `executing-plans` |
 | Implementation or bug fix | `tdd` |
@@ -127,4 +129,5 @@ agentic verify all
 ## Companion Files
 
 - `references/opencode-tools.md`
+- `references/project-context.md`
 - `references/workflow-cheatsheet.md`

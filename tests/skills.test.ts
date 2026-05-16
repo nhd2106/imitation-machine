@@ -153,6 +153,95 @@ describe("core skill content", () => {
     expectOrdered(sequence, "`review-final` / `@reviewer-final`", "`@release` / PR / handoff");
   });
 
+  test("using-agentic links project-context guidance for setup dependency discovery", async () => {
+    const skill = await Bun.file(join(ROOT, "skills", "using-agentic", "SKILL.md")).text();
+    const context = await Bun.file(
+      join(ROOT, "skills", "using-agentic", "references", "project-context.md"),
+    ).text();
+
+    expect(skill).toContain("references/project-context.md");
+    expectContainsAll(context, [
+      "hard setup dependency",
+      "soft setup dependency",
+      "CONTEXT.md",
+      "docs/adr",
+      ".out-of-scope",
+    ]);
+    expect(context.toLowerCase()).toContain("guidance only");
+    expect(context.toLowerCase()).toContain("no new runtime behavior");
+  });
+
+  test("requirements-brief skill codifies read-only requirements synthesis before planning", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "requirements-brief", "SKILL.md")).text();
+    const descriptionLine = content.split("\n").find((line) => line.startsWith("description:"));
+    const lowerContent = content.toLowerCase();
+    const lowerDescription = descriptionLine?.toLowerCase() ?? "";
+
+    expect(content.startsWith("---\nname: requirements-brief\n")).toBe(true);
+    expect(descriptionLine).toBeDefined();
+    expect(descriptionLine).toStartWith("description: Use when");
+    expect(lowerDescription).not.toContain("inspect");
+    expect(lowerDescription).not.toContain("ask");
+    expect(lowerDescription).not.toContain("output");
+    expect(lowerDescription).not.toContain("section");
+
+    expectContainsAll(lowerContent, [
+      "prd-like requirements brief",
+      "before planning or issue slicing",
+      "read-only",
+      "no file writes",
+      "no issue tracker writes",
+      "no implementation",
+      "inspect existing repo/docs/context first",
+      "ask the user only for blocking ambiguity",
+      "problem",
+      "target users",
+      "goals/non-goals",
+      "user stories or scenarios",
+      "resolved decisions",
+      "open questions",
+      "constraints/risks",
+      "acceptance criteria/test notes",
+      "out-of-scope",
+      "recommended next skill/persona",
+      "issue-slicing",
+      "plan",
+      "@po",
+      "grill-me",
+      "stress-tested",
+      "use `grill-me` first",
+    ]);
+  });
+
+  test("issue-slicing skill codifies read-only vertical issue drafts before implementation handoff", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "issue-slicing", "SKILL.md")).text();
+    const descriptionLine = content.split("\n").find((line) => line.startsWith("description:"));
+    const lowerContent = content.toLowerCase();
+
+    expect(content.startsWith("---\nname: issue-slicing\n")).toBe(true);
+    expect(descriptionLine).toBeDefined();
+    expect(descriptionLine).toStartWith("description: Use when");
+
+    expectContainsAll(lowerContent, [
+      "read-only/chat-only",
+      "no file writes",
+      "no issue tracker writes",
+      "no implementation",
+      "no code-task plan",
+      "approved requirements brief or approved plan",
+      "vertical-slice issue drafts",
+      "dependencies",
+      "hitl",
+      "afk",
+      "preserve uncertainty",
+      "do not manufacture scope",
+      "approval before handoff",
+      "plan",
+      "@po",
+      "implementation workflow",
+    ]);
+  });
+
   test("workflow cheatsheet mentions new workflow skills in decision points", async () => {
     const content = await Bun.file(
       join(ROOT, "skills", "using-agentic", "references", "workflow-cheatsheet.md"),
@@ -165,6 +254,22 @@ describe("core skill content", () => {
     expect(content.includes("requesting-code-review")).toBe(true);
     expect(content.includes("receiving-code-review")).toBe(true);
     expect(content.includes("grill-me")).toBe(true);
+  });
+
+  test("using-agentic routes requirements intake and issue slicing before planning", async () => {
+    const skill = await Bun.file(join(ROOT, "skills", "using-agentic", "SKILL.md")).text();
+    const cheatsheet = await Bun.file(
+      join(ROOT, "skills", "using-agentic", "references", "workflow-cheatsheet.md"),
+    ).text();
+
+    const processSkills = skill.slice(skill.indexOf("## Process Skills"), skill.indexOf("## Supporting Skills"));
+    const typicalMappings = cheatsheet.slice(cheatsheet.indexOf("## Typical mappings"), cheatsheet.indexOf("## OpenCode Agent Map"));
+
+    for (const content of [processSkills, typicalMappings]) {
+      expectContainsAll(content, ["requirements-brief", "issue-slicing", "plan"]);
+      expectOrdered(content, "requirements-brief", "issue-slicing");
+      expectOrdered(content, "issue-slicing", "plan");
+    }
   });
 
   test("workflow cheatsheet includes final review after fresh verification before handoff", async () => {
