@@ -48,6 +48,14 @@ This matrix compares `imitation-machine` to `superpowers` skill-by-skill. It foc
 | `commit` | no strong direct counterpart | Unique | Comparable | Partial | adds trigger/explicit-request pressure coverage for verified conventional commits, hook-failure no-bypass behavior, and follow-up commit discipline, plus a scoped multi-turn `commit after hooks and verification` workflow; deeper staged-diff variation and post-hook flows are still lighter than the best workflow suites | `tests/explicit-skill-requests/commit-prompts.md` |
 | `writing-skills` | `writing-skills` | Comparable | Comparable | Partial | has stronger trigger and explicit-request coverage for create/fix/validate a skill package plus a scoped multi-turn `writing skill -> validate -> fix` workflow with carried evidence, but broader repo-local harness depth is still thin | `tests/explicit-skill-requests/writing-skills-prompts.md` |
 
+## Direct Comparison to `/skills/skills`
+
+This direct `/skills/skills` comparison tracks the local external `/skills/skills` repo separately from the `superpowers` matrix above.
+
+- Partial analogues already exist for requirements-to-workflow intake: external `to-prd` maps partially to `requirements-brief`, and external `to-issues` maps partially to `issue-slicing`. The local versions intentionally stay read-only and stop before tracker publishing.
+- Borrowed or deferred workflow areas remain explicit gaps for later slices: `triage`, `diagnose`, `prototype`, `zoom-out`, and `improve-codebase-architecture` are not implemented as new skills in this package yet.
+- Dangerous-git guardrails are also deferred. Existing workflow skills discourage unsafe Git operations, but this slice does not add hook-level dangerous-git guardrails or broaden Git enforcement.
+
 ## Biggest Remaining Differences
 
 ### 1. Ecosystem and Install Footprint

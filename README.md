@@ -44,6 +44,18 @@ Canonical final sequence:
 8. `@release` / PR / handoff (PR/release/handoff).
 ```
 
+### Skill-selection quickstart
+
+| Bucket | Use these skills when... |
+| --- | --- |
+| Read-only intake | Use `grill-me`, `requirements-brief`, or `issue-slicing` to clarify, synthesize, or draft issue slices without writes. |
+| Implementation | Use `plan`, `executing-plans`, `subagent-driven-development`, or `tdd` once the work is approved. |
+| Review | Use `review-spec`, `review-quality`, `review-security`, and `review-final` for staged readiness checks. |
+| Delivery | Use `verify`, `gate`, `pr`, `release`, `requesting-code-review`, `receiving-code-review`, and `finishing-a-development-branch`. |
+| Workspace | Use `repo`, `worktree`, and `commit` for scoped impact, isolation, and verified commits. |
+| Debugging | Use `systematic-debugging` for unclear failures and `dispatching-parallel-agents` only for safe independent fanout. |
+| Governance | Use `using-agentic`, `adr`, and `design` for opted-in workflow, architectural decisions, and UI direction. |
+
 ## Contributing
 
 Contributors working from this repo checkout should start with [CONTRIBUTING.md](CONTRIBUTING.md) for Bun setup, bounded change expectations, staged review order, and local verification commands. Pull requests in this repo also use the checked-in [pull request template](.github/PULL_REQUEST_TEMPLATE.md).
@@ -79,7 +91,7 @@ The core idea is simple: start with `using-agentic`, let the matching workflow s
 - workflow entry and execution (`using-agentic`, `plan`, `executing-plans`, `tdd`, `subagent-driven-development`)
 - review and release flow (`requesting-code-review`, `receiving-code-review`, `review-spec`, `review-quality`, `review-final` / `@reviewer-final`, `review-security`, `pr`, `release`, `finishing-a-development-branch`)
 - repo/workspace discipline (`repo`, `worktree`, `gate`, `verify`, `commit`, `adr`)
-- clarification, debugging, design, and coordination (`grill-me`, `systematic-debugging`, `design`, `dispatching-parallel-agents`)
+- clarification, intake, debugging, design, and coordination (`grill-me`, `requirements-brief`, `issue-slicing`, `systematic-debugging`, `design`, `dispatching-parallel-agents`)
 
 - strong workflow breadth and review/release specialization
 - bounded OpenCode and Claude harness coverage

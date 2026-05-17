@@ -85,7 +85,10 @@ const DEEPENED_FIXTURE_EXPECTATIONS = {
   ],
   "tests/skill-triggering/systematic-debugging-prompts.md": [
     ["reproduce", "reproducible", "reproduction"],
+    ["minimize", "minimal", "smallest"],
     ["hypothesis log", "hypothesis"],
+    ["instrumentation", "instrument"],
+    ["one variable at a time", "one variable"],
     ["evidence", "narrow"],
     ["random fixes", "guessing", "fixes first"],
   ],
@@ -173,6 +176,9 @@ const DEEPENED_FIXTURE_EXPECTATIONS = {
     ["explicit"],
     ["`systematic-debugging`"],
     ["reproduce", "reproduction"],
+    ["minimize", "minimal", "smallest"],
+    ["instrumentation", "instrument"],
+    ["one variable at a time", "one variable"],
     ["hypothesis log", "evidence"],
   ],
   "tests/explicit-skill-requests/grill-me-prompts.md": [
@@ -269,6 +275,7 @@ const SKILL_TRIGGER_LOAD_EXPECTATIONS = {
   "tests/skill-triggering/tdd-prompts.md": "`tdd`",
   "tests/skill-triggering/receiving-code-review-prompts.md": "`receiving-code-review`",
   "tests/skill-triggering/review-final-prompts.md": "`review-final`",
+  "tests/skill-triggering/systematic-debugging-prompts.md": "`systematic-debugging`",
   "tests/skill-triggering/requirements-brief-prompts.md": "`requirements-brief`",
   "tests/skill-triggering/issue-slicing-prompts.md": "`issue-slicing`",
 } as const;
@@ -348,11 +355,14 @@ const DISTINCT_SCENARIO_EXPECTATIONS = {
   ],
   "tests/skill-triggering/systematic-debugging-prompts.md": [
     [/fails sometimes|intermittent|flaky/, /reproduce|reproduction/],
-    [/hypothesis log/, /evidence-based narrowing|evidence/],
+    [/hypothesis log/, /minimize|minimal|smallest/, /evidence-based narrowing|evidence/],
+    [/instrumentation|instrument/, /evidence/, /one variable at a time|one variable/],
     [/patch three files|random fixes/, /debug systematically|slow this down/],
   ],
   "tests/explicit-skill-requests/systematic-debugging-prompts.md": [
     [/reproduce|reproducible/, /hypothesis log|logged hypotheses/],
+    [/minimize|minimal|smallest/, /instrumentation|instrument/],
+    [/one variable at a time|one variable/, /confirm or kill|confirm\/kill|kill/],
     [/random patches/, /evidence/, /likely cause|narrows the cause/],
   ],
   "tests/skill-triggering/grill-me-prompts.md": [
