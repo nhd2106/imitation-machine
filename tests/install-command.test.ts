@@ -182,6 +182,20 @@ describe("install command", () => {
     expect(readme).toContain("Repo-only contributor assets include checked-in `tests/`, harness scripts, and other verification helpers used from a source checkout.");
   });
 
+  test("comparison matrix documents PR 58 guardrails and remaining product gaps", async () => {
+    const matrix = await Bun.file(join(ROOT, "docs", "skills-comparison-matrix.md")).text();
+
+    expect(matrix).not.toContain("Dangerous-git guardrails are also deferred");
+    expect(matrix).toContain("OpenCode plugin dangerous-git guardrails shipped in PR #58");
+    expect(matrix).toContain("not Claude or Codex");
+    expect(matrix).toContain("zoom-out");
+    expect(matrix).toContain("prototype");
+    expect(matrix).toContain("architecture-deepening");
+    expect(matrix).toContain("systematic-debugging depth");
+    expect(matrix).toContain("`requirements-brief` / `issue-slicing` enrichment");
+    expect(matrix).toContain("tracker triage/publishing remains a separate opt-in future workflow, not part of read-only intake skills");
+  });
+
   test("readme is the single install hub with Codex listed as a supported local install surface", async () => {
     const readme = await Bun.file(join(ROOT, "README.md")).text();
 
@@ -227,10 +241,30 @@ describe("install command", () => {
     expect(codexDoc).toContain("no `mcpServers`");
     expect(codexDoc).toContain("no apps");
     expect(codexDoc).toContain("no agents support");
+    expect(codexDoc).toContain("Dangerous-git guardrails are OpenCode-plugin-only; Codex has no hooks.");
     expect(codexDoc).not.toContain("skills-only");
     expect(codexDoc).not.toContain("no plugin integration");
     expect(codexDoc).toContain("no live Codex harness claim");
     expect(codexDoc).not.toContain("experimental");
+  });
+
+  test("readme says Codex installer copies skills instead of symlinking them", async () => {
+    const readme = await Bun.file(join(ROOT, "README.md")).text();
+
+    expect(readme).toContain("copies this repo's `skills/` directory into `~/plugins/imitation-machine/skills`");
+    expect(readme).not.toContain("symlinks its `skills/` entry");
+  });
+
+  test("Claude and Codex surface docs do not imply dangerous-git guardrail parity", async () => {
+    const [claudeDoc, codexDoc, codexReadme] = await Promise.all([
+      Bun.file(join(ROOT, "CLAUDE_INSTALL.md")).text(),
+      Bun.file(join(ROOT, "CODEX_INSTALL.md")).text(),
+      Bun.file(join(ROOT, "tests", "codex", "README.md")).text(),
+    ]);
+
+    expect(claudeDoc).toContain("Dangerous-git guardrails are OpenCode-plugin-only, not Claude hook coverage.");
+    expect(codexDoc).toContain("Dangerous-git guardrails are OpenCode-plugin-only; Codex has no hooks.");
+    expect(codexReadme).toContain("Dangerous-git guardrails are OpenCode-plugin-only; Codex has no hooks.");
   });
 
   test("codex verification docs describe the supported installer lane and current limits", async () => {
@@ -247,6 +281,7 @@ describe("install command", () => {
     expect(codexReadme).toContain("no `mcpServers`");
     expect(codexReadme).toContain("no apps");
     expect(codexReadme).toContain("no agents support");
+    expect(codexReadme).toContain("copies `skills/` into `~/plugins/imitation-machine/skills`");
     expect(codexReadme).not.toContain("skills-only");
     expect(codexReadme).not.toContain("no plugin integration");
     expect(codexReadme).toContain("no live Codex harness claim");

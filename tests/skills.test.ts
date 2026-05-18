@@ -256,10 +256,12 @@ describe("core skill content", () => {
       "to-prd",
       "to-issues",
       "triage",
-      "diagnose",
       "prototype",
       "zoom-out",
-      "improve-codebase-architecture",
+      "architecture-deepening",
+      "systematic-debugging depth",
+      "`requirements-brief` / `issue-slicing` enrichment",
+      "separate opt-in future workflow",
       "dangerous-git guardrails",
     ]);
   });

@@ -22,6 +22,8 @@ This packaged local install from this repo uses Claude Code's native plugin syst
 - adds a local marketplace from this repo
 - installs `imitation-machine@imitation-machine-dev`
 
+Dangerous-git guardrails are OpenCode-plugin-only, not Claude hook coverage. Claude workflow parity here means the same skills/process guidance, not shell hook enforcement.
+
 If you want to preview what will run first, use:
 
 ```bash
@@ -76,7 +78,7 @@ and confirm `imitation-machine@imitation-machine-dev` is installed.
 
 If that still fails, inspect the symlinks in `~/.claude/skills/` only if you also opted into the optional local skills symlink path, then start a brand new session.
 
-## Mandatory workflow (Claude + OpenCode parity)
+## Mandatory workflow (Claude process parity)
 
 The `using-agentic` skill is the policy entrypoint and enforces:
 

@@ -52,9 +52,9 @@ This matrix compares `imitation-machine` to `superpowers` skill-by-skill. It foc
 
 This direct `/skills/skills` comparison tracks the local external `/skills/skills` repo separately from the `superpowers` matrix above.
 
-- Partial analogues already exist for requirements-to-workflow intake: external `to-prd` maps partially to `requirements-brief`, and external `to-issues` maps partially to `issue-slicing`. The local versions intentionally stay read-only and stop before tracker publishing.
-- Borrowed or deferred workflow areas remain explicit gaps for later slices: `triage`, `diagnose`, `prototype`, `zoom-out`, and `improve-codebase-architecture` are not implemented as new skills in this package yet.
-- Dangerous-git guardrails are also deferred. Existing workflow skills discourage unsafe Git operations, but this slice does not add hook-level dangerous-git guardrails or broaden Git enforcement.
+- Partial analogues already exist for requirements-to-workflow intake: external `to-prd` maps partially to `requirements-brief`, and external `to-issues` maps partially to `issue-slicing`. The local versions intentionally stay read-only and stop before tracker publishing; tracker triage/publishing remains a separate opt-in future workflow, not part of read-only intake skills.
+- The remaining meaningful product gaps from the latest deep compare are `zoom-out`, `prototype`, `architecture-deepening`, systematic-debugging depth, and `requirements-brief` / `issue-slicing` enrichment.
+- OpenCode plugin dangerous-git guardrails shipped in PR #58. Those guardrails are OpenCode-only, not Claude or Codex hook coverage.
 
 ## Biggest Remaining Differences
 
@@ -76,7 +76,7 @@ It has materially broader current support across the Claude marketplace, Superpo
 
 Across the matrix, `imitation-machine` is still ahead on workflow breadth (the number of distinct workflow areas covered), governance/review/release coverage, executable workflow fixtures, and failure/recovery handoffs. The remaining gaps are still selective in workflow terms, but the install/distribution footprint gap is broader than this doc previously implied: `superpowers` supports many more surfaces even after the new minimal local Codex coverage.
 
-The current quality/delegation/coding-control wave closed the TDD depth, receiving-review depth, executing-plans isolation, QA/persona drift closed, and final holistic review-final gaps for the local skill/agent package. Remaining work is now mainly broader scenario variety rather than missing workflow concepts.
+The current quality/delegation/coding-control wave closed the TDD depth, receiving-review depth, executing-plans isolation, QA/persona drift closed, final holistic review-final gaps, and the OpenCode-only dangerous-git guardrails for the local skill/agent package. Remaining work is selective: `zoom-out`, `prototype`, `architecture-deepening`, systematic-debugging depth, and `requirements-brief` / `issue-slicing` enrichment.
 
 ## Recommended Next Wave
 
