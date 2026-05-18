@@ -18,6 +18,35 @@ function expectOrdered(content: string, earlier: string, later: string): void {
   expect(earlierIndex, `${earlier} should appear before ${later}`).toBeLessThan(laterIndex);
 }
 
+function markdownTableRow(content: string, skill: string): string {
+  return content
+    .split("\n")
+    .find((line) => line.includes(`| \`${skill}\` |`)) ?? "";
+}
+
+function mentionContext(content: string, term: string): string {
+  return content
+    .split("\n")
+    .filter((line) => line.toLowerCase().includes(term.toLowerCase()))
+    .join("\n")
+    .toLowerCase();
+}
+
+function expectZoomOutReadOnlyOrientation(context: string, label: string): void {
+  expect(context, `${label} should mention zoom-out`).toContain("zoom-out");
+  expect(context, `${label} should identify zoom-out as read-only`).toContain("read-only");
+  expect(context, `${label} should frame zoom-out as discovery/orientation`).toMatch(/discovery|orientation/);
+  expect(context, `${label} should place zoom-out before planning or implementation/code changes`).toMatch(
+    /before[^\n]*(planning|implementation|code changes)/,
+  );
+  expect(context, `${label} should preserve no-write/no-implementation guardrails`).toMatch(
+    /no (file )?writes|without writes|does not write|no implementation|without implementation|does not implement|do not implement/,
+  );
+  expect(context, `${label} should not authorize writes or implementation`).not.toMatch(
+    /authori[sz](e|es) writes|writes are allowed|can write|may write|(can|may|should|allowed to|authorized to) (edit|modify) files|can implement|may implement|authori[sz](e|es) implementation/,
+  );
+}
+
 const CORE_SKILLS = [
   "using-agentic",
   "brainstorm",
@@ -38,6 +67,18 @@ const SUPERPOWERS_GAP_SKILLS = [
   "requesting-code-review",
   "receiving-code-review",
 ] as const;
+
+describe("zoom-out read-only orientation expectations", () => {
+  test("allow negated edit and modify file guardrails", () => {
+    const context = [
+      "zoom-out is read-only discovery orientation before planning or implementation.",
+      "Do not edit files; do not modify files.",
+      "No implementation.",
+    ].join(" ").toLowerCase();
+
+    expect(() => expectZoomOutReadOnlyOrientation(context, "negated file guardrails")).not.toThrow();
+  });
+});
 
 describe("core skill content", () => {
   test("core skills use trigger-based descriptions", async () => {
@@ -242,6 +283,66 @@ describe("core skill content", () => {
     ]);
   });
 
+  test("zoom-out skill codifies read-only discovery before changes", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "zoom-out", "SKILL.md")).text();
+    const descriptionLine = content.split("\n").find((line) => line.startsWith("description:"));
+    const lowerContent = content.toLowerCase();
+
+    expect(content.startsWith("---\nname: zoom-out\n")).toBe(true);
+    expect(descriptionLine).toBeDefined();
+    expect(descriptionLine).toStartWith("description: Use when");
+
+    expectContainsAll(lowerContent, [
+      "read-only",
+      "no file writes",
+      "no implementation",
+      "no issue tracker writes",
+      "no code-task planning",
+      "no automatic handoff without approval",
+      "orientation before changes",
+      "direct implementation",
+      "refactor",
+      "prototype",
+      "architecture decision",
+    ]);
+  });
+
+  test("zoom-out skill requires discovery map output sections", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "zoom-out", "SKILL.md")).text();
+    const lowerContent = content.toLowerCase();
+
+    expectContainsAll(lowerContent, [
+      "scope inspected",
+      "evidence/sources",
+      "module/responsibility map",
+      "caller/entrypoint map",
+      "dependencies/integrations",
+      "data/control flow",
+      "constraints/invariants",
+      "unknowns/confidence",
+      "recommended next handoff",
+    ]);
+  });
+
+  test("zoom-out skill preserves uncertainty and stays distinct from neighboring skills", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "zoom-out", "SKILL.md")).text();
+    const lowerContent = content.toLowerCase();
+
+    expectContainsAll(lowerContent, [
+      "preserve uncertainty",
+      "unknowns",
+      "confidence",
+      "distinct from",
+      "repo",
+      "requirements-brief",
+      "issue-slicing",
+      "adr",
+      "architecture-deepening",
+      "prototype",
+      "systematic-debugging",
+    ]);
+  });
+
   test("comparison matrix documents direct external skills delta without replacing superpowers matrix", async () => {
     const content = await Bun.file(join(ROOT, "docs", "skills-comparison-matrix.md")).text();
     const directComparisonStart = content.indexOf("## Direct Comparison");
@@ -286,6 +387,59 @@ describe("core skill content", () => {
         "Governance",
       ]);
     }
+  });
+
+  test("README exposes zoom-out as read-only discovery orientation before planning or implementation", async () => {
+    const content = await Bun.file(join(ROOT, "README.md")).text();
+    const quickstart = content.slice(content.indexOf("Skill-selection quickstart"), content.indexOf("## Contributing"));
+
+    expectZoomOutReadOnlyOrientation(mentionContext(quickstart, "zoom-out"), "README skill-selection quickstart");
+  });
+
+  test("using-agentic skill selection docs expose zoom-out before planning or code changes", async () => {
+    const skill = await Bun.file(join(ROOT, "skills", "using-agentic", "SKILL.md")).text();
+    const cheatsheet = await Bun.file(
+      join(ROOT, "skills", "using-agentic", "references", "workflow-cheatsheet.md"),
+    ).text();
+    const skillSelection = skill.slice(skill.indexOf("## Process Skills"), skill.indexOf("## Supporting Skills"));
+    const cheatsheetQuickstart = cheatsheet.slice(
+      cheatsheet.indexOf("## Skill-selection quickstart"),
+      cheatsheet.indexOf("## OpenCode Agent Map"),
+    );
+
+    expectZoomOutReadOnlyOrientation(mentionContext(skillSelection, "zoom-out"), "using-agentic process skill docs");
+    expectZoomOutReadOnlyOrientation(
+      mentionContext(cheatsheetQuickstart, "zoom-out"),
+      "workflow cheatsheet skill-selection quickstart",
+    );
+  });
+
+  test("comparison matrix shows zoom-out shipped while deeper discovery gaps remain open", async () => {
+    const content = await Bun.file(join(ROOT, "docs", "skills-comparison-matrix.md")).text();
+    const lowerContent = content.toLowerCase();
+    const zoomOutRow = markdownTableRow(content, "zoom-out").toLowerCase();
+    const openGapLines = lowerContent
+      .split("\n")
+      .filter((line) => /remaining|open|future|gap|next wave/.test(line))
+      .join("\n");
+
+    expectZoomOutReadOnlyOrientation(zoomOutRow, "comparison matrix zoom-out row");
+    expect(zoomOutRow, "zoom-out should be marked shipped/covered, not missing").not.toContain("| missing |");
+    expect(zoomOutRow, "zoom-out eval coverage should use the defined Partial legend value").toContain(
+      "| unique | partial | partial |",
+    );
+    expect(zoomOutRow, "zoom-out row should point at behavioral coverage").toMatch(/ship|covered|coverage/);
+    expect(zoomOutRow).toContain("zoom-out-prompts.md");
+
+    expectContainsAll(openGapLines, [
+      "architecture-deepening",
+      "prototype",
+      "systematic-debugging depth",
+      "requirements-brief",
+      "issue-slicing",
+      "enrichment",
+    ]);
+    expect(openGapLines, "zoom-out should no longer be listed as an open matrix/docs gap").not.toContain("zoom-out");
   });
 
   test("read-only intake skills route tracker publishing to separate opt-in workflow", async () => {
