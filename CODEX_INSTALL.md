@@ -49,6 +49,7 @@ That gives Codex a minimal local plugin package with access to the imitation-mac
 - no apps
 - no agents support
 - no live Codex harness claim
+- Dangerous-git guardrails are OpenCode-plugin-only; Codex has no hooks.
 
 ## Automated verification
 
@@ -68,7 +69,7 @@ Expected:
 
 - the local plugin resolves from `~/plugins/imitation-machine`
 - `using-agentic` appears in the skill list
-- skills load from the linked bundle
+- skills load from the copied bundle
 
 If the skills do not appear, re-run:
 

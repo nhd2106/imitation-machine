@@ -123,7 +123,7 @@ OpenCode plugin dangerous git guardrails apply only to the OpenCode plugin behav
 
 For Claude, the packaged local install from this repo registers a local Claude Code development marketplace and installs `imitation-machine` as a real plugin. If you also want loose local skills while iterating, `CLAUDE_INSTALL.md` includes the optional `./scripts/install-local-claude.sh` step.
 
-For Codex, the packaged local install from this repo creates `~/plugins/imitation-machine`, symlinks its `skills/` entry back to this repo's `skills/` tree, and manages `~/.agents/plugins/marketplace.json` with a local `./plugins/imitation-machine` entry. The checked-in manifest stays minimal: no hooks, no `mcpServers`, no apps, no agents support, and no bootstrap injection, and no live Codex harness claim.
+For Codex, the packaged local install from this repo creates `~/plugins/imitation-machine`, copies this repo's `skills/` directory into `~/plugins/imitation-machine/skills`, and manages `~/.agents/plugins/marketplace.json` with a local `./plugins/imitation-machine` entry. The checked-in manifest stays minimal: no hooks, no `mcpServers`, no apps, no agents support, and no bootstrap injection, and no live Codex harness claim.
 
 `./bin/agentic install local` and `./bin/agentic install local --surface all` now install OpenCode, Claude, and Codex in that stable order.
 
@@ -147,7 +147,7 @@ For the opt-in installed OpenCode integration lane in this repo checkout that sc
 
 For the opt-in installed Claude integration lane in this repo checkout that scaffolds a `docs-review` temp repo and runs one bounded 3-turn session (`claude --print`, then two `claude --print --continue` calls in the same temp repo), run `bash tests/claude-code/run-tests.sh installed`. The happy path requires fresh `review-spec`, `review-quality`, and `bun test` evidence after each later write. Set `CLAUDE_INSTALLED_LIVE=1` to execute the real session; otherwise it skips cleanly.
 
-For focused Codex installer verification in this repo checkout, run `bun run test:codex`. That lane executes the real installer against a temp `CODEX_AGENTS_DIR`, asserts `~/plugins/imitation-machine/plugin.json` is installed, and confirms the installed `skills` entry points at this repo's `skills/` tree. Details and current Codex limits live in `tests/codex/README.md`.
+For focused Codex installer verification in this repo checkout, run `bun run test:codex`. That lane executes the real installer against a temp `CODEX_AGENTS_DIR`, asserts `~/plugins/imitation-machine/.codex-plugin/plugin.json` is installed, and confirms the copied installed `skills` directory contains the packaged skills. Details and current Codex limits live in `tests/codex/README.md`.
 
 For surface-specific commands, coverage details, and slower integration-oriented checks in the source repo, use the per-surface guides in `tests/opencode/README.md`, `tests/claude-code/README.md`, and `tests/codex/README.md`.
 
