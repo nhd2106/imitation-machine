@@ -13,6 +13,18 @@ Canonical final sequence:
 7. Run `review-final` via `@reviewer-final` for holistic readiness
 8. `@release` / PR / handoff (PR/release handoff)
 
+## Skill-selection quickstart
+
+| Bucket | Start here |
+| --- | --- |
+| Read-only intake | `grill-me`, `requirements-brief`, `issue-slicing` |
+| Implementation | `plan`, `executing-plans`, `subagent-driven-development`, `tdd` |
+| Review | `review-spec`, `review-quality`, `review-security`, `review-final` |
+| Delivery | `verify`, `gate`, `pr`, `release`, `requesting-code-review`, `receiving-code-review`, `finishing-a-development-branch` |
+| Workspace | `repo`, `worktree`, `commit` |
+| Debugging | `systematic-debugging`, `dispatching-parallel-agents` |
+| Governance | `using-agentic`, `adr`, `design` |
+
 ## Typical mappings
 
 - idea -> `brainstorm`

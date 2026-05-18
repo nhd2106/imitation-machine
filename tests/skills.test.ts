@@ -242,6 +242,63 @@ describe("core skill content", () => {
     ]);
   });
 
+  test("comparison matrix documents direct external skills delta without replacing superpowers matrix", async () => {
+    const content = await Bun.file(join(ROOT, "docs", "skills-comparison-matrix.md")).text();
+    const directComparisonStart = content.indexOf("## Direct Comparison");
+    const directComparison = content.slice(directComparisonStart);
+
+    expect(directComparisonStart).toBeGreaterThanOrEqual(0);
+    expect(content.includes("## Matrix")).toBe(true);
+    expect(content).not.toMatch(/\/Users\/[^`"\s]+\/[^`"\s]*skills\/skills/);
+    expectContainsAll(directComparison, [
+      "direct `/skills/skills` comparison",
+      "local external `/skills/skills` repo",
+      "to-prd",
+      "to-issues",
+      "triage",
+      "diagnose",
+      "prototype",
+      "zoom-out",
+      "improve-codebase-architecture",
+      "dangerous-git guardrails",
+    ]);
+  });
+
+  test("README and workflow cheatsheet expose compact bucketed skill-selection quickstart", async () => {
+    for (const relativePath of [
+      "README.md",
+      "skills/using-agentic/references/workflow-cheatsheet.md",
+    ] as const) {
+      const content = await Bun.file(join(ROOT, relativePath)).text();
+      const quickstartStart = content.indexOf("Skill-selection quickstart");
+      const quickstart = content.slice(quickstartStart);
+
+      expect(quickstartStart, `${relativePath} should include skill-selection quickstart`).toBeGreaterThanOrEqual(0);
+      expectContainsAll(quickstart, [
+        "Read-only intake",
+        "Implementation",
+        "Review",
+        "Delivery",
+        "Workspace",
+        "Debugging",
+        "Governance",
+      ]);
+    }
+  });
+
+  test("read-only intake skills route tracker publishing to separate opt-in workflow", async () => {
+    for (const skill of ["requirements-brief", "issue-slicing"] as const) {
+      const content = await Bun.file(join(ROOT, "skills", skill, "SKILL.md")).text();
+      const lowerContent = content.toLowerCase();
+
+      expectContainsAll(lowerContent, [
+        "tracker publishing is out of scope",
+        "separate opt-in tracker workflow",
+        "explicit approval",
+      ]);
+    }
+  });
+
   test("workflow cheatsheet mentions new workflow skills in decision points", async () => {
     const content = await Bun.file(
       join(ROOT, "skills", "using-agentic", "references", "workflow-cheatsheet.md"),
@@ -326,6 +383,13 @@ describe("core skill content", () => {
       expect(content.includes("receiving-code-review")).toBe(true);
       expect(content.includes("grill-me")).toBe(true);
     }
+  });
+
+  test("README ships-now inventory includes read-only intake skills from quickstart", async () => {
+    const content = await Bun.file(join(ROOT, "README.md")).text();
+    const shipsNow = content.slice(content.indexOf("### Ships now"), content.indexOf("### Remaining gaps"));
+
+    expectContainsAll(shipsNow, ["grill-me", "requirements-brief", "issue-slicing"]);
   });
 
   test("public workflow docs mention final readiness review", async () => {
@@ -689,5 +753,30 @@ describe("core skill content", () => {
     expect(finishing.includes("runtime agent") || finishing.includes("runtime-agent")).toBe(true);
     expect(requesting.includes("@release")).toBe(true);
     expect(review.includes("runtime agent") || review.includes("runtime-agent")).toBe(true);
+  });
+
+  test("systematic-debugging package codifies the evidence-first debugging loop", async () => {
+    const skill = await Bun.file(join(ROOT, "skills", "systematic-debugging", "SKILL.md")).text();
+    const checklist = await Bun.file(
+      join(ROOT, "skills", "systematic-debugging", "references", "debugging-checklist.md"),
+    ).text();
+    const template = await Bun.file(
+      join(ROOT, "skills", "systematic-debugging", "hypothesis-log-template.md"),
+    ).text();
+    const packageContent = [skill, checklist, template].join("\n").toLowerCase();
+
+    expectContainsAll(packageContent, [
+      "reproduce",
+      "minimize",
+      "hypothesis",
+      "instrument",
+      "one variable at a time",
+      "smallest check that can confirm or kill a hypothesis",
+      "regression proof",
+      "original symptom",
+      "before claiming fixed",
+      "references/debugging-checklist.md",
+      "hypothesis-log-template.md",
+    ]);
   });
 });

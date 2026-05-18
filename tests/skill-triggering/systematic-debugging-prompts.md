@@ -12,10 +12,12 @@ Expected behavior:
 
 ## Prompt 2
 
-"Help me debug this regression with a hypothesis log and evidence-based narrowing, not random fixes."
+"Help me debug this regression with a hypothesis log, a minimal repro, and evidence-based narrowing, not random fixes."
 
 Expected behavior:
+- load `systematic-debugging`
 - treat the hypothesis log as the core debugging structure
+- minimize the failing case before broad investigation
 - narrow the search through evidence instead of ad hoc code changes
 
 ## Prompt 3
@@ -26,3 +28,12 @@ Expected behavior:
 - load `systematic-debugging`
 - push for reproduction, logged hypotheses, and evidence-based narrowing
 - avoid fix-first pressure until the likely cause is understood
+
+## Prompt 4
+
+"We added logs, changed config, and swapped dependencies all at once, so nobody knows what mattered. Debug this with instrumentation as evidence and one variable at a time."
+
+Expected behavior:
+- load `systematic-debugging`
+- use instrumentation only to gather evidence for the active hypothesis
+- change one variable at a time instead of bundling unrelated checks

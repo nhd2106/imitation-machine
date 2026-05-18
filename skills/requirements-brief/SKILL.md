@@ -18,6 +18,7 @@ Do not use this instead of `grill-me` for adversarial interviews. If the user as
 ## Rules
 
 - Read-only only: no file writes, no issue tracker writes, no implementation, no task plan.
+- Tracker publishing is out of scope; route any tracker publishing to a separate opt-in tracker workflow after explicit approval.
 - Inspect existing repo/docs/context first, including available project context and relevant docs.
 - Ask the user only for blocking ambiguity that would materially change the brief.
 - Preserve uncertainty; do not turn assumptions into resolved decisions.
@@ -44,5 +45,6 @@ Stop if you catch yourself thinking:
 
 - "I can write the PRD into the repo."
 - "I should create tickets while summarizing."
+- "I can publish tracker items as part of this read-only brief."
 - "The user asked for stress testing, but a requirements brief is close enough."
 - "I can plan implementation tasks from unresolved requirements."

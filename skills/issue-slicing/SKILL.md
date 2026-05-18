@@ -11,6 +11,7 @@ Draft vertical-slice issue drafts from an approved requirements brief or approve
 
 - No file writes.
 - No issue tracker writes or issue tracker integrations.
+- Tracker publishing is out of scope; route any tracker publishing to a separate opt-in tracker workflow after explicit approval.
 - No implementation, no code, and no code-task plan.
 - Do not expand into triage, prototype, or broad handoff workflows.
 - Preserve uncertainty; do not manufacture scope, estimates, owners, dependencies, or acceptance criteria that are not supported by the approved source.
@@ -39,6 +40,7 @@ Require approval before handoff to `plan`, `@po`, or an implementation workflow.
 Stop if you catch yourself:
 
 - creating tracker issues or writing files
+- publishing tracker items from this read-only drafting skill
 - turning drafts into a code-task plan
 - adding triage/prototype scope that was not requested
 - hiding uncertainty to make the slices look complete
