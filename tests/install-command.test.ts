@@ -288,6 +288,30 @@ describe("install command", () => {
     expect(installDoc).not.toContain("## Additional notes");
   });
 
+  test("opencode install docs describe dangerous git guardrails", async () => {
+    const [readme, installDoc] = await Promise.all([
+      Bun.file(join(ROOT, "README.md")).text(),
+      Bun.file(join(ROOT, ".opencode", "INSTALL.md")).text(),
+    ]);
+
+    for (const doc of [readme, installDoc]) {
+      expect(doc).toContain("OpenCode plugin");
+      expect(doc).toContain("dangerous git guardrails");
+      expect(doc).toContain("hard reset");
+      expect(doc).toContain("force clean");
+      expect(doc).toContain("force branch delete");
+      expect(doc).toContain("checkout/restore all paths");
+      expect(doc).toContain("force push");
+      expect(doc).toContain("git status");
+      expect(doc).toContain("git diff");
+      expect(doc).toContain("git log");
+      expect(doc).toContain("non-force push/PR flows");
+      expect(doc).toContain("usual bash permission/policy prompts");
+      expect(doc).toContain("not a complete shell sandbox");
+      expect(doc).toContain("not a replacement for human review");
+    }
+  });
+
   test("claude manual verification preconditions prefer agentic local install", async () => {
     const claudeReadme = await Bun.file(join(ROOT, "tests", "claude-code", "README.md")).text();
 

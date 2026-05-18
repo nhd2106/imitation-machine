@@ -298,6 +298,627 @@ function extractSkillName(input, output) {
   );
 }
 
+function shellTokens(segment) {
+  return Array.from(segment.matchAll(/"([^"]*)"|'([^']*)'|(\S+)/g), (match) => match[1] ?? match[2] ?? match[3]);
+}
+
+function shortOptionLetters(token) {
+  if (!/^-[A-Za-z]+$/.test(token) || token.startsWith("--")) return [];
+  return token.slice(1).split("");
+}
+
+function hasShortOption(args, option) {
+  return args.some((arg) => shortOptionLetters(arg).includes(option));
+}
+
+function hasLongOption(args, option) {
+  return args.some((arg) => arg === option || arg.startsWith(`${option}=`));
+}
+
+function hasAnyOption(args, { short = [], long = [] }) {
+  return short.some((option) => hasShortOption(args, option))
+    || long.some((option) => hasLongOption(args, option));
+}
+
+function normalizeShellToken(token) {
+  const normalized = token.replace(/^[({]+/, "").replace(/[)}]+$/, "");
+  return /^[A-Za-z_][A-Za-z0-9_]*\($/.test(normalized) ? "__function_decl__" : normalized;
+}
+
+function skipCommandOptions(tokens, index) {
+  let cursor = index;
+  while (tokens[cursor] === "-p" || tokens[cursor] === "-v" || tokens[cursor] === "-V") {
+    cursor += 1;
+  }
+  if (tokens[cursor] === "--") {
+    cursor += 1;
+  }
+  return cursor;
+}
+
+function skipEnvOptions(tokens, index) {
+  let cursor = index;
+  while (cursor < tokens.length) {
+    if (tokens[cursor] === "-i" || tokens[cursor] === "-0" || tokens[cursor] === "--ignore-environment") {
+      cursor += 1;
+      continue;
+    }
+    if (tokens[cursor] === "--") {
+      cursor += 1;
+      break;
+    }
+    if (tokens[cursor] === "-u" || tokens[cursor] === "-C") {
+      cursor += 2;
+      continue;
+    }
+    if (tokens[cursor].startsWith("--unset=") || tokens[cursor].startsWith("--chdir=")) {
+      cursor += 1;
+      continue;
+    }
+    if (tokens[cursor] === "--unset" || tokens[cursor] === "--chdir") {
+      cursor += 2;
+      continue;
+    }
+    if (/^[A-Za-z_][A-Za-z0-9_]*=.*$/.test(tokens[cursor])) {
+      cursor += 1;
+      continue;
+    }
+    break;
+  }
+  return cursor;
+}
+
+function skipSudoOptions(tokens, index) {
+  let cursor = index;
+  while (cursor < tokens.length) {
+    const token = tokens[cursor];
+    if (token === "-n" || token === "-E" || token === "-H" || token === "-S" || token === "-b" || token === "--non-interactive") {
+      cursor += 1;
+      continue;
+    }
+    if (token === "--") {
+      cursor += 1;
+      break;
+    }
+    if (token === "-u" || token === "-g" || token === "-h" || token === "--user" || token === "--group" || token === "--host") {
+      cursor += 2;
+      continue;
+    }
+    if (token.startsWith("-u") && token.length > 2) {
+      cursor += 1;
+      continue;
+    }
+    if (token.startsWith("--user=") || token.startsWith("--group=") || token.startsWith("--host=")) {
+      cursor += 1;
+      continue;
+    }
+    break;
+  }
+  return cursor;
+}
+
+function findGitIndex(tokens) {
+  const commandPrefixes = new Set(["sudo", "then", "else", "do"]);
+
+  let index = 0;
+  while (index < tokens.length) {
+    const token = tokens[index];
+    if (token === "git") return index;
+    if (token === "rtk" && tokens[index + 1] === "git") return index + 1;
+
+    if (token === "command") {
+      index = skipCommandOptions(tokens, index + 1);
+      continue;
+    }
+
+    if (token === "env") {
+      index = skipEnvOptions(tokens, index + 1);
+      continue;
+    }
+
+    if (token === "sudo") {
+      index = skipSudoOptions(tokens, index + 1);
+      continue;
+    }
+
+    const mayContinue = commandPrefixes.has(token)
+      || token === "__function_decl__"
+      || /^[A-Za-z_][A-Za-z0-9_]*=.*$/.test(token);
+    if (!mayContinue) return -1;
+    index += 1;
+  }
+
+  return -1;
+}
+
+function skipCommandAndEnvWrappers(tokens) {
+  let index = 0;
+
+  while (index < tokens.length) {
+    const token = tokens[index];
+
+    if (token === "sudo") {
+      index = skipSudoOptions(tokens, index + 1);
+      continue;
+    }
+
+    if (token === "command") {
+      index = skipCommandOptions(tokens, index + 1);
+      continue;
+    }
+
+    if (token === "env") {
+      index = skipEnvOptions(tokens, index + 1);
+      continue;
+    }
+
+    break;
+  }
+
+  return tokens.slice(index);
+}
+
+function parseGitAlias(configValue) {
+  const match = configValue.match(/^alias\.([^=]+)=(.+)$/);
+  if (!match) return null;
+
+  return {
+    name: match[1],
+    command: match[2].replace(/^['"]|['"]$/g, ""),
+  };
+}
+
+function collectGitConfigValue(tokens, startIndex) {
+  const parts = [tokens[startIndex] ?? ""];
+  let index = startIndex;
+  const hasUnclosedQuote = () => {
+    const value = parts.join(" ");
+    return (value.match(/"/g)?.length ?? 0) % 2 === 1
+      || (value.match(/'/g)?.length ?? 0) % 2 === 1;
+  };
+
+  while (index + 1 < tokens.length && hasUnclosedQuote()) {
+    index += 1;
+    parts.push(tokens[index]);
+  }
+
+  return {
+    value: parts.join(" "),
+    nextIndex: index + 1,
+  };
+}
+
+function aliasCommandToGitCommand(command) {
+  const isShellAlias = command.trim().startsWith("!");
+  const normalized = command.trim().replace(/^!\s*/, "");
+  if (isShellAlias) {
+    const shellMatch = normalized.match(/^(?:sh|bash|zsh)\s+-[A-Za-z]*c[A-Za-z]*\s+(.+)$/);
+    return shellMatch ? shellMatch[1].replace(/^['"]|['"]$/g, "") : normalized;
+  }
+  return normalized.startsWith("git ") ? normalized : `git ${normalized}`;
+}
+
+function extractNestedShellCommand(tokens) {
+  const normalizedTokens = skipCommandAndEnvWrappers(tokens.map(normalizeShellToken).filter(Boolean));
+  const shell = normalizedTokens[0];
+  if (shell !== "sh" && shell !== "bash" && shell !== "zsh") return null;
+
+  for (let index = 1; index < normalizedTokens.length; index += 1) {
+    const token = normalizedTokens[index];
+    if (/^-[A-Za-z]*c[A-Za-z]*$/.test(token)) {
+      return normalizedTokens[index + 1] ?? null;
+    }
+  }
+
+  return null;
+}
+
+function normalizeGitInvocation(tokens) {
+  const normalizedTokens = tokens.map(normalizeShellToken).filter(Boolean);
+  const gitIndex = findGitIndex(normalizedTokens);
+  if (gitIndex < 0) return null;
+
+  let index = gitIndex + 1;
+  const aliases = new Map();
+  while (index < normalizedTokens.length) {
+    const token = normalizedTokens[index];
+    if (token === "-C" || token === "-c" || token === "--git-dir" || token === "--work-tree" || token === "--namespace") {
+      if (token === "-c") {
+        const configValue = collectGitConfigValue(normalizedTokens, index + 1);
+        const alias = parseGitAlias(configValue.value);
+        if (alias) aliases.set(alias.name, alias.command);
+        index = configValue.nextIndex;
+        continue;
+      }
+      index += 2;
+      continue;
+    }
+    if (token.startsWith("-C") && token.length > 2) {
+      index += 1;
+      continue;
+    }
+    if (token.startsWith("--git-dir=") || token.startsWith("--work-tree=") || token.startsWith("--namespace=")) {
+      index += 1;
+      continue;
+    }
+    if (token === "--no-pager" || token === "--paginate" || token === "--bare") {
+      index += 1;
+      continue;
+    }
+    break;
+  }
+
+  const subcommand = normalizedTokens[index];
+  if (!subcommand) return null;
+
+  return {
+    subcommand,
+    args: normalizedTokens.slice(index + 1),
+    aliases,
+  };
+}
+
+const DANGEROUS_GIT_MATCHERS = [
+  {
+    subcommand: "reset",
+    matches: (args) => args.includes("--hard"),
+  },
+  {
+    subcommand: "clean",
+    matches: (args) => hasAnyOption(args, { short: ["f"], long: ["--force"] })
+      && !hasAnyOption(args, { short: ["n"], long: ["--dry-run"] }),
+  },
+  {
+    subcommand: "branch",
+    matches: (args) => hasShortOption(args, "D")
+      || (hasAnyOption(args, { short: ["d"], long: ["--delete"] })
+        && hasAnyOption(args, { short: ["f"], long: ["--force"] })),
+  },
+  {
+    subcommand: "checkout",
+    matches: (args) => args.some((arg) => arg === "." || arg === "./" || arg === ":/"),
+  },
+  {
+    subcommand: "restore",
+    matches: (args) => args.some((arg) => arg === "." || arg === "./" || arg === ":/"),
+  },
+  {
+    subcommand: "push",
+    matches: (args) => hasAnyOption(args, { short: ["f"], long: ["--force", "--force-with-lease", "--mirror"] })
+      || args.some((arg) => arg.startsWith("+")),
+  },
+];
+
+function findHeredocOpener(line) {
+  let quote = null;
+  let escaped = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (char === "\\" && quote !== "'") {
+      escaped = true;
+      continue;
+    }
+
+    if (quote) {
+      if (char === quote) {
+        quote = null;
+      }
+      continue;
+    }
+
+    if (char === "'" || char === '"') {
+      quote = char;
+      continue;
+    }
+
+    if (char === "#") {
+      return null;
+    }
+
+    if (char === "<" && line[index + 1] === "<") {
+      let cursor = index + 2;
+      if (line[cursor] === "-") {
+        cursor += 1;
+      }
+      while (/\s/.test(line[cursor] ?? "")) {
+        cursor += 1;
+      }
+
+      const delimiterQuote = line[cursor] === "'" || line[cursor] === '"' ? line[cursor] : null;
+      const quoted = Boolean(delimiterQuote);
+      if (delimiterQuote) {
+        cursor += 1;
+      }
+
+      let delimiter = "";
+      while (cursor < line.length) {
+        const delimiterChar = line[cursor];
+        if (delimiterQuote ? delimiterChar === delimiterQuote : /[\s;&|]/.test(delimiterChar)) {
+          break;
+        }
+        delimiter += delimiterChar;
+        cursor += 1;
+      }
+
+      return delimiter ? { delimiter, executable: !quoted } : null;
+    }
+  }
+
+  return null;
+}
+
+function stripHeredocBodies(command) {
+  const keptLines = [];
+  const executableBodies = [];
+  let heredocDelimiter = null;
+  let heredocBody = [];
+  let heredocExecutable = false;
+
+  for (const line of command.split("\n")) {
+    if (heredocDelimiter) {
+      if (line.trim() === heredocDelimiter) {
+        if (heredocExecutable) {
+          executableBodies.push(heredocBody.join("\n"));
+        }
+        heredocDelimiter = null;
+        heredocBody = [];
+        heredocExecutable = false;
+      } else {
+        heredocBody.push(line);
+      }
+      continue;
+    }
+
+    keptLines.push(line);
+    const heredocMatch = findHeredocOpener(line);
+    if (heredocMatch) {
+      heredocDelimiter = heredocMatch.delimiter;
+      heredocExecutable = heredocMatch.executable;
+      heredocBody = [];
+    }
+  }
+
+  if (heredocDelimiter) {
+    keptLines.push(...heredocBody);
+  }
+
+  return { command: keptLines.join("\n"), executableBodies };
+}
+
+function splitShellSegments(command) {
+  const segments = [];
+  let current = "";
+  let quote = null;
+  let escaped = false;
+
+  const pushCurrent = () => {
+    if (current.trim()) {
+      segments.push(current);
+    }
+    current = "";
+  };
+
+  for (let index = 0; index < command.length; index += 1) {
+    const char = command[index];
+
+    if (escaped) {
+      current += char;
+      escaped = false;
+      continue;
+    }
+
+    if (char === "\\" && quote !== "'") {
+      current += char;
+      escaped = true;
+      continue;
+    }
+
+    if (quote) {
+      current += char;
+      if (char === quote) {
+        quote = null;
+      }
+      continue;
+    }
+
+    if (char === "'" || char === '"') {
+      current += char;
+      quote = char;
+      continue;
+    }
+
+    if (char === ";" || char === "\n") {
+      pushCurrent();
+      continue;
+    }
+
+    if (char === "&" || char === "|") {
+      pushCurrent();
+      if (command[index + 1] === char) {
+        index += 1;
+      }
+      continue;
+    }
+
+    current += char;
+  }
+
+  pushCurrent();
+  return segments;
+}
+
+function findCommandSubstitutionEnd(command, startIndex, options = {}) {
+  const ignoreQuotes = Boolean(options.ignoreQuotes);
+  let depth = 1;
+  let quote = null;
+  let escaped = false;
+
+  for (let index = startIndex; index < command.length; index += 1) {
+    const char = command[index];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (char === "\\" && quote !== "'") {
+      escaped = true;
+      continue;
+    }
+
+    if (!ignoreQuotes && quote) {
+      if (char === quote) {
+        quote = null;
+      }
+      continue;
+    }
+
+    if (!ignoreQuotes && (char === "'" || char === '"')) {
+      quote = char;
+      continue;
+    }
+
+    if (char === "$" && command[index + 1] === "(") {
+      depth += 1;
+      index += 1;
+      continue;
+    }
+
+    if (char === ")") {
+      depth -= 1;
+      if (depth === 0) {
+        return index;
+      }
+    }
+  }
+
+  return -1;
+}
+
+function extractCommandSubstitutionBodies(command, options = {}) {
+  const ignoreQuotes = Boolean(options.ignoreQuotes);
+  const bodies = [];
+  let quote = null;
+  let escaped = false;
+
+  for (let index = 0; index < command.length; index += 1) {
+    const char = command[index];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (char === "\\" && quote !== "'") {
+      escaped = true;
+      continue;
+    }
+
+    if (!ignoreQuotes && quote === "'") {
+      if (char === "'") {
+        quote = null;
+      }
+      continue;
+    }
+
+    if (!ignoreQuotes && char === "'" && quote !== '"') {
+      quote = "'";
+      continue;
+    }
+
+    if (!ignoreQuotes && char === '"') {
+      quote = quote === '"' ? null : '"';
+      continue;
+    }
+
+    if (char === "$" && command[index + 1] === "(") {
+      const endIndex = findCommandSubstitutionEnd(command, index + 2, { ignoreQuotes });
+      if (endIndex >= 0) {
+        bodies.push(command.slice(index + 2, endIndex));
+        index = endIndex;
+      }
+      continue;
+    }
+
+    if (char === "`") {
+      let body = "";
+      for (let innerIndex = index + 1; innerIndex < command.length; innerIndex += 1) {
+        const innerChar = command[innerIndex];
+        if (innerChar === "\\" && innerIndex + 1 < command.length) {
+          body += command[innerIndex + 1];
+          innerIndex += 1;
+          continue;
+        }
+        if (innerChar === "`") {
+          bodies.push(body);
+          index = innerIndex;
+          break;
+        }
+        body += innerChar;
+      }
+    }
+  }
+
+  return bodies;
+}
+
+function isDangerousGitCommand(command) {
+  const { command: commandWithoutHeredocs, executableBodies } = stripHeredocBodies(command);
+  for (const body of executableBodies) {
+    for (const substitutionBody of extractCommandSubstitutionBodies(body, { ignoreQuotes: true })) {
+      if (isDangerousGitCommand(substitutionBody)) {
+        return true;
+      }
+    }
+  }
+
+  for (const body of extractCommandSubstitutionBodies(commandWithoutHeredocs)) {
+    if (isDangerousGitCommand(body)) {
+      return true;
+    }
+  }
+
+  for (const segment of splitShellSegments(commandWithoutHeredocs)) {
+    const tokens = shellTokens(segment.trim());
+    const nestedCommand = extractNestedShellCommand(tokens);
+    if (nestedCommand && isDangerousGitCommand(nestedCommand)) {
+      return true;
+    }
+
+    const invocation = normalizeGitInvocation(tokens);
+    if (!invocation) continue;
+
+    if (DANGEROUS_GIT_MATCHERS.some((matcher) => matcher.subcommand === invocation.subcommand && matcher.matches(invocation.args))) {
+      return true;
+    }
+    const aliasCommand = invocation.aliases.get(invocation.subcommand);
+    if (aliasCommand && isDangerousGitCommand(aliasCommandToGitCommand(aliasCommand))) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function blockDangerousGitBashCommand(output) {
+  const args = output?.args;
+  const command = args?.command;
+  if (typeof command !== "string") return false;
+
+  if (isDangerousGitCommand(command)) {
+    throw new Error("Dangerous git command blocked: use a non-destructive git command or ask for explicit human intervention.");
+  }
+
+  return true;
+}
+
 async function enforceToolPolicy(input, output) {
   if (!shouldActivate(input, output)) return;
 
@@ -351,6 +972,9 @@ async function enforceToolPolicy(input, output) {
         "Policy blocked: load an implementation workflow skill before running bash in strict mode. Examples: brainstorm/plan/executing-plans/tdd/systematic-debugging.",
       );
     }
+    if (tool === "bash") {
+      blockDangerousGitBashCommand(output);
+    }
     return;
   }
 
@@ -359,6 +983,8 @@ async function enforceToolPolicy(input, output) {
     const args = output?.args;
     const command = args?.command;
     if (typeof command !== "string") return;
+
+    blockDangerousGitBashCommand(output);
 
     const normalized = command.replace(/\bbun\s+cli\/index\.ts\b/g, "bun \"$AGENTIC_CLI_PATH\"");
     const resolver = [

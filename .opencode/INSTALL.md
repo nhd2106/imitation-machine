@@ -26,6 +26,10 @@ This packaged local install from this repo creates:
 
 The package-root layout matters because the plugin resolves its bundled skills via a relative path.
 
+## Dangerous git guardrails
+
+The OpenCode plugin dangerous git guardrails apply only to OpenCode plugin behavior, not Claude or Codex. The guardrail blocks high-risk/destructive git commands such as hard reset, force clean, force branch delete, checkout/restore all paths, and force push; normal git inspection (`git status`, `git diff`, `git log`) and non-force push/PR flows remain available under the usual bash permission/policy prompts. This is not a complete shell sandbox and not a replacement for human review.
+
 Restart OpenCode after running either path.
 
 ## Published registry install (not recommended for local development)
