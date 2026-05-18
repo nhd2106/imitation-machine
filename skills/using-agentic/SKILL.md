@@ -82,6 +82,7 @@ Canonical final sequence:
 | Explicit adversarial clarification before commitment | `grill-me` |
 | Requirements intake before issue slicing | `requirements-brief` |
 | Approved intake needs vertical issue drafts | `issue-slicing` |
+| Read-only discovery/orientation before planning, implementation, or code changes; no writes/no implementation | `zoom-out` |
 | Approved requirement needs executable tasks | `plan` |
 | Approved plan should be executed directly in-session | `executing-plans` |
 | Implementation or bug fix | `tdd` |

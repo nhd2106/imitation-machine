@@ -113,6 +113,11 @@ const DEEPENED_FIXTURE_EXPECTATIONS = {
     ["uncertainty"],
     ["approval"],
   ],
+  "tests/skill-triggering/zoom-out-prompts.md": [
+    ["zoom out", "broader context", "discovery"],
+    ["read-only", "do not edit", "no changes"],
+    ["non-trigger", "do not load", "stay with"],
+  ],
   "tests/explicit-skill-requests/design-prompts.md": [["explicit"], ["`design`"], ["interaction quality", "responsive layout"], ["browser validation", "browser"]],
   "tests/explicit-skill-requests/verify-prompts.md": [["explicit"], ["`verify`"], ["exact reproduction", "exact bug repro"], ["fresh evidence", "evidence"]],
   "tests/explicit-skill-requests/gate-prompts.md": [["explicit"], ["`gate`"], ["coverage"], ["security scan", "security"]],
@@ -202,6 +207,13 @@ const DEEPENED_FIXTURE_EXPECTATIONS = {
     ["afk"],
     ["read-only", "no-tracker", "approval"],
   ],
+  "tests/explicit-skill-requests/zoom-out-prompts.md": [
+    ["explicit"],
+    ["`zoom-out`"],
+    ["zoom out", "broader context", "discovery"],
+    ["read-only", "do not edit", "no changes"],
+    ["non-trigger", "do not implement", "implementation"],
+  ],
   "tests/skill-triggering/worktree-prompts.md": [["merged cleanup order", "merged cleanup"], ["uncommitted work", "uncommitted changes"], ["remote branch deletion", "remote branch"]],
   "tests/explicit-skill-requests/worktree-prompts.md": [["explicit"], ["`worktree`"], ["local merged-branch cleanup", "local branch"], ["remote branch deletion", "remote branch"]],
   "tests/skill-triggering/finishing-a-development-branch-prompts.md": [["uncommitted work", "uncommitted changes"], ["merged-cleanup sequencing", "merged cleanup"], ["remote deletion optional", "optional remote deletion"]],
@@ -269,6 +281,7 @@ const EXPLICIT_PER_PROMPT_FIXTURES = [
   "tests/explicit-skill-requests/grill-me-prompts.md",
   "tests/explicit-skill-requests/requirements-brief-prompts.md",
   "tests/explicit-skill-requests/issue-slicing-prompts.md",
+  "tests/explicit-skill-requests/zoom-out-prompts.md",
 ] as const;
 
 const SKILL_TRIGGER_LOAD_EXPECTATIONS = {
@@ -394,6 +407,16 @@ const DISTINCT_SCENARIO_EXPECTATIONS = {
     [/`issue-slicing`/, /explicit/, /vertical drafts|vertical-slice issue drafts/, /issue drafts/],
     [/`issue-slicing`/, /explicit/, /dependencies/, /hitl/, /afk/],
     [/`issue-slicing`/, /explicit/, /read-only/, /no-tracker|no tracker/, /approval|implementation/],
+  ],
+  "tests/skill-triggering/zoom-out-prompts.md": [
+    [/zoom out|broader context|discovery/, /load `zoom-out`/, /read-only/],
+    [/read-only|do not edit|no changes/, /inspect|survey|discover/, /boundary/],
+    [/implement|fix|change|edit/, /non-trigger|do not load `zoom-out`|stay with current skill/],
+  ],
+  "tests/explicit-skill-requests/zoom-out-prompts.md": [
+    [/`zoom-out`/, /explicit/, /zoom out|broader context|discovery/],
+    [/`zoom-out`/, /explicit/, /read-only|do not edit|no changes/],
+    [/`zoom-out`/, /explicit/, /non-trigger|implementation boundary|do not implement/],
   ],
   "tests/skill-triggering/dispatching-parallel-agents-prompts.md": [
     [/parallel|split/, /independent|independence/],
@@ -640,6 +663,7 @@ const STRONG_INTENT_PHRASES = {
   "dispatching-parallel-agents": ["parallel", "independent", "runtime agents"],
   "finishing-a-development-branch": ["finish the branch", "branch-finish", "handoff"],
   "grill-me": ["grill me", "stress-test", "challenge my assumptions"],
+  "zoom-out": ["zoom out", "read-only discovery", "broader context"],
 } as const satisfies Record<string, readonly string[]>;
 
 async function exists(relativePath: string): Promise<boolean> {

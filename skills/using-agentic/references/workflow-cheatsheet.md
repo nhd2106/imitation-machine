@@ -17,6 +17,7 @@ Canonical final sequence:
 
 | Bucket | Start here |
 | --- | --- |
+| Read-only discovery/orientation before planning, implementation, or code changes; no writes/no implementation | `zoom-out` |
 | Read-only intake | `grill-me`, `requirements-brief`, `issue-slicing` |
 | Implementation | `plan`, `executing-plans`, `subagent-driven-development`, `tdd` |
 | Review | `review-spec`, `review-quality`, `review-security`, `review-final` |
@@ -31,6 +32,7 @@ Canonical final sequence:
 - explicit grill-me / stress-test / challenge-my-assumptions request -> `grill-me`
 - fuzzy requirements -> `requirements-brief`
 - approved requirements brief -> `issue-slicing`
+- orientation before planning, implementation, or code changes -> `zoom-out` (read-only; no writes/no implementation)
 - approved issue slices or requirement -> `plan`
 - approved plan, direct in-session execution -> `executing-plans`
 - implementation -> `tdd`
