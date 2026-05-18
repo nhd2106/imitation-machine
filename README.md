@@ -107,6 +107,8 @@ If the CLI is already on your `PATH`, the equivalent install commands are `agent
 
 For OpenCode, the packaged local install from this repo creates a local package layout under `~/.config/opencode/imitation-machine/`, registers the plugin in `~/.config/opencode/plugins/`, and exposes the skills in `~/.config/opencode/skills/imitation-machine/`.
 
+OpenCode plugin dangerous git guardrails apply only to the OpenCode plugin behavior, not Claude or Codex. The guardrail blocks high-risk/destructive git commands such as hard reset, force clean, force branch delete, checkout/restore all paths, and force push; normal git inspection (`git status`, `git diff`, `git log`) and non-force push/PR flows remain available under the usual bash permission/policy prompts. This is not a complete shell sandbox and not a replacement for human review.
+
 For Claude, the packaged local install from this repo registers a local Claude Code development marketplace and installs `imitation-machine` as a real plugin. If you also want loose local skills while iterating, `CLAUDE_INSTALL.md` includes the optional `./scripts/install-local-claude.sh` step.
 
 For Codex, the packaged local install from this repo creates `~/plugins/imitation-machine`, symlinks its `skills/` entry back to this repo's `skills/` tree, and manages `~/.agents/plugins/marketplace.json` with a local `./plugins/imitation-machine` entry. The checked-in manifest stays minimal: no hooks, no `mcpServers`, no apps, no agents support, and no bootstrap injection, and no live Codex harness claim.

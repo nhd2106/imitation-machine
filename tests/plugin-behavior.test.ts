@@ -258,22 +258,23 @@ describe("imitation-machine plugin behavior", () => {
   });
 
   test("keeps write access for core implementation workflow skills", async () => {
-    const cwd = await makeProject(true);
-    process.chdir(cwd);
-    const plugin = await ImitationMachinePlugin();
-
-    const bootstrapOutput = { messages: [userMessage("implement and review this change")] };
-    await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s-write-core", cwd }, bootstrapOutput);
-
     for (const skill of ["brainstorm", "plan", "executing-plans", "tdd", "systematic-debugging"] as const) {
+      const cwd = await makeProject(true);
+      process.chdir(cwd);
+      const plugin = await ImitationMachinePlugin();
+      const sessionID = `s-core-${skill}`;
+
+      const bootstrapOutput = { messages: [userMessage("implement and review this change")] };
+      await plugin["experimental.chat.messages.transform"]?.({ sessionID, cwd }, bootstrapOutput);
+
       await plugin["tool.execute.before"]?.(
-        { sessionID: `s-core-${skill}`, tool: "skill", cwd, args: { name: skill } },
+        { sessionID, tool: "skill", cwd, args: { name: skill } },
         { args: { name: skill } },
       );
 
       await expect(
         plugin["tool.execute.before"]?.(
-          { sessionID: `s-core-${skill}`, tool: "edit", cwd },
+          { sessionID, tool: "edit", cwd },
           { args: { filePath: `/tmp/${skill}.md` } },
         ),
       ).resolves.toBeUndefined();
@@ -348,6 +349,195 @@ describe("imitation-machine plugin behavior", () => {
 
     expect(output.args.command).toContain('export AGENTIC_CLI_PATH=');
     expect(output.args.command).toContain('bun "$AGENTIC_CLI_PATH" verify all');
+  });
+
+  test("blocks dangerous git bash commands after workflow unlock before resolver injection", async () => {
+    const cwd = await makeProject(true);
+    process.chdir(cwd);
+    const plugin = await ImitationMachinePlugin();
+
+    const chatOutput = { messages: [userMessage("hello")] };
+    await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s-git-danger", cwd }, chatOutput);
+    await plugin["tool.execute.before"]?.({ sessionID: "s-git-danger", tool: "skill", cwd, args: { name: "tdd" } }, { args: { name: "tdd" } });
+
+    for (const { name, command } of [
+      { name: "hard reset", command: "git reset --hard" },
+      { name: "hard reset after git global -C", command: "git -C repo reset --hard" },
+      { name: "clean short force", command: "git clean -f" },
+      { name: "clean long force", command: "git clean --force" },
+      { name: "clean combined force directory", command: "git clean -fd" },
+      { name: "clean long force directory", command: "git clean --force -d" },
+      { name: "branch shortcut force delete", command: "git branch -D old-branch" },
+      { name: "branch combined force delete", command: "git branch -df old-branch" },
+      { name: "branch long force delete", command: "git branch --delete --force old-branch" },
+      { name: "checkout all paths", command: "git checkout ." },
+      { name: "restore all paths", command: "git restore ." },
+      { name: "restore repository root pathspec", command: "git restore :/" },
+      { name: "restore current directory pathspec", command: "git restore ./" },
+      { name: "checkout repository root pathspec", command: "git checkout -- :/" },
+      { name: "force push long", command: "git push --force" },
+      { name: "force push short", command: "git push -f origin main" },
+      { name: "force push with lease", command: "git push --force-with-lease origin HEAD" },
+      { name: "force push refspec", command: "git push origin +HEAD:main" },
+      { name: "force push single-ref refspec", command: "git push origin +main" },
+      { name: "mirror push", command: "git push --mirror origin" },
+      { name: "rtk wrapped hard reset", command: "rtk git -C repo reset --hard" },
+      { name: "multi-command semicolon hard reset", command: "git status; git reset --hard" },
+      { name: "multi-command and hard reset", command: "git status && git reset --hard" },
+      { name: "piped hard reset", command: "git status | git reset --hard" },
+      { name: "background force push", command: "true & git push --force" },
+      { name: "command-prefixed hard reset", command: "command git reset --hard" },
+      { name: "grouped hard reset", command: "true && (git reset --hard)" },
+      { name: "conditional hard reset", command: "if true; then git reset --hard; fi" },
+      { name: "inline alias hard reset", command: "git -c alias.wipe=\"reset --hard\" wipe" },
+      { name: "inline shell alias hard reset", command: "git -c alias.wipe=\"!git reset --hard\" wipe" },
+      { name: "inline shell alias nested shell hard reset", command: "git -c alias.wipe=\"!sh -c 'git reset --hard'\" wipe" },
+      { name: "inline shell alias function hard reset", command: "git -c alias.wipe=\"!f() { git reset --hard; }; f\" wipe" },
+      { name: "command option-prefixed hard reset", command: "command -p git reset --hard" },
+      { name: "env option-prefixed hard reset", command: "env -i git reset --hard" },
+      { name: "sh nested hard reset", command: "sh -c 'git reset --hard'" },
+      { name: "zsh nested hard reset", command: "zsh -c 'git reset --hard'" },
+      { name: "bash nested force push", command: "bash -lc \"git push --force\"" },
+      { name: "bash nested compound hard reset", command: "bash -lc 'cd repo && git reset --hard'" },
+      { name: "sh nested semicolon hard reset", command: "sh -c 'git status; git reset --hard'" },
+      { name: "zsh nested piped hard reset", command: "zsh -c 'git status | git reset --hard'" },
+      { name: "bash nested newline hard reset", command: "bash -lc 'git status\ngit reset --hard'" },
+      { name: "command-wrapped nested bash hard reset", command: "command bash -lc 'git reset --hard'" },
+      { name: "env-wrapped nested bash force push", command: "env -i bash -lc 'git push --force'" },
+      { name: "sudo-wrapped nested bash hard reset", command: "sudo bash -lc 'git reset --hard'" },
+      { name: "sudo option-wrapped hard reset", command: "sudo -n git reset --hard" },
+      { name: "sudo option-wrapped nested bash hard reset", command: "sudo -n bash -lc 'git reset --hard'" },
+      { name: "env long ignore-environment hard reset", command: "env --ignore-environment git reset --hard" },
+      { name: "env long ignore-environment nested bash hard reset", command: "env --ignore-environment bash -lc 'git reset --hard'" },
+      { name: "command terminator hard reset", command: "command -- git reset --hard" },
+      { name: "command terminator nested bash hard reset", command: "command -- bash -lc 'git reset --hard'" },
+      { name: "sudo terminator hard reset", command: "sudo -- git reset --hard" },
+      { name: "sudo terminator nested bash hard reset", command: "sudo -- bash -lc 'git reset --hard'" },
+      { name: "sudo long non-interactive hard reset", command: "sudo --non-interactive git reset --hard" },
+      { name: "sudo long non-interactive nested bash hard reset", command: "sudo --non-interactive bash -lc 'git reset --hard'" },
+      { name: "env terminator hard reset", command: "env -- git reset --hard" },
+      { name: "env terminator nested bash hard reset", command: "env -- bash -lc 'git reset --hard'" },
+      { name: "else-prefixed hard reset", command: "else git reset --hard" },
+      { name: "unquoted command substitution hard reset", command: "echo $(git reset --hard)" },
+      { name: "double-quoted command substitution hard reset", command: "echo \"$(git reset --hard)\"" },
+      { name: "double-quoted command substitution after literal single quote", command: "echo \"prefix ' $(git reset --hard)\"" },
+      { name: "assignment command substitution hard reset", command: "x=$(git reset --hard)" },
+      { name: "legacy command substitution hard reset", command: "echo `git reset --hard`" },
+      { name: "unquoted heredoc command substitution hard reset", command: "cat <<EOF\n$(git reset --hard)\nEOF" },
+      { name: "unquoted heredoc legacy substitution hard reset", command: "cat <<EOF\n`git reset --hard`\nEOF" },
+      { name: "unquoted heredoc single-quoted command substitution hard reset", command: "cat <<EOF\n'$(git reset --hard)'\nEOF" },
+      { name: "unquoted heredoc single-quoted legacy substitution hard reset", command: "cat <<EOF\n'`git reset --hard`'\nEOF" },
+      { name: "quoted heredoc-looking text before hard reset", command: "echo \"<<EOF\"\ngit reset --hard\nEOF" },
+      { name: "commented heredoc-looking text before hard reset", command: "# <<EOF\ngit reset --hard\nEOF" },
+    ] as const) {
+      const output = { args: { command } };
+
+      await expect(
+        plugin["tool.execute.before"]?.({ sessionID: "s-git-danger", tool: "bash", cwd }, output),
+        `${name}: ${command}`,
+      ).rejects.toThrow("Dangerous git command blocked");
+
+      expect(output.args.command, `${name}: command should remain unmodified`).toBe(command);
+      expect(output.args.command, `${name}: resolver should not be injected`).not.toContain("AGENTIC_PLUGIN_ROOT");
+    }
+  });
+
+  test("allows non-destructive git bash commands after workflow unlock with resolver injection", async () => {
+    const cwd = await makeProject(true);
+    process.chdir(cwd);
+    const plugin = await ImitationMachinePlugin();
+
+    const chatOutput = { messages: [userMessage("hello")] };
+    await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s-git-allowed", cwd }, chatOutput);
+    await plugin["tool.execute.before"]?.({ sessionID: "s-git-allowed", tool: "skill", cwd, args: { name: "tdd" } }, { args: { name: "tdd" } });
+
+    for (const { name, command } of [
+      { name: "status", command: "git status" },
+      { name: "status after git global -C", command: "git -C repo status" },
+      { name: "diff stat", command: "git diff --stat" },
+      { name: "short log", command: "git log --oneline -1" },
+      { name: "normal branch push", command: "git push origin HEAD:refs/heads/test-branch" },
+      { name: "targeted restore", command: "git restore path/to/file" },
+      { name: "branch checkout", command: "git checkout feature-branch" },
+      { name: "clean short force dry run", command: "git clean -fn" },
+      { name: "clean long force dry run", command: "git clean --force --dry-run" },
+      { name: "clean combined dry run", command: "git clean -fdn" },
+      { name: "clean long dry run", command: "git clean --force -d --dry-run" },
+      { name: "rtk wrapped status", command: "rtk git -C repo status" },
+      { name: "unquoted heredoc body mentions hard reset", command: "cat <<EOF\ngit reset --hard\nEOF" },
+      { name: "heredoc body mentions hard reset", command: "cat <<'EOF' > script.sh\ngit reset --hard\nEOF" },
+      { name: "quoted heredoc command substitution text", command: "cat <<'EOF'\n$(git reset --hard)\nEOF" },
+      { name: "quoted heredoc single-quoted command substitution text", command: "cat <<'EOF'\n'$(git reset --hard)'\nEOF" },
+      { name: "echo mentions hard reset", command: "echo git reset --hard" },
+      { name: "echo option mentions hard reset", command: "echo -n git reset --hard" },
+      { name: "double-quoted separator text", command: "echo \"x; git reset --hard;\"" },
+      { name: "single-quoted and text", command: "printf 'git status && git reset --hard'" },
+      { name: "double-quoted pipe text", command: "echo \"git status | git reset --hard\"" },
+      { name: "single-quoted newline text", command: "printf 'git status\ngit reset --hard'" },
+      { name: "single-quoted command substitution text", command: "echo '$(git reset --hard)'" },
+    ] as const) {
+      const output = { args: { command } };
+
+      await expect(
+        plugin["tool.execute.before"]?.({ sessionID: "s-git-allowed", tool: "bash", cwd }, output),
+        `${name}: ${command}`,
+      ).resolves.toBeUndefined();
+
+      expect(output.args.command, `${name}: resolver should be injected`).toContain("AGENTIC_PLUGIN_ROOT");
+      expect(output.args.command, `${name}: original command should be preserved`).toContain(command);
+    }
+  });
+
+  test("blocks dangerous git bash commands after bootstrap before workflow when mode allows bash", async () => {
+    for (const mode of ["standard", "lite"] as const) {
+      const cwd = await makeProject(true);
+      if (mode === "lite") {
+        await writeFile(join(cwd, ".imitation-machine.json"), JSON.stringify({ mode }, null, 2));
+      }
+      process.chdir(cwd);
+      const plugin = await ImitationMachinePlugin();
+
+      const chatOutput = { messages: [userMessage("hello")] };
+      await plugin["experimental.chat.messages.transform"]?.({ sessionID: `s-git-preworkflow-${mode}`, cwd }, chatOutput);
+
+      const output = { args: { command: "git reset --hard" } };
+      await expect(
+        plugin["tool.execute.before"]?.({ sessionID: `s-git-preworkflow-${mode}`, tool: "bash", cwd }, output),
+        `${mode}: dangerous git should be blocked before workflow skill when bash is otherwise allowed`,
+      ).rejects.toThrow("Dangerous git command blocked");
+
+      expect(output.args.command, `${mode}: command should remain unmodified`).toBe("git reset --hard");
+    }
+  });
+
+  test("keeps strict-mode dangerous git bash commands blocked by workflow policy before workflow skill", async () => {
+    const cwd = await makeProject(true);
+    await writeFile(join(cwd, ".imitation-machine.json"), JSON.stringify({ mode: "strict" }, null, 2));
+    process.chdir(cwd);
+    const plugin = await ImitationMachinePlugin();
+
+    const chatOutput = { messages: [userMessage("hello")] };
+    await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s-git-strict-preworkflow", cwd }, chatOutput);
+
+    const output = { args: { command: "git reset --hard" } };
+    await expect(
+      plugin["tool.execute.before"]?.({ sessionID: "s-git-strict-preworkflow", tool: "bash", cwd }, output),
+    ).rejects.toThrow("workflow skill");
+
+    expect(output.args.command).toBe("git reset --hard");
+  });
+
+  test("does not govern git bash commands in repos that did not opt in", async () => {
+    const cwd = await makeProject(false);
+    process.chdir(cwd);
+    const plugin = await ImitationMachinePlugin();
+    const output = { args: { command: "git reset --hard" } };
+
+    await expect(
+      plugin["tool.execute.before"]?.({ sessionID: "s-git-passive", tool: "bash", cwd }, output),
+    ).resolves.toBeUndefined();
+
+    expect(output.args.command).toBe("git reset --hard");
   });
 
   test("does not duplicate bash resolver when the hook runs twice on the same output", async () => {
