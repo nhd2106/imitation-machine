@@ -32,6 +32,24 @@ function mentionContext(content: string, term: string): string {
     .toLowerCase();
 }
 
+function mentionContextWithAll(content: string, terms: readonly string[]): string {
+  return content
+    .split("\n")
+    .filter((line) => terms.every((term) => line.toLowerCase().includes(term.toLowerCase())))
+    .join("\n")
+    .toLowerCase();
+}
+
+function sectionBetween(content: string, startMarker: string, endMarker: string): string {
+  const start = content.indexOf(startMarker);
+  const end = content.indexOf(endMarker, start + startMarker.length);
+
+  expect(start, `${startMarker} should exist`).toBeGreaterThanOrEqual(0);
+  expect(end, `${endMarker} should exist after ${startMarker}`).toBeGreaterThan(start);
+
+  return content.slice(start, end);
+}
+
 function expectZoomOutReadOnlyOrientation(context: string, label: string): void {
   expect(context, `${label} should mention zoom-out`).toContain("zoom-out");
   expect(context, `${label} should identify zoom-out as read-only`).toContain("read-only");
@@ -44,6 +62,50 @@ function expectZoomOutReadOnlyOrientation(context: string, label: string): void 
   );
   expect(context, `${label} should not authorize writes or implementation`).not.toMatch(
     /authori[sz](e|es) writes|writes are allowed|can write|may write|(can|may|should|allowed to|authorized to) (edit|modify) files|can implement|may implement|authori[sz](e|es) implementation/,
+  );
+}
+
+function expectPrototypeDisposablePositioning(context: string, label: string): void {
+  const lowerContext = context.toLowerCase();
+
+  expect(lowerContext, `${label} should mention prototype`).toContain("prototype");
+  expect(lowerContext, `${label} should require approved prototype work`).toContain("approved");
+  expect(lowerContext, `${label} should frame prototype work as disposable`).toContain("disposable");
+  expect(lowerContext, `${label} should keep prototypes separate from production implementation`).toMatch(
+    /not (a )?production implementation|not production implementation|separate from production implementation/,
+  );
+  expect(lowerContext, `${label} should not allow prototype work as a TDD shortcut`).toMatch(
+    /not (a )?tdd shortcut|no tdd shortcut|not.*shortcut.*tdd/,
+  );
+}
+
+function expectPrototypeWorkflowRouting(content: string, label: string): void {
+  const lowerContent = content.toLowerCase();
+  const prototypeContext = mentionContext(content, "prototype");
+  const ambiguousPrototypeContext = mentionContextWithAll(content, ["prototype", "ambiguous"]);
+  const readOnlyPrototypeContext = mentionContextWithAll(content, ["prototype", "read-only"]);
+
+  expectPrototypeDisposablePositioning(prototypeContext, label);
+  expect(prototypeContext, `${label} should route through read-only zoom-out first`).toContain("zoom-out");
+  expect(prototypeContext, `${label} should identify production handoff after prototype learning`).toMatch(
+    /production|follow-up|handoff/,
+  );
+
+  expectOrdered(lowerContent, "zoom-out", "prototype");
+  expectOrdered(lowerContent, "prototype", "`plan`");
+  expectOrdered(lowerContent, "prototype", "`tdd`");
+
+  expect(ambiguousPrototypeContext, `${label} should call out ambiguous prototype requests in prototype-specific context`).toContain(
+    "ambiguous",
+  );
+  expect(ambiguousPrototypeContext, `${label} should route ambiguous prototype work to zoom-out or brainstorm`).toMatch(
+    /zoom-out|brainstorm/,
+  );
+  expect(readOnlyPrototypeContext, `${label} should call out read-only prototype exploration in prototype-specific context`).toContain(
+    "read-only",
+  );
+  expect(readOnlyPrototypeContext, `${label} should route read-only prototype exploration to zoom-out or brainstorm`).toMatch(
+    /zoom-out|brainstorm/,
   );
 }
 
@@ -343,6 +405,44 @@ describe("core skill content", () => {
     ]);
   });
 
+  test("prototype skill codifies disposable exploratory work before production follow-up", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "prototype", "SKILL.md")).text();
+    const descriptionLine = content.split("\n").find((line) => line.startsWith("description:"));
+    const lowerContent = content.toLowerCase();
+
+    expect(content.startsWith("---\nname: prototype\n")).toBe(true);
+    expect(descriptionLine).toBeDefined();
+    expect(descriptionLine).toStartWith("description: Use when");
+
+    expectContainsAll(lowerContent, [
+      "approved disposable exploratory work",
+      "not production implementation",
+      "one prototype question",
+      "wait for the answer",
+      "ui/experience variation",
+      "logic/state/model",
+      "visibly disposable artifacts",
+      "easy to remove or absorb later",
+      "run/view instructions",
+      "learning/outcome capture",
+      "cleanup or production follow-up",
+      "`design`",
+      "`plan`",
+      "`tdd`",
+      "`adr`",
+      "`verify`",
+      "`zoom-out`",
+      "`brainstorm`",
+      "ambiguous",
+      "read-only exploration",
+      "## red flags",
+      "tdd shortcuts",
+      "keeping prototype as production code",
+    ]);
+    expectOrdered(lowerContent, "one prototype question", "artifacts");
+    expectOrdered(lowerContent, "learning/outcome capture", "cleanup or production follow-up");
+  });
+
   test("comparison matrix documents direct external skills delta without replacing superpowers matrix", async () => {
     const content = await Bun.file(join(ROOT, "docs", "skills-comparison-matrix.md")).text();
     const directComparisonStart = content.indexOf("## Direct Comparison");
@@ -396,6 +496,14 @@ describe("core skill content", () => {
     expectZoomOutReadOnlyOrientation(mentionContext(quickstart, "zoom-out"), "README skill-selection quickstart");
   });
 
+  test("README quickstart routes approved disposable prototype work", async () => {
+    const content = await Bun.file(join(ROOT, "README.md")).text();
+    const quickstart = content.slice(content.indexOf("Skill-selection quickstart"), content.indexOf("## Contributing"));
+    const prototypeContext = mentionContext(quickstart, "prototype");
+
+    expectPrototypeDisposablePositioning(prototypeContext, "README skill-selection quickstart prototype row");
+  });
+
   test("using-agentic skill selection docs expose zoom-out before planning or code changes", async () => {
     const skill = await Bun.file(join(ROOT, "skills", "using-agentic", "SKILL.md")).text();
     const cheatsheet = await Bun.file(
@@ -414,10 +522,11 @@ describe("core skill content", () => {
     );
   });
 
-  test("comparison matrix shows zoom-out shipped while deeper discovery gaps remain open", async () => {
+  test("comparison matrix shows zoom-out and prototype shipped while selected gaps remain open", async () => {
     const content = await Bun.file(join(ROOT, "docs", "skills-comparison-matrix.md")).text();
     const lowerContent = content.toLowerCase();
     const zoomOutRow = markdownTableRow(content, "zoom-out").toLowerCase();
+    const prototypeRow = markdownTableRow(content, "prototype").toLowerCase();
     const openGapLines = lowerContent
       .split("\n")
       .filter((line) => /remaining|open|future|gap|next wave/.test(line))
@@ -431,15 +540,50 @@ describe("core skill content", () => {
     expect(zoomOutRow, "zoom-out row should point at behavioral coverage").toMatch(/ship|covered|coverage/);
     expect(zoomOutRow).toContain("zoom-out-prompts.md");
 
+    expectPrototypeDisposablePositioning(prototypeRow, "comparison matrix prototype row");
+    expect(prototypeRow, "prototype should be marked shipped/covered, not missing").not.toContain("| missing |");
+    expect(prototypeRow, "prototype eval coverage should use the defined Partial legend value").toContain(
+      "| unique | partial | partial |",
+    );
+    expect(prototypeRow, "prototype row should point at behavioral coverage").toMatch(/ship|covered|coverage/);
+    expect(prototypeRow, "prototype row should point at prompt fixture coverage").toContain("prototype-prompts.md");
+
     expectContainsAll(openGapLines, [
       "architecture-deepening",
-      "prototype",
       "systematic-debugging depth",
       "requirements-brief",
       "issue-slicing",
       "enrichment",
     ]);
     expect(openGapLines, "zoom-out should no longer be listed as an open matrix/docs gap").not.toContain("zoom-out");
+    expect(openGapLines, "prototype should no longer be listed as an open matrix/docs gap").not.toContain("prototype");
+  });
+
+  test("README exposes prototype as approved disposable work, not production or TDD shortcut", async () => {
+    const content = await Bun.file(join(ROOT, "README.md")).text();
+    const currentStatus = sectionBetween(content, "## Current status", "## Install");
+    const shipsNow = sectionBetween(currentStatus, "### Ships now", "### Remaining gaps");
+    const remainingGaps = currentStatus.slice(currentStatus.indexOf("### Remaining gaps"));
+
+    expectPrototypeDisposablePositioning(mentionContext(shipsNow, "prototype"), "README ships now");
+    expect(remainingGaps.toLowerCase(), "README remaining gaps should not list prototype as an open gap").not.toContain(
+      "prototype",
+    );
+  });
+
+  test("using-agentic docs route approved disposable prototypes after zoom-out and before production handoff", async () => {
+    const skill = await Bun.file(join(ROOT, "skills", "using-agentic", "SKILL.md")).text();
+    const cheatsheet = await Bun.file(
+      join(ROOT, "skills", "using-agentic", "references", "workflow-cheatsheet.md"),
+    ).text();
+    const processSkills = skill.slice(skill.indexOf("## Process Skills"), skill.indexOf("## Supporting Skills"));
+    const cheatsheetRouting = cheatsheet.slice(
+      cheatsheet.indexOf("## Skill-selection quickstart"),
+      cheatsheet.indexOf("## OpenCode Agent Map"),
+    );
+
+    expectPrototypeWorkflowRouting(processSkills, "using-agentic process skills");
+    expectPrototypeWorkflowRouting(cheatsheetRouting, "workflow cheatsheet routing");
   });
 
   test("read-only intake skills route tracker publishing to separate opt-in workflow", async () => {

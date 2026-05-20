@@ -49,6 +49,7 @@ Canonical final sequence:
 | Bucket | Use these skills when... |
 | --- | --- |
 | Read-only intake | Use `zoom-out` for read-only orientation before planning or before implementation; no writes or implementation. Use `grill-me`, `requirements-brief`, or `issue-slicing` to clarify, synthesize, or draft issue slices without writes. |
+| Prototyping | Use `prototype` for approved disposable prototype work after intake; keep it not production implementation, not a TDD shortcut, and separate from production implementation. |
 | Implementation | Use `plan`, `executing-plans`, `subagent-driven-development`, or `tdd` once the work is approved. |
 | Review | Use `review-spec`, `review-quality`, `review-security`, and `review-final` for staged readiness checks. |
 | Delivery | Use `verify`, `gate`, `pr`, `release`, `requesting-code-review`, `receiving-code-review`, and `finishing-a-development-branch`. |
@@ -91,7 +92,8 @@ The core idea is simple: start with `using-agentic`, let the matching workflow s
 - workflow entry and execution (`using-agentic`, `plan`, `executing-plans`, `tdd`, `subagent-driven-development`)
 - review and release flow (`requesting-code-review`, `receiving-code-review`, `review-spec`, `review-quality`, `review-final` / `@reviewer-final`, `review-security`, `pr`, `release`, `finishing-a-development-branch`)
 - repo/workspace discipline (`repo`, `worktree`, `gate`, `verify`, `commit`, `adr`)
-- clarification, intake, debugging, design, and coordination (`zoom-out`, `grill-me`, `requirements-brief`, `issue-slicing`, `systematic-debugging`, `design`, `dispatching-parallel-agents`)
+- clarification, intake, debugging, design, and coordination (`zoom-out`, `grill-me`, `requirements-brief`, `issue-slicing`, `systematic-debugging`, `prototype`, `design`, `dispatching-parallel-agents`)
+- approved disposable prototype work that is not production implementation and not a TDD shortcut
 
 - strong workflow breadth and review/release specialization
 - bounded OpenCode and Claude harness coverage
@@ -99,7 +101,9 @@ The core idea is simple: start with `using-agentic`, let the matching workflow s
 
 ### Remaining gaps
 
-- broader behavioral evaluation depth beyond the bounded harness layer, especially denser integration-style and recovery-path scenarios
+- architecture-deepening coverage
+- systematic-debugging depth
+- requirements-brief / issue-slicing enrichment
 
 ## Install
 

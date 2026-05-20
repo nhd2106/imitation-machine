@@ -18,7 +18,7 @@ const agentsDir = path.resolve(__dirname, "../agents");
 const pluginRoot = path.resolve(__dirname, "../..");
 const cliPath = path.resolve(pluginRoot, "cli/index.ts");
 const binDir = path.resolve(pluginRoot, "bin");
-const WRITE_AUTHORIZING_SKILLS = new Set(["brainstorm", "plan", "executing-plans", "tdd", "systematic-debugging"]);
+const WRITE_AUTHORIZING_SKILLS = new Set(["brainstorm", "plan", "executing-plans", "tdd", "systematic-debugging", "prototype"]);
 const ACTIVATION_MARKERS = [
   ".imitation-machine-enabled",
   ".agentic",
@@ -116,7 +116,7 @@ function buildBootstrap(modeResolution, projectSkills = []) {
     "",
     "## Required Workflow",
     "",
-    "1. Load a process skill: brainstorm/plan/executing-plans/tdd for implementation, systematic-debugging for debugging, dispatching-parallel-agents for safe parallel fanout, grill-me for adversarial clarification/stress testing, review-spec/review-quality/review-security/requesting-code-review/receiving-code-review for review work, `pr` for PR creation/review-readiness, or `release` for release readiness/version/changelog/tag/publish.",
+    "1. Load a process skill: brainstorm/plan/executing-plans/tdd for implementation, prototype for approved disposable prototype work, systematic-debugging for debugging, dispatching-parallel-agents for safe parallel fanout, grill-me for adversarial clarification/stress testing, review-spec/review-quality/review-security/requesting-code-review/receiving-code-review for review work, `pr` for PR creation/review-readiness, or `release` for release readiness/version/changelog/tag/publish.",
     "2. When delegating to subagents, tell them: \"Load the skill tool with <skill-name> before starting.\"",
     "3. Let @planner classify independence / grouping before choosing one lane or many lanes.",
     "4. Delegate each independent lane to its own @worktree + @coder flow, while shared groups stay together.",
@@ -964,12 +964,12 @@ async function enforceToolPolicy(input, output) {
   if (!state.workflowLoaded) {
     if ((tool === "edit" || tool === "write") && !modePolicy.allowWriteWithoutWorkflowSkill) {
         throw new Error(
-          "Policy blocked: load an implementation workflow skill before writing files. Examples: brainstorm/plan/executing-plans/tdd/systematic-debugging.",
+          "Policy blocked: load an implementation workflow skill, or `prototype` for approved disposable prototype work, before writing files. Examples: brainstorm/plan/executing-plans/tdd/systematic-debugging/prototype.",
         );
     }
     if (tool === "bash" && !modePolicy.allowBashWithoutWorkflowSkill) {
       throw new Error(
-        "Policy blocked: load an implementation workflow skill before running bash in strict mode. Examples: brainstorm/plan/executing-plans/tdd/systematic-debugging.",
+        "Policy blocked: load an implementation workflow skill, or `prototype` for approved disposable prototype work, before running bash in strict mode. Examples: brainstorm/plan/executing-plans/tdd/systematic-debugging/prototype.",
       );
     }
     if (tool === "bash") {

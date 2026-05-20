@@ -83,11 +83,14 @@ Canonical final sequence:
 | Requirements intake before issue slicing | `requirements-brief` |
 | Approved intake needs vertical issue drafts | `issue-slicing` |
 | Read-only discovery/orientation before planning, implementation, or code changes; no writes/no implementation | `zoom-out` |
+| Approved disposable prototype after read-only `zoom-out`; not a production implementation, not a TDD shortcut; hand off learning to production `plan`/`tdd` | `prototype` |
 | Approved requirement needs executable tasks | `plan` |
 | Approved plan should be executed directly in-session | `executing-plans` |
 | Implementation or bug fix | `tdd` |
 | Debugging a stubborn failure | `systematic-debugging` |
 | Safe fanout of independent agent work | `dispatching-parallel-agents` |
+
+Ambiguous prototype requests stay in `brainstorm` or read-only `zoom-out`; read-only prototype exploration stays in `zoom-out` until a disposable prototype is approved.
 
 ## Supporting Skills
 
