@@ -118,6 +118,17 @@ const DEEPENED_FIXTURE_EXPECTATIONS = {
     ["read-only", "do not edit", "no changes"],
     ["non-trigger", "do not load", "stay with"],
   ],
+  "tests/skill-triggering/prototype-prompts.md": [
+    ["ui prototype", "visual prototype", "screen prototype"],
+    ["logic/state prototype", "state prototype", "interaction logic"],
+    ["one prototype question"],
+    ["wait for the answer", "wait before artifacts"],
+    ["learning goal"],
+    ["disposal boundary"],
+    ["judgment criteria", "judge the prototype"],
+    ["approval boundary", "approval"],
+    ["non-trigger", "implementation", "overreach"],
+  ],
   "tests/explicit-skill-requests/design-prompts.md": [["explicit"], ["`design`"], ["interaction quality", "responsive layout"], ["browser validation", "browser"]],
   "tests/explicit-skill-requests/verify-prompts.md": [["explicit"], ["`verify`"], ["exact reproduction", "exact bug repro"], ["fresh evidence", "evidence"]],
   "tests/explicit-skill-requests/gate-prompts.md": [["explicit"], ["`gate`"], ["coverage"], ["security scan", "security"]],
@@ -214,6 +225,19 @@ const DEEPENED_FIXTURE_EXPECTATIONS = {
     ["read-only", "do not edit", "no changes"],
     ["non-trigger", "do not implement", "implementation"],
   ],
+  "tests/explicit-skill-requests/prototype-prompts.md": [
+    ["explicit"],
+    ["`prototype`"],
+    ["ui prototype", "visual prototype", "screen prototype"],
+    ["logic/state prototype", "state prototype", "interaction logic"],
+    ["one prototype question"],
+    ["wait for the answer", "wait before artifacts"],
+    ["learning goal"],
+    ["disposal boundary"],
+    ["judgment criteria", "judge the prototype"],
+    ["approval boundary", "approval"],
+    ["non-trigger", "do not implement", "overreach"],
+  ],
   "tests/skill-triggering/worktree-prompts.md": [["merged cleanup order", "merged cleanup"], ["uncommitted work", "uncommitted changes"], ["remote branch deletion", "remote branch"]],
   "tests/explicit-skill-requests/worktree-prompts.md": [["explicit"], ["`worktree`"], ["local merged-branch cleanup", "local branch"], ["remote branch deletion", "remote branch"]],
   "tests/skill-triggering/finishing-a-development-branch-prompts.md": [["uncommitted work", "uncommitted changes"], ["merged-cleanup sequencing", "merged cleanup"], ["remote deletion optional", "optional remote deletion"]],
@@ -282,6 +306,7 @@ const EXPLICIT_PER_PROMPT_FIXTURES = [
   "tests/explicit-skill-requests/requirements-brief-prompts.md",
   "tests/explicit-skill-requests/issue-slicing-prompts.md",
   "tests/explicit-skill-requests/zoom-out-prompts.md",
+  "tests/explicit-skill-requests/prototype-prompts.md",
 ] as const;
 
 const SKILL_TRIGGER_LOAD_EXPECTATIONS = {
@@ -417,6 +442,19 @@ const DISTINCT_SCENARIO_EXPECTATIONS = {
     [/`zoom-out`/, /explicit/, /zoom out|broader context|discovery/],
     [/`zoom-out`/, /explicit/, /read-only|do not edit|no changes/],
     [/`zoom-out`/, /explicit/, /non-trigger|implementation boundary|do not implement/],
+  ],
+  "tests/skill-triggering/prototype-prompts.md": [
+    [/ui prototype|visual prototype|screen prototype/, /prototype/, /approval|boundary/, /one prototype question/, /wait/, /learning goal/, /disposal boundary/, /judgment criteria|judge the prototype/],
+    [/logic\/state prototype|logic.*state|state prototype|interaction logic/, /prototype/, /state|flow/, /one prototype question/, /wait/, /learning goal/, /disposal boundary/, /judgment criteria|judge the prototype/],
+    [/approval boundary|approval/, /do not implement|before implementation|handoff/],
+    [/implement|implementation|build it|production code/, /non-trigger|do not load `prototype`|do not load|overreach|stay with/],
+  ],
+  "tests/explicit-skill-requests/prototype-prompts.md": [
+    [/`prototype`/, /explicit/, /ui prototype|visual prototype|screen prototype/, /one prototype question/, /wait/, /learning goal/, /disposal boundary/, /judgment criteria|judge the prototype/],
+    [/`prototype`/, /explicit/, /logic\/state prototype|logic.*state|state prototype|interaction logic/, /one prototype question/, /wait/, /learning goal/, /disposal boundary/, /judgment criteria|judge the prototype/],
+    [/`prototype`/, /explicit/, /clean up|cleanup/, /outcome handoff/, /accepted.*rejected.*undecided/],
+    [/`prototype`/, /explicit/, /approval boundary|approval|sign-off/],
+    [/`prototype`/, /explicit/, /do not implement|non-trigger|overreach|implementation boundary/],
   ],
   "tests/skill-triggering/dispatching-parallel-agents-prompts.md": [
     [/parallel|split/, /independent|independence/],
@@ -664,6 +702,7 @@ const STRONG_INTENT_PHRASES = {
   "finishing-a-development-branch": ["finish the branch", "branch-finish", "handoff"],
   "grill-me": ["grill me", "stress-test", "challenge my assumptions"],
   "zoom-out": ["zoom out", "read-only discovery", "broader context"],
+  prototype: ["ui prototype", "logic/state prototype", "approval boundary"],
 } as const satisfies Record<string, readonly string[]>;
 
 async function exists(relativePath: string): Promise<boolean> {
@@ -733,6 +772,35 @@ function structuredPromptSections(content: string): string[] {
     const end = matches[index + 1]?.index ?? content.length;
     return content.slice(start, end);
   });
+}
+
+function expectedBehaviorBlock(section: string): string {
+  return section.match(/Expected behavior:\n(?:- .+\n?)+/)?.[0] ?? "";
+}
+
+function isPositivePrototypeExpectedBehavior(block: string): boolean {
+  return /\b(load|loads|honor|honors|interpret|interprets|use|uses)\b[^\n]*`?prototype`?/.test(block);
+}
+
+function isExcludedPrototypeHardGateSection(block: string): boolean {
+  return /\bnon-trigger\b|do not load `?prototype`?|\bboundary(?:-only| check)\b|\bpermission to overreach\b|\bnon-build\b/.test(block);
+}
+
+function assertPrototypePositiveSectionsRequireHardGate(content: string): void {
+  for (const [index, section] of structuredPromptSections(content).entries()) {
+    const block = expectedBehaviorBlock(section).toLowerCase();
+
+    if (!isPositivePrototypeExpectedBehavior(block) || isExcludedPrototypeHardGateSection(block)) {
+      continue;
+    }
+
+    const sectionName = `prototype prompt ${index + 1}`;
+    expect(block, `${sectionName} should ask one prototype question`).toContain("one prototype question");
+    expect(block, `${sectionName} should wait before artifacts`).toMatch(/\bwait\b|wait before artifacts|wait for the answer/);
+    expect(block, `${sectionName} should confirm the learning goal`).toContain("learning goal");
+    expect(block, `${sectionName} should confirm the disposal boundary`).toContain("disposal boundary");
+    expect(block, `${sectionName} should define judgment criteria`).toMatch(/judgment criteria|judge the prototype/);
+  }
 }
 
 function structuredSections(content: string, sectionLabel: "Prompt" | "Turn"): string[] {
@@ -996,6 +1064,49 @@ describe("prompt fixture suites", () => {
     expect(() => assertDistinctScenarioCoverage(sections, scenarios)).toThrow();
   });
 
+  test("rejects positive prototype sections that omit the ask-and-wait hard gate", () => {
+    const content = `# Example
+
+## Prompt 1
+
+"Build a quick UI prototype for the approved onboarding screen."
+
+Expected behavior:
+- load \`prototype\` because this is an approved disposable UI prototype
+- create a screen prototype for comparing the two visual directions
+
+## Prompt 2
+
+"Call this a non-trigger if it would keep production code as the prototype."
+
+Expected behavior:
+- honor the explicit \`prototype\` request as a boundary check rather than permission to overreach
+- identify production implementation overreach as a non-trigger for disposable prototype work
+- do not implement or keep production code under the label of a prototype
+`;
+
+    expect(() => assertPrototypePositiveSectionsRequireHardGate(content)).toThrow(
+      "one prototype question",
+    );
+  });
+
+  test("does not exempt positive prototype sections solely for warning against overreach", () => {
+    const content = `# Example
+
+## Prompt 1
+
+"Build a quick UI prototype for the approved onboarding screen, but avoid implementation overreach."
+
+Expected behavior:
+- load \`prototype\` because this is an approved disposable UI prototype
+- create a screen prototype while avoiding implementation overreach
+`;
+
+    expect(() => assertPrototypePositiveSectionsRequireHardGate(content)).toThrow(
+      "one prototype question",
+    );
+  });
+
   test("ships structured skill-triggering fixtures", async () => {
     for (const fixture of await fixturePaths("tests/skill-triggering")) {
       await expectPromptFixture(fixture, { requireStructuredPrompts: true });
@@ -1066,6 +1177,16 @@ describe("prompt fixture suites", () => {
         : structuredSections(content, "Prompt");
 
       assertDistinctScenarioCoverage(sections, scenarios);
+    }
+  });
+
+  test("prototype fixtures hard-gate each positive prototype build section", async () => {
+    for (const fixture of [
+      "tests/skill-triggering/prototype-prompts.md",
+      "tests/explicit-skill-requests/prototype-prompts.md",
+    ] as const) {
+      const content = await readFixture(fixture);
+      assertPrototypePositiveSectionsRequireHardGate(content);
     }
   });
 

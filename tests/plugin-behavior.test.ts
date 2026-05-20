@@ -259,7 +259,7 @@ describe("imitation-machine plugin behavior", () => {
   });
 
   test("keeps write access for core implementation workflow skills", async () => {
-    for (const skill of ["brainstorm", "plan", "executing-plans", "tdd", "systematic-debugging"] as const) {
+    for (const skill of ["brainstorm", "plan", "executing-plans", "tdd", "systematic-debugging", "prototype"] as const) {
       const cwd = await makeProject(true);
       process.chdir(cwd);
       const plugin = await ImitationMachinePlugin();
