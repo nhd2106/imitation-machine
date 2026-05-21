@@ -81,6 +81,11 @@ describe("skill packages", () => {
     expect(await exists("skills/commit/commit-message-template.md")).toBe(true);
   });
 
+  test("architecture-deepening ships candidate discovery checklist and report template", async () => {
+    expect(await exists("skills/architecture-deepening/references/deepening-checklist.md")).toBe(true);
+    expect(await exists("skills/architecture-deepening/candidate-report-template.md")).toBe(true);
+  });
+
   test("superpowers-gap skill packages ship companion assets", async () => {
     expect(await exists("skills/systematic-debugging/references/debugging-checklist.md")).toBe(true);
     expect(await exists("skills/systematic-debugging/hypothesis-log-template.md")).toBe(true);

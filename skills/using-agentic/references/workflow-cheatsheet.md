@@ -18,6 +18,7 @@ Canonical final sequence:
 | Bucket | Start here |
 | --- | --- |
 | Read-only discovery/orientation before planning, implementation, or code changes; no writes/no implementation | `zoom-out` |
+| Read-only architecture candidate discovery for shallow/deep modules, seams, dependencies, tests, and handoffs; no writes/no implementation | `architecture-deepening` |
 | Approved disposable prototype after read-only `zoom-out`; not a production implementation, not a TDD shortcut; hand off learning to production `plan`/`tdd` | `prototype` |
 | Read-only intake | `grill-me`, `requirements-brief`, `issue-slicing` |
 | Implementation | `plan`, `executing-plans`, `subagent-driven-development`, `tdd` |
@@ -34,6 +35,7 @@ Canonical final sequence:
 - fuzzy requirements -> `requirements-brief`
 - approved requirements brief -> `issue-slicing`
 - orientation before planning, implementation, or code changes -> `zoom-out` (read-only; no writes/no implementation)
+- before refactor planning -> `architecture-deepening` (read-only candidate discovery for shallow/deep modules, seams, dependencies, tests, and handoffs; no writes/no implementation)
 - ambiguous or read-only prototype exploration -> `zoom-out` or `brainstorm` until a disposable prototype is approved
 - approved disposable prototype -> `prototype` after read-only `zoom-out`; not a production implementation, not a TDD shortcut; hand off learning to production `plan`/`tdd`
 - approved issue slices or requirement -> `plan`
