@@ -83,6 +83,7 @@ Canonical final sequence:
 | Requirements intake before issue slicing | `requirements-brief` |
 | Approved intake needs vertical issue drafts | `issue-slicing` |
 | Read-only discovery/orientation before planning, implementation, or code changes; no writes/no implementation | `zoom-out` |
+| Read-only architecture candidate discovery for shallow/deep modules, seams, dependencies, tests, and handoffs; no writes/no implementation | `architecture-deepening` |
 | Approved disposable prototype after read-only `zoom-out`; not a production implementation, not a TDD shortcut; hand off learning to production `plan`/`tdd` | `prototype` |
 | Approved requirement needs executable tasks | `plan` |
 | Approved plan should be executed directly in-session | `executing-plans` |

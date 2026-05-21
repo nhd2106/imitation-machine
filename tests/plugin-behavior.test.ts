@@ -228,7 +228,7 @@ describe("imitation-machine plugin behavior", () => {
     ).resolves.toBeUndefined();
   });
 
-  test("does not unlock write access for workflow-recognized skills that are not write-authorizing", async () => {
+  test("does not unlock edit or write access for workflow-recognized skills that are not write-authorizing", async () => {
     const cwd = await makeProject(true);
     process.chdir(cwd);
     const plugin = await ImitationMachinePlugin();
@@ -243,18 +243,21 @@ describe("imitation-machine plugin behavior", () => {
       "requirements-brief",
       "issue-slicing",
       "zoom-out",
+      "architecture-deepening",
     ] as const) {
       await plugin["tool.execute.before"]?.(
         { sessionID: `s-${skill}`, tool: "skill", cwd, args: { name: skill } },
         { args: { name: skill } },
       );
 
-      await expect(
-        plugin["tool.execute.before"]?.(
-          { sessionID: `s-${skill}`, tool: "edit", cwd },
-          { args: { filePath: `/tmp/${skill}.md` } },
-        ),
-      ).rejects.toThrow("implementation workflow skill");
+      for (const tool of ["edit", "write"] as const) {
+        await expect(
+          plugin["tool.execute.before"]?.(
+            { sessionID: `s-${skill}`, tool, cwd },
+            { args: { filePath: `/tmp/${skill}.md` } },
+          ),
+        ).rejects.toThrow("implementation workflow skill");
+      }
     }
   });
 
@@ -649,6 +652,21 @@ describe("imitation-machine plugin behavior", () => {
     expect(bootstrapText).toContain("finishing-a-development-branch");
     expect(bootstrapText).toContain("requesting-code-review");
     expect(bootstrapText).toContain("receiving-code-review");
+  });
+
+  test("bootstrap routes architecture-deepening as read-only candidate discovery", async () => {
+    const cwd = await makeProject(true);
+    process.chdir(cwd);
+    const plugin = await ImitationMachinePlugin();
+    const output = { messages: [userMessage("find shallow and deep module candidates before we plan refactors")] };
+
+    await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s-architecture-deepening", cwd }, output);
+    const bootstrapText = output.messages[0]?.parts[0]?.text ?? "";
+
+    expect(bootstrapText).toContain("architecture-deepening");
+    expect(bootstrapText).toContain("read-only candidate discovery");
+    expect(bootstrapText).toContain("does not authorize implementation");
+    expect(bootstrapText).toContain("plan/tdd");
   });
 
   test("bootstrap explains multi-lane fanout for independent task groups", async () => {

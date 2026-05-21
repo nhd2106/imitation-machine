@@ -2,7 +2,7 @@
 
 Enterprise-oriented agentic SDLC framework with:
 
-- Skill-driven workflow (brainstorm, plan, tdd, staged reviews)
+- Skill-driven workflow (brainstorm, plan, tdd, writing-skills, staged reviews)
 - Expanded workflow inventory (`grill-me`, `systematic-debugging`, `dispatching-parallel-agents`, `executing-plans`, `finishing-a-development-branch`, `requesting-code-review`, `receiving-code-review`, `review-final`)
 - Hard gates (coverage/typecheck/security)
 - Verification-before-completion (`agentic verify all`)
@@ -48,7 +48,7 @@ Canonical final sequence:
 
 | Bucket | Use these skills when... |
 | --- | --- |
-| Read-only intake | Use `zoom-out` for read-only orientation before planning or before implementation; no writes or implementation. Use `grill-me`, `requirements-brief`, or `issue-slicing` to clarify, synthesize, or draft issue slices without writes. |
+| Read-only intake | Use `zoom-out` for read-only orientation before planning or before implementation; no writes or implementation. Use `architecture-deepening` for read-only candidate discovery of shallow/deep modules, seams, dependencies, tests, and handoffs. Use `grill-me`, `requirements-brief`, or `issue-slicing` to clarify, synthesize, or draft issue slices without writes. Tracker publishing stays a separate opt-in workflow with explicit approval. |
 | Prototyping | Use `prototype` for approved disposable prototype work after intake; keep it not production implementation, not a TDD shortcut, and separate from production implementation. |
 | Implementation | Use `plan`, `executing-plans`, `subagent-driven-development`, or `tdd` once the work is approved. |
 | Review | Use `review-spec`, `review-quality`, `review-security`, and `review-final` for staged readiness checks. |
@@ -92,8 +92,10 @@ The core idea is simple: start with `using-agentic`, let the matching workflow s
 - workflow entry and execution (`using-agentic`, `plan`, `executing-plans`, `tdd`, `subagent-driven-development`)
 - review and release flow (`requesting-code-review`, `receiving-code-review`, `review-spec`, `review-quality`, `review-final` / `@reviewer-final`, `review-security`, `pr`, `release`, `finishing-a-development-branch`)
 - repo/workspace discipline (`repo`, `worktree`, `gate`, `verify`, `commit`, `adr`)
-- clarification, intake, debugging, design, and coordination (`zoom-out`, `grill-me`, `requirements-brief`, `issue-slicing`, `systematic-debugging`, `prototype`, `design`, `dispatching-parallel-agents`)
+- clarification, intake, debugging, design, and coordination (`zoom-out`, `architecture-deepening`, `grill-me`, `requirements-brief`, `issue-slicing`, `systematic-debugging`, `prototype`, `design`, `dispatching-parallel-agents`, `writing-skills`)
 - approved disposable prototype work that is not production implementation and not a TDD shortcut
+- read-only architecture-deepening candidate discovery for shallow/deep module candidates, seams, dependency categories, behavior-protecting tests, risks/tradeoffs, and handoffs
+- tracker publishing remains separate opt-in work with explicit approval; read-only intake skills do not publish tracker updates
 
 - strong workflow breadth and review/release specialization
 - bounded OpenCode and Claude harness coverage
@@ -101,7 +103,6 @@ The core idea is simple: start with `using-agentic`, let the matching workflow s
 
 ### Remaining gaps
 
-- architecture-deepening coverage
 - systematic-debugging depth
 - requirements-brief / issue-slicing enrichment
 

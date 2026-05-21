@@ -129,6 +129,14 @@ const DEEPENED_FIXTURE_EXPECTATIONS = {
     ["approval boundary", "approval"],
     ["non-trigger", "implementation", "overreach"],
   ],
+  "tests/skill-triggering/architecture-deepening-prompts.md": [
+    ["architecture-deepening", "architecture deepening"],
+    ["candidate discovery", "candidate"],
+    ["read-only", "no edits", "do not edit"],
+    ["shallow", "deep"],
+    ["seams", "dependency"],
+    ["handoff", "plan", "adr"],
+  ],
   "tests/explicit-skill-requests/design-prompts.md": [["explicit"], ["`design`"], ["interaction quality", "responsive layout"], ["browser validation", "browser"]],
   "tests/explicit-skill-requests/verify-prompts.md": [["explicit"], ["`verify`"], ["exact reproduction", "exact bug repro"], ["fresh evidence", "evidence"]],
   "tests/explicit-skill-requests/gate-prompts.md": [["explicit"], ["`gate`"], ["coverage"], ["security scan", "security"]],
@@ -238,6 +246,14 @@ const DEEPENED_FIXTURE_EXPECTATIONS = {
     ["approval boundary", "approval"],
     ["non-trigger", "do not implement", "overreach"],
   ],
+  "tests/explicit-skill-requests/architecture-deepening-prompts.md": [
+    ["explicit"],
+    ["`architecture-deepening`"],
+    ["candidate discovery", "candidate"],
+    ["read-only", "no edits", "do not edit"],
+    ["tests to protect behavior", "behavior-protecting tests"],
+    ["plan", "tdd", "adr"],
+  ],
   "tests/skill-triggering/worktree-prompts.md": [["merged cleanup order", "merged cleanup"], ["uncommitted work", "uncommitted changes"], ["remote branch deletion", "remote branch"]],
   "tests/explicit-skill-requests/worktree-prompts.md": [["explicit"], ["`worktree`"], ["local merged-branch cleanup", "local branch"], ["remote branch deletion", "remote branch"]],
   "tests/skill-triggering/finishing-a-development-branch-prompts.md": [["uncommitted work", "uncommitted changes"], ["merged-cleanup sequencing", "merged cleanup"], ["remote deletion optional", "optional remote deletion"]],
@@ -307,6 +323,7 @@ const EXPLICIT_PER_PROMPT_FIXTURES = [
   "tests/explicit-skill-requests/issue-slicing-prompts.md",
   "tests/explicit-skill-requests/zoom-out-prompts.md",
   "tests/explicit-skill-requests/prototype-prompts.md",
+  "tests/explicit-skill-requests/architecture-deepening-prompts.md",
 ] as const;
 
 const SKILL_TRIGGER_LOAD_EXPECTATIONS = {
@@ -455,6 +472,19 @@ const DISTINCT_SCENARIO_EXPECTATIONS = {
     [/`prototype`/, /explicit/, /clean up|cleanup/, /outcome handoff/, /accepted.*rejected.*undecided/],
     [/`prototype`/, /explicit/, /approval boundary|approval|sign-off/],
     [/`prototype`/, /explicit/, /do not implement|non-trigger|overreach|implementation boundary/],
+  ],
+  "tests/skill-triggering/architecture-deepening-prompts.md": [
+    [/architecture-deepening|architecture deepening/, /candidate discovery/, /read-only/],
+    [/seams/, /dependency/, /tests to protect behavior|behavior-protecting tests/],
+    [/implement|refactor|code changes/, /non-trigger|do not load `architecture-deepening`/, /plan|tdd/],
+    [/zoom-out|broader orientation|broad orientation/, /non-trigger|do not load `architecture-deepening`/, /zoom-out/],
+    [/repo|monorepo|affected package|dependency impact/, /non-trigger|do not load `architecture-deepening`/, /repo/],
+    [/adr|public contract|durable decision|expensive to reverse/, /non-trigger|do not load `architecture-deepening`/, /adr/],
+  ],
+  "tests/explicit-skill-requests/architecture-deepening-prompts.md": [
+    [/`architecture-deepening`/, /explicit/, /candidate discovery/],
+    [/`architecture-deepening`/, /explicit/, /read-only|no edits/, /tests to protect behavior|behavior-protecting tests/],
+    [/`architecture-deepening`/, /explicit/, /do not implement|non-trigger|does not authorize/, /plan|tdd|adr/],
   ],
   "tests/skill-triggering/dispatching-parallel-agents-prompts.md": [
     [/parallel|split/, /independent|independence/],
@@ -703,6 +733,7 @@ const STRONG_INTENT_PHRASES = {
   "grill-me": ["grill me", "stress-test", "challenge my assumptions"],
   "zoom-out": ["zoom out", "read-only discovery", "broader context"],
   prototype: ["ui prototype", "logic/state prototype", "approval boundary"],
+  "architecture-deepening": ["architecture-deepening", "candidate discovery", "shallow module", "deep module"],
 } as const satisfies Record<string, readonly string[]>;
 
 async function exists(relativePath: string): Promise<boolean> {
@@ -784,6 +815,31 @@ function isPositivePrototypeExpectedBehavior(block: string): boolean {
 
 function isExcludedPrototypeHardGateSection(block: string): boolean {
   return /\bnon-trigger\b|do not load `?prototype`?|\bboundary(?:-only| check)\b|\bpermission to overreach\b|\bnon-build\b/.test(block);
+}
+
+function isPositiveArchitectureDeepeningExpectedBehavior(block: string): boolean {
+  return /\b(load|loads|honor|honors|interpret|interprets|use|uses)\b[^\n]*`?architecture-deepening`?/.test(block);
+}
+
+function isExcludedArchitectureDeepeningBoundarySection(block: string): boolean {
+  return /\bnon-trigger\b|do not load `?architecture-deepening`?/.test(block);
+}
+
+function assertArchitectureDeepeningSectionsKeepRoutingBoundaries(content: string, fixture: string): void {
+  for (const [index, section] of structuredPromptSections(content).entries()) {
+    const block = expectedBehaviorBlock(section).toLowerCase();
+    const sectionName = `${fixture} prompt ${index + 1}`;
+
+    if (isPositiveArchitectureDeepeningExpectedBehavior(block) && !isExcludedArchitectureDeepeningBoundarySection(block)) {
+      expect(block, `${sectionName} should require loading architecture-deepening`).toContain("load `architecture-deepening`");
+    }
+
+    if (isExcludedArchitectureDeepeningBoundarySection(block)) {
+      expect(block, `${sectionName} boundary should require not loading architecture-deepening`).toContain(
+        "do not load `architecture-deepening`",
+      );
+    }
+  }
 }
 
 function assertPrototypePositiveSectionsRequireHardGate(content: string): void {
@@ -1187,6 +1243,16 @@ Expected behavior:
     ] as const) {
       const content = await readFixture(fixture);
       assertPrototypePositiveSectionsRequireHardGate(content);
+    }
+  });
+
+  test("architecture-deepening fixtures keep positive and boundary routing explicit", async () => {
+    for (const fixture of [
+      "tests/skill-triggering/architecture-deepening-prompts.md",
+      "tests/explicit-skill-requests/architecture-deepening-prompts.md",
+    ] as const) {
+      const content = await readFixture(fixture);
+      assertArchitectureDeepeningSectionsKeepRoutingBoundaries(content, fixture);
     }
   });
 

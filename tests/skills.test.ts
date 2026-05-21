@@ -109,6 +109,22 @@ function expectPrototypeWorkflowRouting(content: string, label: string): void {
   );
 }
 
+function expectArchitectureDeepeningRouting(context: string, label: string): void {
+  const lowerContext = context.toLowerCase();
+
+  expect(lowerContext, `${label} should mention architecture-deepening`).toContain("architecture-deepening");
+  expect(lowerContext, `${label} should identify read-only candidate discovery`).toContain("read-only");
+  expect(lowerContext, `${label} should identify candidate discovery`).toContain("candidate discovery");
+  expect(lowerContext, `${label} should include shallow/deep modules`).toMatch(/shallow\/deep.*modules|shallow.*deep.*modules/);
+  expect(lowerContext, `${label} should include seams`).toContain("seams");
+  expect(lowerContext, `${label} should include dependencies`).toContain("dependencies");
+  expect(lowerContext, `${label} should include tests`).toContain("tests");
+  expect(lowerContext, `${label} should include handoffs`).toContain("handoffs");
+  expect(lowerContext, `${label} should preserve no-write/no-implementation guardrails`).toMatch(
+    /no writes|without writes|does not write|no implementation|without implementation|does not implement/,
+  );
+}
+
 const CORE_SKILLS = [
   "using-agentic",
   "brainstorm",
@@ -405,6 +421,66 @@ describe("core skill content", () => {
     ]);
   });
 
+  test("architecture-deepening skill codifies read-only candidate discovery", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "architecture-deepening", "SKILL.md")).text();
+    const descriptionLine = content.split("\n").find((line) => line.startsWith("description:"));
+    const lowerContent = content.toLowerCase();
+
+    expect(content.startsWith("---\nname: architecture-deepening\n")).toBe(true);
+    expect(descriptionLine).toBeDefined();
+    expect(descriptionLine).toStartWith("description: Use when");
+
+    expectContainsAll(lowerContent, [
+      "read-only",
+      "candidate discovery",
+      "shallow module candidates",
+      "deep module candidates",
+      "seams",
+      "dependency categories",
+      "tests to protect behavior",
+      "risks/tradeoffs",
+      "recommended handoffs",
+      "no file writes",
+      "no refactors",
+      "no implementation",
+      "no tracker publishing",
+      "does not authorize",
+      "plan",
+      "tdd",
+      "zoom-out",
+      "adr",
+      "repo",
+      "prototype",
+    ]);
+  });
+
+  test("architecture-deepening ships a report template and checklist for evidence-backed findings", async () => {
+    const template = await Bun.file(join(ROOT, "skills", "architecture-deepening", "candidate-report-template.md")).text();
+    const skill = await Bun.file(join(ROOT, "skills", "architecture-deepening", "SKILL.md")).text();
+    const checklist = await Bun.file(
+      join(ROOT, "skills", "architecture-deepening", "references", "deepening-checklist.md"),
+    ).text();
+    const combined = `${template}\n${checklist}`.toLowerCase();
+    const handoffs = template.slice(template.indexOf("## Recommended Handoffs")).toLowerCase();
+
+    expectContainsAll(combined, [
+      "evidence",
+      "candidate",
+      "shallow",
+      "deep",
+      "seam",
+      "dependency",
+      "behavior-protecting tests",
+      "risk",
+      "handoff",
+      "read-only",
+    ]);
+    expectContainsAll(skill, ["candidate-report-template.md", "references/deepening-checklist.md"]);
+    expect(handoffs, "template handoffs should mention repo/prototype or clarify Other includes them").toMatch(
+      /`repo`|repo.*prototype|other.*repo.*prototype/,
+    );
+  });
+
   test("prototype skill codifies disposable exploratory work before production follow-up", async () => {
     const content = await Bun.file(join(ROOT, "skills", "prototype", "SKILL.md")).text();
     const descriptionLine = content.split("\n").find((line) => line.startsWith("description:"));
@@ -522,11 +598,12 @@ describe("core skill content", () => {
     );
   });
 
-  test("comparison matrix shows zoom-out and prototype shipped while selected gaps remain open", async () => {
+  test("comparison matrix shows zoom-out, prototype, and architecture-deepening shipped while selected gaps remain open", async () => {
     const content = await Bun.file(join(ROOT, "docs", "skills-comparison-matrix.md")).text();
     const lowerContent = content.toLowerCase();
     const zoomOutRow = markdownTableRow(content, "zoom-out").toLowerCase();
     const prototypeRow = markdownTableRow(content, "prototype").toLowerCase();
+    const architectureDeepeningRow = markdownTableRow(content, "architecture-deepening").toLowerCase();
     const openGapLines = lowerContent
       .split("\n")
       .filter((line) => /remaining|open|future|gap|next wave/.test(line))
@@ -548,8 +625,23 @@ describe("core skill content", () => {
     expect(prototypeRow, "prototype row should point at behavioral coverage").toMatch(/ship|covered|coverage/);
     expect(prototypeRow, "prototype row should point at prompt fixture coverage").toContain("prototype-prompts.md");
 
+    expect(architectureDeepeningRow, "architecture-deepening should be marked shipped/covered, not missing").not.toContain("| missing |");
+    expect(architectureDeepeningRow, "architecture-deepening should be read-only candidate discovery").toContain("read-only");
+    expect(architectureDeepeningRow, "architecture-deepening should identify candidate discovery").toContain("candidate discovery");
+    expect(architectureDeepeningRow, "architecture-deepening eval coverage should use the defined Partial legend value").toContain(
+      "| unique | partial | partial |",
+    );
+    expect(architectureDeepeningRow, "architecture-deepening row should point at prompt fixture coverage").toContain(
+      "architecture-deepening-prompts.md",
+    );
+    expect(architectureDeepeningRow, "architecture-deepening row should point at trigger fixture coverage").toContain(
+      "tests/skill-triggering/architecture-deepening-prompts.md",
+    );
+    expect(architectureDeepeningRow, "architecture-deepening row should point at explicit-request fixture coverage").toContain(
+      "tests/explicit-skill-requests/architecture-deepening-prompts.md",
+    );
+
     expectContainsAll(openGapLines, [
-      "architecture-deepening",
       "systematic-debugging depth",
       "requirements-brief",
       "issue-slicing",
@@ -557,6 +649,9 @@ describe("core skill content", () => {
     ]);
     expect(openGapLines, "zoom-out should no longer be listed as an open matrix/docs gap").not.toContain("zoom-out");
     expect(openGapLines, "prototype should no longer be listed as an open matrix/docs gap").not.toContain("prototype");
+    expect(openGapLines, "architecture-deepening should no longer be listed as an open matrix/docs gap").not.toContain(
+      "architecture-deepening",
+    );
   });
 
   test("README exposes prototype as approved disposable work, not production or TDD shortcut", async () => {
@@ -569,6 +664,20 @@ describe("core skill content", () => {
     expect(remainingGaps.toLowerCase(), "README remaining gaps should not list prototype as an open gap").not.toContain(
       "prototype",
     );
+  });
+
+  test("README exposes writing-skills and separate opt-in tracker publishing caveat", async () => {
+    const content = await Bun.file(join(ROOT, "README.md")).text().then((value) => value.toLowerCase());
+    const currentStatus = sectionBetween(content, "## current status", "## install");
+
+    expect(content).toContain("writing-skills");
+    expectContainsAll(currentStatus, [
+      "architecture-deepening",
+      "read-only",
+      "candidate discovery",
+      "tracker publishing",
+      "separate opt-in",
+    ]);
   });
 
   test("using-agentic docs route approved disposable prototypes after zoom-out and before production handoff", async () => {
@@ -584,6 +693,27 @@ describe("core skill content", () => {
 
     expectPrototypeWorkflowRouting(processSkills, "using-agentic process skills");
     expectPrototypeWorkflowRouting(cheatsheetRouting, "workflow cheatsheet routing");
+  });
+
+  test("workflow cheatsheet routes architecture-deepening before refactor planning", async () => {
+    const cheatsheet = await Bun.file(
+      join(ROOT, "skills", "using-agentic", "references", "workflow-cheatsheet.md"),
+    ).text();
+    const quickstart = sectionBetween(cheatsheet, "## Skill-selection quickstart", "## Typical mappings");
+    const typicalMappings = sectionBetween(cheatsheet, "## Typical mappings", "## OpenCode Agent Map");
+
+    expectArchitectureDeepeningRouting(
+      mentionContext(quickstart, "architecture-deepening"),
+      "workflow cheatsheet quickstart architecture-deepening row",
+    );
+    expectArchitectureDeepeningRouting(
+      mentionContext(typicalMappings, "architecture-deepening"),
+      "workflow cheatsheet typical architecture-deepening mapping",
+    );
+    expect(mentionContext(typicalMappings, "architecture-deepening"), "typical mapping should route before refactor planning").toContain(
+      "before refactor planning",
+    );
+    expectOrdered(typicalMappings, "architecture-deepening", "approved issue slices or requirement -> `plan`");
   });
 
   test("read-only intake skills route tracker publishing to separate opt-in workflow", async () => {
@@ -1078,5 +1208,16 @@ describe("core skill content", () => {
       "references/debugging-checklist.md",
       "hypothesis-log-template.md",
     ]);
+  });
+
+  test("comparison matrix recommended next wave keeps remaining gaps narrowed", async () => {
+    const content = await Bun.file(join(ROOT, "docs", "skills-comparison-matrix.md")).text().then((value) => value.toLowerCase());
+    const recommendedNextWave = content.slice(content.indexOf("## recommended next wave"), content.indexOf("## bottom line"));
+
+    expect(recommendedNextWave).not.toContain("remaining thinner packages");
+    expect(recommendedNextWave).toContain("systematic-debugging depth");
+    expect(recommendedNextWave).toContain("requirements-brief");
+    expect(recommendedNextWave).toContain("issue-slicing");
+    expect(recommendedNextWave).toMatch(/optional|opportunistic/);
   });
 });
