@@ -4,5 +4,6 @@
   "description": "Imitation Machine enterprise software development framework",
   "author": {
     "name": "duoc95"
-  }
+  },
+  "hooks": "./.claude-plugin/hooks/hooks.json"
 }
