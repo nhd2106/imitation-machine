@@ -521,10 +521,8 @@ describe("core skill content", () => {
 
   test("comparison matrix documents direct external skills delta without replacing superpowers matrix", async () => {
     const content = await Bun.file(join(ROOT, "docs", "skills-comparison-matrix.md")).text();
-    const directComparisonStart = content.indexOf("## Direct Comparison");
-    const directComparison = content.slice(directComparisonStart);
+    const directComparison = sectionBetween(content, "## Direct Comparison", "## Biggest Remaining Differences");
 
-    expect(directComparisonStart).toBeGreaterThanOrEqual(0);
     expect(content.includes("## Matrix")).toBe(true);
     expect(content).not.toMatch(/\/Users\/[^`"\s]+\/[^`"\s]*skills\/skills/);
     expectContainsAll(directComparison, [
@@ -536,7 +534,6 @@ describe("core skill content", () => {
       "prototype",
       "zoom-out",
       "architecture-deepening",
-      "systematic-debugging depth",
       "`requirements-brief` / `issue-slicing` enrichment",
       "separate opt-in future workflow",
       "dangerous-git guardrails",
@@ -642,11 +639,13 @@ describe("core skill content", () => {
     );
 
     expectContainsAll(openGapLines, [
-      "systematic-debugging depth",
       "requirements-brief",
       "issue-slicing",
       "enrichment",
     ]);
+    expect(openGapLines, "systematic-debugging depth should no longer be listed as an open matrix/docs gap").not.toContain(
+      "systematic-debugging depth",
+    );
     expect(openGapLines, "zoom-out should no longer be listed as an open matrix/docs gap").not.toContain("zoom-out");
     expect(openGapLines, "prototype should no longer be listed as an open matrix/docs gap").not.toContain("prototype");
     expect(openGapLines, "architecture-deepening should no longer be listed as an open matrix/docs gap").not.toContain(
@@ -1210,12 +1209,126 @@ describe("core skill content", () => {
     ]);
   });
 
+  test("systematic-debugging skill codifies native diagnosis depth", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "systematic-debugging", "SKILL.md")).text();
+    const lowerContent = content.toLowerCase();
+    const requirementsContext = mentionContext(lowerContent, "requirements");
+    const broadRefactorContext = mentionContext(lowerContent, "broad refactor");
+
+    expectContainsAll(lowerContent, [
+      "feedback-loop-first",
+      "deterministic pass/fail signal",
+      "flaky repro rate",
+      "ranked falsifiable hypotheses",
+      "prediction-based probes",
+      "regression seam",
+      "temporary instrumentation",
+      "original symptom verification",
+      "no tracker-publishing shortcut",
+    ]);
+    expectContainsAll(requirementsContext, ["not requirements intake", "separate approved workflow"]);
+    expect(requirementsContext, "debugging should not authorize requirements intake").not.toMatch(
+      /use debugging as (requirements|prd|intake)|debugging (authori[sz]es|permits|allows) requirements|requirements intake outcome/,
+    );
+    expectContainsAll(broadRefactorContext, [
+      "do not use debugging as permission for broad refactors",
+      "follow-up after root cause and fix evidence",
+    ]);
+    expect(broadRefactorContext, "debugging should not authorize broad refactors").not.toMatch(
+      /debugging (authori[sz]es|permits|allows) broad refactors|debugging is permission for broad refactors|broad refactor outcome/,
+    );
+    expectOrdered(lowerContent, "feedback-loop-first", "ranked falsifiable hypotheses");
+    expectOrdered(lowerContent, "ranked falsifiable hypotheses", "prediction-based probes");
+    expectOrdered(lowerContent, "regression seam", "fix");
+  });
+
+  test("systematic-debugging checklist operationalizes diagnosis loop checks", async () => {
+    const checklist = await Bun.file(
+      join(ROOT, "skills", "systematic-debugging", "references", "debugging-checklist.md"),
+    ).text().then((value) => value.toLowerCase());
+
+    expectContainsAll(checklist, [
+      "feedback-loop-first",
+      "deterministic pass/fail signal",
+      "improve the flaky repro rate",
+      "rank 3-5 falsifiable hypotheses",
+      "prediction-based probe",
+      "regression seam",
+      "remove temporary instrumentation",
+      "original symptom verification",
+      "no tracker-publishing shortcut",
+    ]);
+  });
+
+  test("systematic-debugging hypothesis log captures diagnosis evidence and cleanup", async () => {
+    const template = await Bun.file(
+      join(ROOT, "skills", "systematic-debugging", "hypothesis-log-template.md"),
+    ).text().then((value) => value.toLowerCase());
+
+    expectContainsAll(template, [
+      "feedback loop command",
+      "pass/fail signal",
+      "flaky repro rate",
+      "rank",
+      "falsifiable hypothesis",
+      "prediction",
+      "prediction-based probe",
+      "one variable changed",
+      "regression seam",
+      "temporary instrumentation cleanup",
+      "original symptom verification",
+      "tracker-publishing boundary",
+    ]);
+
+    const rankedHypotheses = sectionBetween(template, "ranked falsifiable hypotheses", "active hypothesis");
+    const rankedSlots = rankedHypotheses.match(/^\s*(?:\d+\.|\|\s*\d+\s*\|)/gm) ?? [];
+
+    expect(rankedSlots.length, "hypothesis log should provide 3-5 ranked hypothesis slots").toBeGreaterThanOrEqual(3);
+    expect(rankedSlots.length, "hypothesis log should not expand beyond 5 ranked hypothesis slots").toBeLessThanOrEqual(5);
+  });
+
+  test("README and matrix mark systematic-debugging depth shipped with remaining gaps narrowed", async () => {
+    const readme = await Bun.file(join(ROOT, "README.md")).text().then((value) => value.toLowerCase());
+    const matrix = await Bun.file(join(ROOT, "docs", "skills-comparison-matrix.md")).text().then((value) => value.toLowerCase());
+    const readmeStatus = sectionBetween(readme, "## current status", "## install");
+    const shipsNow = sectionBetween(readmeStatus, "### ships now", "### remaining gaps");
+    const remainingGaps = readmeStatus.slice(readmeStatus.indexOf("### remaining gaps"));
+    const matrixRemaining = matrix
+      .split("\n")
+      .filter((line) => /remaining|open|future|gap|next wave/.test(line))
+      .join("\n");
+    const systematicRow = markdownTableRow(matrix, "systematic-debugging");
+
+    expectContainsAll(shipsNow, [
+      "systematic-debugging",
+      "feedback-loop-first",
+      "deterministic pass/fail signal",
+      "ranked falsifiable hypotheses",
+      "prediction-based probes",
+      "regression seam",
+      "original symptom verification",
+    ]);
+    expectContainsAll(remainingGaps, ["requirements-brief", "issue-slicing", "enrichment"]);
+    expect(remainingGaps).not.toContain("systematic-debugging depth");
+
+    expectContainsAll(systematicRow, [
+      "feedback-loop-first",
+      "deterministic pass/fail signal",
+      "ranked falsifiable hypotheses",
+      "prediction-based probes",
+      "regression seam",
+      "systematic-debugging-to-fix.md",
+    ]);
+    expect(matrixRemaining).not.toContain("systematic-debugging depth");
+    expectContainsAll(matrixRemaining, ["requirements-brief", "issue-slicing", "enrichment", "tracker publishing"]);
+  });
+
   test("comparison matrix recommended next wave keeps remaining gaps narrowed", async () => {
     const content = await Bun.file(join(ROOT, "docs", "skills-comparison-matrix.md")).text().then((value) => value.toLowerCase());
     const recommendedNextWave = content.slice(content.indexOf("## recommended next wave"), content.indexOf("## bottom line"));
 
     expect(recommendedNextWave).not.toContain("remaining thinner packages");
-    expect(recommendedNextWave).toContain("systematic-debugging depth");
+    expect(recommendedNextWave).not.toContain("systematic-debugging depth");
     expect(recommendedNextWave).toContain("requirements-brief");
     expect(recommendedNextWave).toContain("issue-slicing");
     expect(recommendedNextWave).toMatch(/optional|opportunistic/);

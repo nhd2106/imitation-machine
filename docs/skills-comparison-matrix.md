@@ -37,7 +37,7 @@ This matrix compares `imitation-machine` to `superpowers` skill-by-skill. It foc
 | `review-final` | final review / branch readiness patterns | Comparable | Partial | Partial | adds a final holistic production-readiness review after task-level reviews and before release/PR; trigger/explicit-request pressure coverage checks integrated diff, verification evidence, security/QA/documentation risk, and that it does not replace `review-spec`/`review-quality`; no dedicated multi-turn final-review chain yet | `tests/explicit-skill-requests/review-final-prompts.md` |
 | `review-security` | no exact match; related security review patterns | Unique | Comparable | Partial | adds trigger/explicit-request pressure coverage for auth, untrusted input, secrets, severity, and blocking review-security cases, plus a scoped multi-turn `review-security -> systematic-debugging -> verify` handoff; broader security-review variation is still thin | `tests/explicit-skill-requests/review-security-prompts.md` |
 | `design` | partially overlaps brainstorming + design guidance | Unique | Partial | Partial | stronger direction-lock guidance, companion docs, and a scoped multi-turn browser-validation workflow ship; the remaining gap is more pressure-scenario browser-validation coverage | `tests/skill-triggering/design-prompts.md` |
-| `systematic-debugging` | `systematic-debugging` | Comparable | Partial | Partial | adds trigger/explicit-request pressure coverage for reproduce-first, hypothesis-log, evidence-based narrowing, and anti-fix-jumping prompts, plus a multi-turn fix handoff and scoped `review-security -> systematic-debugging -> verify` chain; broader debugging-to-verification chains are still thin | `tests/explicit-skill-requests/systematic-debugging-prompts.md` |
+| `systematic-debugging` | `systematic-debugging` / `diagnose` | Comparable | Comparable | Partial | shipped deeper feedback-loop-first diagnosis with deterministic pass/fail signal discipline, flaky repro-rate improvement, ranked falsifiable hypotheses, prediction-based probes, regression seam selection before fixes, temporary-instrumentation cleanup, original symptom verification, no tracker-publishing shortcut, trigger and explicit-request pressure coverage in `tests/explicit-skill-requests/systematic-debugging-prompts.md`, and multi-turn fix handoff coverage in `systematic-debugging-to-fix.md`; broader long-running live debugging demos are still thin | `tests/multi-turn-workflows/systematic-debugging-to-fix.md` |
 | `dispatching-parallel-agents` | `dispatching-parallel-agents` | Comparable | Partial | Partial | adds trigger/explicit-request pressure coverage for safe parallelism, shared-state refusal, central merge coordination, and contradiction resolution, plus a scoped multi-turn safe-parallel fanout workflow; broader real-world task variation is still thin | `tests/explicit-skill-requests/dispatching-parallel-agents-prompts.md` |
 | `finishing-a-development-branch` | branch-finishing / release-adjacent flow | Partial | Partial | Partial | merged-branch cleanup is covered as an explicit handoff path, and a scoped multi-turn `release -> finishing-a-development-branch` workflow covers release evidence into safe cleanup sequencing, but broader branch-finish pressure cases are still thin | `tests/multi-turn-workflows/release-to-finishing-a-development-branch.md` |
 | `requesting-code-review` | `requesting-code-review` | Comparable | Partial | Partial | has multi-turn review-request to response depth, but more PR-state variation is still needed | `tests/multi-turn-workflows/requesting-to-receiving-code-review.md` |
@@ -59,7 +59,7 @@ This direct `/skills/skills` comparison tracks the local external `/skills/skill
 - `zoom-out` now ships as read-only discovery/orientation for broader repo context before planning, implementation, or code changes; it has no writes and no implementation authority.
 - `architecture-deepening` now ships as read-only candidate discovery for shallow/deep modules, seams, dependency categories, behavior-protecting tests, risks/tradeoffs, and handoffs; it does not authorize refactors or implementation.
 - `prototype` now ships as approved disposable prototype work for short-lived learning artifacts; it is not production implementation and not a TDD shortcut.
-- The remaining meaningful product gaps from the latest deep compare are systematic-debugging depth and `requirements-brief` / `issue-slicing` enrichment.
+- The remaining selected product gap from the latest deep compare is `requirements-brief` / `issue-slicing` enrichment. Tracker publishing remains separate opt-in future workflow work, not part of read-only intake skills.
 - OpenCode plugin dangerous-git guardrails shipped in PR #58. Those guardrails are OpenCode-only, not Claude or Codex hook coverage.
 
 ## Biggest Remaining Differences
@@ -82,13 +82,17 @@ It has materially broader current support across the Claude marketplace, Superpo
 
 Across the matrix, `imitation-machine` is still ahead on workflow breadth (the number of distinct workflow areas covered), governance/review/release coverage, executable workflow fixtures, and failure/recovery handoffs. The remaining gaps are still selective in workflow terms, but the install/distribution footprint gap is broader than this doc previously implied: `superpowers` supports many more surfaces even after the new minimal local Codex coverage.
 
-The current quality/delegation/coding-control wave closed the TDD depth, receiving-review depth, executing-plans isolation, QA/persona drift closed, final holistic review-final gaps, and the OpenCode-only dangerous-git guardrails for the local skill/agent package. Remaining work is selective: systematic-debugging depth and `requirements-brief` / `issue-slicing` enrichment.
+The current quality/delegation/coding-control wave closed the TDD depth, receiving-review depth, executing-plans isolation, QA/persona drift closed, systematic-debugging depth, and final holistic review-final coverage.
+
+The OpenCode-only dangerous-git guardrails also shipped for the local skill/agent package.
+
+Remaining work is selective: `requirements-brief` / `issue-slicing` enrichment, with tracker publishing separate opt-in work.
 
 ## Recommended Next Wave
 
 1. Add a small number of longer-running real-Claude/OpenCode demos that stress continuation, recovery, and handoff quality over more turns.
 2. Keep extending failure-path and recovery-path workflow fixtures where they add new behavioral signal, not just more small happy-path fixtures.
-3. Deepen the stated remaining gaps: systematic-debugging depth and `requirements-brief` / `issue-slicing` enrichment. Additional `repo`, `adr`, `commit`, `dispatching-parallel-agents`, `review-security`, or `review-final` scenarios are optional/opportunistic coverage improvements only when the extra end-to-end coverage is meaningfully distinct.
+3. Deepen the stated remaining gap: `requirements-brief` / `issue-slicing` enrichment, while keeping tracker publishing as separate opt-in work. Additional `repo`, `adr`, `commit`, `dispatching-parallel-agents`, `review-security`, or `review-final` scenarios are optional/opportunistic coverage improvements only when the extra end-to-end coverage is meaningfully distinct.
 
 ## Bottom Line
 

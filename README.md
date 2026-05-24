@@ -93,6 +93,7 @@ The core idea is simple: start with `using-agentic`, let the matching workflow s
 - review and release flow (`requesting-code-review`, `receiving-code-review`, `review-spec`, `review-quality`, `review-final` / `@reviewer-final`, `review-security`, `pr`, `release`, `finishing-a-development-branch`)
 - repo/workspace discipline (`repo`, `worktree`, `gate`, `verify`, `commit`, `adr`)
 - clarification, intake, debugging, design, and coordination (`zoom-out`, `architecture-deepening`, `grill-me`, `requirements-brief`, `issue-slicing`, `systematic-debugging`, `prototype`, `design`, `dispatching-parallel-agents`, `writing-skills`)
+- systematic-debugging depth with feedback-loop-first diagnosis, deterministic pass/fail signal discipline, ranked falsifiable hypotheses, prediction-based probes, regression seam selection, and original symptom verification
 - approved disposable prototype work that is not production implementation and not a TDD shortcut
 - read-only architecture-deepening candidate discovery for shallow/deep module candidates, seams, dependency categories, behavior-protecting tests, risks/tradeoffs, and handoffs
 - tracker publishing remains separate opt-in work with explicit approval; read-only intake skills do not publish tracker updates
@@ -103,7 +104,6 @@ The core idea is simple: start with `using-agentic`, let the matching workflow s
 
 ### Remaining gaps
 
-- systematic-debugging depth
 - requirements-brief / issue-slicing enrichment
 
 ## Install
