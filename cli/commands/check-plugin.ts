@@ -20,6 +20,7 @@ type ClaudePluginManifest = {
   version?: string;
   author?: { name?: string };
   skills?: unknown;
+  hooks?: string;
 };
 
 type PackageJson = {
@@ -65,6 +66,7 @@ export async function validatePluginSetup(cwd: string): Promise<PluginCheckRepor
   await checkRequiredFiles(cwd, checks);
   await checkPackageJson(cwd, checks);
   await checkClaudeManifest(cwd, checks);
+  await checkClaudeAgents(cwd, checks);
   await checkOpenCodeProjectConfig(cwd, checks);
 
   const passed = !checks.some((check) => check.severity === "fail");
@@ -171,6 +173,18 @@ async function checkClaudeManifest(cwd: string, checks: PluginCheck[]): Promise<
       : "Claude manifest includes skills field; prefer auto-discovery from skills/ directory",
   });
 
+  if (manifest.hooks !== undefined) {
+    const hooksPath = join(cwd, manifest.hooks);
+    const hooksExists = await Bun.file(hooksPath).exists();
+    checks.push({
+      id: "claude:hooks-file",
+      severity: hooksExists ? "pass" : "fail",
+      message: hooksExists
+        ? `Claude hooks file exists: ${manifest.hooks}`
+        : `Claude hooks file declared but missing: ${manifest.hooks}`,
+    });
+  }
+
   const skills = await discoverSkills(cwd);
   checks.push({
     id: "claude:skills-present",
@@ -236,6 +250,30 @@ async function discoverSkills(cwd: string): Promise<Array<{ name: string; path: 
   }
 
   return discovered;
+}
+
+async function checkClaudeAgents(cwd: string, checks: PluginCheck[]): Promise<void> {
+  const agentsDir = join(cwd, "agents");
+  let entries;
+  try {
+    entries = await readdir(agentsDir, { withFileTypes: true });
+  } catch {
+    checks.push({
+      id: "claude:agents-dir",
+      severity: "warn",
+      message: "No agents/ directory found; Claude subagents (coder, planner, po, etc.) will not be registered",
+    });
+    return;
+  }
+
+  const agentFiles = entries.filter((e) => e.isFile() && e.name.endsWith(".md"));
+  checks.push({
+    id: "claude:agents-present",
+    severity: agentFiles.length > 0 ? "pass" : "warn",
+    message: agentFiles.length > 0
+      ? `Discovered ${agentFiles.length} Claude agent(s) in agents/`
+      : "No .md agent files found in agents/ directory",
+  });
 }
 
 async function checkOpenCodeProjectConfig(cwd: string, checks: PluginCheck[]): Promise<void> {
