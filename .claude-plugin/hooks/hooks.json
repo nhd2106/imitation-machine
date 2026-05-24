@@ -1,14 +1,13 @@
 {
   "description": "Imitation Machine workflow bootstrap — injects orchestrator context in opted-in repos",
   "hooks": {
-    "UserPromptSubmit": [
+    "SessionStart": [
       {
-        "matcher": "*",
+        "matcher": "startup|clear|compact",
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/hooks/bootstrap.sh\"",
-            "timeout": 5
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/.claude-plugin/hooks/bootstrap.sh\""
           }
         ]
       }

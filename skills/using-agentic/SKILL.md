@@ -11,6 +11,14 @@ This is the entrypoint for the full Imitation Machine workflow. It should guide 
 If you were dispatched to execute one bounded task with clear instructions, do not restart the whole workflow from here unless the controller told you to.
 </SUBAGENT-STOP>
 
+<EXTREMELY-IMPORTANT>
+If you think there is even a 1% chance a workflow skill might apply to what you are doing, you ABSOLUTELY MUST invoke the skill before proceeding.
+
+IF A SKILL APPLIES TO YOUR TASK, YOU DO NOT HAVE A CHOICE. YOU MUST USE IT.
+
+This is not optional. You cannot rationalize your way out of this.
+</EXTREMELY-IMPORTANT>
+
 ## Instruction Priority
 
 1. User instructions and repo-local instructions
@@ -114,14 +122,25 @@ Use `release` / `@release` to package release evidence and coordinate delivery-u
 
 ## Red Flags
 
-Stop if you catch yourself thinking:
+**Overreach** — stop if you catch yourself thinking:
 
 - "The plugin is installed, so every task must use the full workflow"
 - "This repo did not opt in, but I should force the workflow anyway"
 - "A narrow review task still needs brainstorm and plan first"
 - "I should expand the user's request instead of following it"
 
-Those are overreach errors, not rigor.
+**Avoidance** — stop if you catch yourself rationalizing away a skill:
+
+| Thought | Reality |
+|---------|---------|
+| "This is just a simple question" | Questions are tasks. Check for skills. |
+| "I need more context first" | Skill check comes BEFORE clarifying questions. |
+| "Let me explore the codebase first" | Skills tell you HOW to explore. Check first. |
+| "I can do this one thing quickly" | Check BEFORE doing anything. |
+| "This skill is overkill for this" | If a skill exists and might apply, use it. |
+| "I remember how this skill works" | Skills evolve. Read current version. |
+| "This doesn't count as implementation" | Any code change → `tdd`. Any plan execution → `executing-plans`. |
+| "I'll verify after I finish" | `verify` gates completion. Not optional. |
 
 ## Completion Rule
 

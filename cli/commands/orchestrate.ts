@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { join } from "node:path";
 import { getPersona } from "../../agents/profiles";
 import type { PersonaId, PlanFile, PlanTask } from "../../agents/types";
@@ -36,6 +36,17 @@ const FINAL_REVIEW_PHASE: readonly PersonaId[] = ["reviewer-final"];
 const RELEASE_PHASE: readonly PersonaId[] = ["release"];
 const planPersistenceQueues = new Map<string, Promise<void>>();
 let planPersistenceDelayHookForTests: ((planId: string, tasks: PlanTaskWithPersonaCommands[]) => Promise<void> | void) | undefined;
+
+function queryCompletedPersonas(planId: string, taskId: string | undefined): Set<PersonaId> {
+  const rows = db.select({ persona: agentRuns.persona }).from(agentRuns)
+    .where(
+      taskId !== undefined
+        ? and(eq(agentRuns.planId, planId), eq(agentRuns.taskId, taskId), eq(agentRuns.status, "completed"))
+        : and(eq(agentRuns.planId, planId), isNull(agentRuns.taskId), eq(agentRuns.status, "completed")),
+    )
+    .all();
+  return new Set(rows.map((row) => row.persona as PersonaId));
+}
 
 export function __setPlanPersistenceDelayHookForTests(
   hook: ((planId: string, tasks: PlanTaskWithPersonaCommands[]) => Promise<void> | void) | undefined,
@@ -612,7 +623,9 @@ async function executeTaskWorkflow(
 ): Promise<{ success: boolean; runCount: number; failedRunCount: number; error?: string }> {
   await updateTaskStatus(options.cwd, planId, allTasks, task.id, "in_progress");
 
-  const planResult = await runSequentialPhase("plan", PLAN_PHASE, task, planId, options);
+  const completedPersonas = queryCompletedPersonas(planId, task.id);
+
+  const planResult = await runSequentialPhase("plan", PLAN_PHASE, task, planId, options, "task", completedPersonas);
   let runCount = planResult.runCount;
   let failedRunCount = planResult.failedRunCount;
   if (planResult.failedRunCount > 0) {
@@ -625,7 +638,7 @@ async function executeTaskWorkflow(
     };
   }
 
-  const implementationResult = await runSequentialPhase("implementation", IMPLEMENTATION_REVIEW_PHASE, task, planId, options);
+  const implementationResult = await runSequentialPhase("implementation", IMPLEMENTATION_REVIEW_PHASE, task, planId, options, "task", completedPersonas);
   runCount += implementationResult.runCount;
   failedRunCount += implementationResult.failedRunCount;
   if (implementationResult.failedRunCount > 0) {
@@ -638,7 +651,7 @@ async function executeTaskWorkflow(
     };
   }
 
-  const specializedResult = await runParallelPhase("specialized", SPECIALIZED_PHASE, task, planId, options, SPECIALIZED_PHASE.length);
+  const specializedResult = await runParallelPhase("specialized", SPECIALIZED_PHASE, task, planId, options, SPECIALIZED_PHASE.length, completedPersonas);
   runCount += specializedResult.runCount;
   failedRunCount += specializedResult.failedRunCount;
   if (specializedResult.failedRunCount > 0) {
@@ -680,8 +693,10 @@ async function executeDeliveryFinalization(
     };
   }
 
+  const completedPersonas = queryCompletedPersonas(planId, undefined);
+
   const deliveryTask = buildDeliveryFinalizationTask(planId, tasks);
-  const finalReviewResult = await runSequentialPhase("final-review", FINAL_REVIEW_PHASE, deliveryTask, planId, options, "plan");
+  const finalReviewResult = await runSequentialPhase("final-review", FINAL_REVIEW_PHASE, deliveryTask, planId, options, "plan", completedPersonas);
   let runCount = finalReviewResult.runCount;
   let failedRunCount = finalReviewResult.failedRunCount;
   if (finalReviewResult.failedRunCount > 0) {
@@ -692,7 +707,7 @@ async function executeDeliveryFinalization(
     };
   }
 
-  const releaseResult = await runSequentialPhase("release", RELEASE_PHASE, deliveryTask, planId, options, "plan");
+  const releaseResult = await runSequentialPhase("release", RELEASE_PHASE, deliveryTask, planId, options, "plan", completedPersonas);
   runCount += releaseResult.runCount;
   failedRunCount += releaseResult.failedRunCount;
   if (releaseResult.failedRunCount > 0) {
@@ -799,12 +814,16 @@ async function runSequentialPhase(
   planId: string,
   options: OrchestrateOptions,
   scope: "task" | "plan" = "task",
+  completedPersonas: Set<PersonaId> = new Set(),
 ): Promise<{ runCount: number; failedRunCount: number; firstError?: string }> {
   let runCount = 0;
   let failedRunCount = 0;
   let firstError: string | undefined;
 
   for (const personaId of personas) {
+    if (completedPersonas.has(personaId)) {
+      continue;
+    }
     const result = await runPersonaStage(phase, personaId, task, planId, options, undefined, scope);
     runCount += 1;
     if (!result.success) {
@@ -824,8 +843,9 @@ async function runParallelPhase(
   planId: string,
   options: OrchestrateOptions,
   maxConcurrency: number,
+  completedPersonas: Set<PersonaId> = new Set(),
 ): Promise<{ runCount: number; failedRunCount: number; firstError?: string }> {
-  const queue = [...personas];
+  const queue = personas.filter((p) => !completedPersonas.has(p));
   const concurrency = Math.max(1, Math.min(maxConcurrency, queue.length));
   let failedRunCount = 0;
   let firstError: string | undefined;
