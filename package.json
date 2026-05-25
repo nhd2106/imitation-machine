@@ -5,9 +5,9 @@
   "license": "MIT",
   "type": "module",
   "main": ".opencode/plugins/imitation-machine.js",
-  "private": true,
   "bin": {
-    "agentic": "./bin/agentic"
+    "agentic": "./bin/agentic",
+    "imitation-machine": "./bin/im.mjs"
   },
   "files": [
     ".claude-plugin/**",

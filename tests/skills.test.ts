@@ -1234,4 +1234,20 @@ describe("core skill content", () => {
     expect(recommendedNextWave).toContain("issue-slicing");
     expect(recommendedNextWave).toMatch(/optional|opportunistic/);
   });
+
+  test("npx installer exists and covers all three surfaces", async () => {
+    const installer = await Bun.file(join(ROOT, "bin", "im.mjs")).text();
+    expect(installer.startsWith("#!/usr/bin/env node")).toBe(true);
+    expect(installer.includes("installClaude")).toBe(true);
+    expect(installer.includes("installOpenCode")).toBe(true);
+    expect(installer.includes("installCodex")).toBe(true);
+    expect(installer.includes("npx @duoc95/imitation-machine")).toBe(true);
+    expect(installer.includes(".imitation-machine-enabled")).toBe(true);
+  });
+
+  test("package.json exposes imitation-machine bin for npx and is not private", async () => {
+    const pkg = JSON.parse(await Bun.file(join(ROOT, "package.json")).text());
+    expect(pkg.bin["imitation-machine"]).toBe("./bin/im.mjs");
+    expect(pkg.private).toBeUndefined();
+  });
 });
