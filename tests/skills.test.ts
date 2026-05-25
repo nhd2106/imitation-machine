@@ -1279,4 +1279,33 @@ describe("core skill content", () => {
     // Red flags
     expect(content.includes("## Red Flags")).toBe(true);
   });
+
+  test("session-handoff skill covers end-of-session, start-of-session, and .wip.md artifact", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "session-handoff", "SKILL.md")).text();
+    expect(content.startsWith("---\nname: session-handoff\n")).toBe(true);
+
+    // Covers both session directions
+    expect(content.includes("## End-of-Session")).toBe(true);
+    expect(content.includes("## Start-of-Session")).toBe(true);
+
+    // Names the artifact explicitly
+    expect(content.includes(".wip.md")).toBe(true);
+
+    // Integrates with finishing-a-development-branch
+    expect(content.includes("finishing-a-development-branch")).toBe(true);
+
+    // Red flags present
+    expect(content.includes("## Red Flags")).toBe(true);
+  });
+
+  test("session-handoff ships a wip template companion file", async () => {
+    const exists = await Bun.file(join(ROOT, "skills", "session-handoff", "wip-template.md")).exists();
+    expect(exists).toBe(true);
+
+    const template = await Bun.file(join(ROOT, "skills", "session-handoff", "wip-template.md")).text();
+    expect(template.includes("## Done")).toBe(true);
+    expect(template.includes("## Next")).toBe(true);
+    expect(template.includes("## Open Questions")).toBe(true);
+    expect(template.includes("## Landmines")).toBe(true);
+  });
 });
