@@ -887,6 +887,21 @@ describe("core skill content", () => {
     expect(content.includes("@coder")).toBe(true);
   });
 
+  test("executing-plans surfaces execution mode choice before starting", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "executing-plans", "SKILL.md")).text();
+    expect(content.includes("## Execution Mode Decision")).toBe(true);
+    expect(content.includes("subagent-driven-development")).toBe(true);
+    expect(content.includes("recommend `subagent-driven-development` before starting")).toBe(true);
+  });
+
+  test("brainstorm includes visual companion guidance", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "brainstorm", "SKILL.md")).text();
+    expect(content.includes("## Visual Companion")).toBe(true);
+    expect(content.includes("standalone message")).toBe(true);
+    expect(content.includes("would the user understand this better by seeing it than reading it")).toBe(true);
+    expect(content.includes("Do not confuse this with `design`")).toBe(true);
+  });
+
   test("tdd includes examples and stronger iron law wording", async () => {
     const content = await Bun.file(join(ROOT, "skills", "tdd", "SKILL.md")).text();
     const lowerContent = content.toLowerCase();

@@ -7,6 +7,17 @@ description: Use when an approved plan should be executed directly in the curren
 
 Execute an approved plan in order, keep scope tight, and keep verification current. This is the direct-execution lane for work that is already planned and narrow enough to stay in one implementation session.
 
+## Execution Mode Decision
+
+Before starting, surface the execution mode choice to the user:
+
+| Mode | When to prefer | Trade-off |
+|------|---------------|-----------|
+| **`subagent-driven-development`** (recommended) | subagents are available; tasks need fresh-worker isolation; mandatory spec-then-quality review after every task; tasks can fan out in parallel | higher quality, more process overhead |
+| **`executing-plans`** (this skill) | subagents not available; work is small and linear; review at natural checkpoints is enough | simpler to run, no per-task fresh-worker isolation |
+
+**If subagents are available, recommend `subagent-driven-development` before starting this skill.** The quality of review and isolation is substantially higher. Only proceed with `executing-plans` when the user explicitly chooses the direct lane or the platform does not support subagents.
+
 ## When To Use
 
 - the plan is approved
