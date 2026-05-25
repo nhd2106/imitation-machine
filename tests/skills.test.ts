@@ -1250,4 +1250,33 @@ describe("core skill content", () => {
     expect(pkg.bin["imitation-machine"]).toBe("./bin/im.mjs");
     expect(pkg.private).toBeUndefined();
   });
+
+  test("install skill covers global install, project opt-in, and state detection", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "install", "SKILL.md")).text();
+    expect(content.startsWith("---\nname: install\n")).toBe(true);
+
+    // Two-layer model is explicit
+    expect(content.includes("Layer 1")).toBe(true);
+    expect(content.includes("Layer 2")).toBe(true);
+
+    // State detection before asking
+    expect(content.includes("~/.imitation-machine/skills/using-agentic")).toBe(true);
+    expect(content.includes(".imitation-machine-enabled")).toBe(true);
+
+    // All four paths present
+    expect(content.includes("Path A")).toBe(true);
+    expect(content.includes("Path B")).toBe(true);
+    expect(content.includes("Path C")).toBe(true);
+    expect(content.includes("Path D")).toBe(true);
+
+    // npx command present
+    expect(content.includes("npx @duoc95/imitation-machine")).toBe(true);
+
+    // Uninstall and opt-out guidance
+    expect(content.includes("Opting a Project Out")).toBe(true);
+    expect(content.includes("Uninstalling Globally")).toBe(true);
+
+    // Red flags
+    expect(content.includes("## Red Flags")).toBe(true);
+  });
 });
