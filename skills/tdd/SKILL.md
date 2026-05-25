@@ -151,15 +151,6 @@ test("plan works", () => {
 
 Prefer one clear behavior over vague coverage.
 
-## Why The Order Matters
-
-- tests written after code often pass immediately and prove nothing
-- tests-first forces you to validate the behavior was actually missing
-- manual testing is not repeatable proof
-- if a test passes immediately, it may be testing existing behavior, a mock, or the wrong assertion; fix the test and verify RED before writing production code
-- RED and GREEN verification are mandatory: run the focused test, read the failure, then run it again after the minimal implementation
-- manual testing is a useful exploration aid, but it is not the RED step; reject manual-test shortcuts because they leave no repeatable regression proof
-
 ## Example: Bug Fix Regression
 
 Bug: duplicate task names are accepted.
@@ -195,68 +186,17 @@ addTask(task: Task) {
 
 Only after the regression test passes, extract a `hasTaskNamed` helper if it makes the code clearer. Do not add case-insensitive matching or cross-project uniqueness until a failing test requires it.
 
-## Test Quality
-
-| Quality | Good | Bad |
-|---|---|---|
-| **Minimal** | One thing. If you have to say "and" in the name, split it. | `test('validates email and domain and whitespace')` |
-| **Clear name** | Name describes the behavior in plain language | `test('test1')`, `test('it works')` |
-| **Shows intent** | Demonstrates the desired API | Obscures what the code should do |
-| **Real code** | Calls public interface with real inputs | Verifies mock call counts instead of behavior |
-
 ## Why Order Matters
 
-**"I'll write tests after to verify it works"**
+**"I'll write tests after"** — Tests-after pass immediately and prove nothing. They test what you built, not what's required. Test-first forces you to see the failure, proving the test actually catches the bug.
 
-Tests written after code pass immediately. Passing immediately proves nothing:
+**"I already manually tested"** — Manual testing is ad-hoc: no record, cannot re-run, easy to miss edge cases under pressure. Automated tests are systematic.
 
-- might test the wrong thing
-- might test implementation, not behavior
-- might miss edge cases you forgot
-- you never saw it catch the bug
+**"Deleting X hours is wasteful"** — Sunk cost. Keeping unverified code is technical debt. Delete and rewrite with TDD: same hours, high confidence.
 
-Test-first forces you to see the test fail, proving it actually tests something.
+**"Tests-after achieve the same goals"** — No. Tests-after answer "what does this do?" Tests-first answer "what should this do?" Tests-after are biased by your implementation. Tests-first force edge-case discovery before implementing. 30 minutes of tests-after ≠ TDD.
 
-**"I already manually tested all the edge cases"**
-
-Manual testing is ad-hoc. You think you tested everything but:
-
-- no record of what you tested
-- cannot re-run when code changes
-- easy to forget cases under pressure
-- "it worked when I tried it" ≠ comprehensive
-
-Automated tests are systematic. They run the same way every time.
-
-**"Deleting X hours of work is wasteful"**
-
-Sunk cost fallacy. The time is already gone. Your choice now:
-
-- delete and rewrite with TDD (X more hours, high confidence)
-- keep it and add tests after (30 minutes, low confidence, likely bugs)
-
-The "waste" is keeping code you cannot trust. Working code without real tests is technical debt.
-
-**"TDD is dogmatic; being pragmatic means adapting"**
-
-TDD **is** pragmatic:
-
-- finds bugs before commit (faster than debugging after)
-- prevents regressions (tests catch breaks immediately)
-- documents behavior (tests show how to use code)
-- enables refactoring (change freely, tests catch breaks)
-
-"Pragmatic" shortcuts mean debugging in production, which is slower.
-
-**"Tests-after achieve the same goals — it's spirit, not ritual"**
-
-No. Tests-after answer "what does this do?" Tests-first answer "what should this do?"
-
-Tests-after are biased by your implementation. You test what you built, not what's required. You verify remembered edge cases, not discovered ones.
-
-Tests-first force edge-case discovery before implementing. Tests-after verify you remembered everything (you did not).
-
-30 minutes of tests-after ≠ TDD. You get coverage, lose proof the tests work.
+**"TDD is dogmatic"** — TDD is pragmatic: finds bugs before commit, prevents regressions, enables refactoring. "Pragmatic" shortcuts mean debugging in production, which is slower.
 
 ## Rationalization Prevention
 
@@ -266,38 +206,21 @@ Tests-first force edge-case discovery before implementing. Tests-after verify yo
 | "I will test after" | Tests-after are biased by the implementation and may pass immediately. |
 | "Tests-after achieve the same goals" | Tests-after = "what does this do?" Tests-first = "what should this do?" |
 | "Already manually tested" | Ad-hoc ≠ systematic. No record, cannot re-run. |
-| "Deleting X hours is wasteful" | Sunk cost fallacy. Keeping unverified code is technical debt. |
-| "Keep as reference, write tests first" | You will adapt it. That is testing after. Delete means delete. |
+| "Deleting X hours is wasteful" | Sunk cost. Keeping unverified code is technical debt. Delete means delete. |
 | "Need to explore first" | Fine — throw away the exploration, then start TDD. |
 | "Test is hard = the test is wrong" | Hard to test usually = hard to use. Listen to the test. |
-| "TDD will slow me down" | TDD is faster than debugging. Pragmatic = test-first. |
-| "Manual test is faster" | Manual does not prove edge cases. You will re-test every change. |
-| "Existing code has no tests" | You are improving it. Add tests for what you touch. |
-| "The test passes immediately, so that's fine" | A test that passes immediately only proves the behavior already existed or the test is weak. |
-| "The spirit matters more than the ritual" | Violating the letter of TDD removes the evidence TDD exists to provide. |
-| "I am stuck on the test" | Stop and simplify the desired public API; ask for help before coding around the missing test. |
+| "The spirit matters more than the ritual" | Violating the letter removes the evidence TDD exists to provide. |
 
 ## Red Flags
 
 Stop if you catch yourself thinking:
 
 - "This is too small to test"
-- "I already know the fix"
 - "I will add tests after"
-- "Deleting this code would waste time"
-- "This one exception is fine"
 - "The test passes immediately, but I can continue"
 - "I can keep the implementation open while I write the test"
 
 Those are TDD rationalizations.
-
-## Rules
-
-- one behavior per test whenever practical
-- prefer behavior assertions over implementation-detail assertions
-- avoid mocks unless the boundary is external I/O
-- if the test passes immediately, fix the test before proceeding
-- if production code was written before RED, delete it and start over with TDD
 
 ## When Stuck
 
@@ -314,10 +237,3 @@ Those are TDD rationalizations.
 - `testing-anti-patterns.md`
 - `regression-checklist.md`
 
-## Completion
-
-TDD proves the change incrementally. Broader workflow verification still happens later:
-
-```sh
-agentic verify all
-```

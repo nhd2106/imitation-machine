@@ -99,13 +99,6 @@ digraph sdd_flow {
 - `spec-reviewer-prompt.md`
 - `code-quality-reviewer-prompt.md`
 
-## Preferred Runtime Agents
-
-- `@coder` for implementation
-- `@reviewer-spec` for Stage 1 review
-- `@reviewer-quality` for Stage 2 review
-- `@reviewer-final` for final holistic production-readiness after task-level reviews, specialized evidence, and fresh verification, before `@release` / PR / handoff
-
 ## Model Selection
 
 Use the least powerful model that can reliably complete the role, then escalate deliberately when the task demands judgment.
@@ -238,19 +231,3 @@ Controller: Dispatch spec reviewer again, then quality reviewer only after spec 
 Controller: In OpenCode, prefer `@reviewer-quality` only after Stage 1 passes.
 ```
 
-## Extended Orchestration Pattern
-
-For deeper in-chat orchestration, route work by role instead of asking one agent to do everything:
-
-1. `@po` clarifies the requirement
-2. `@architect` resolves major design choices if needed
-3. `@planner` decomposes the approved design into tasks
-4. `@worktree` verifies or creates isolated workspace state when needed
-5. `@coder` executes one task at a time
-6. `@reviewer-spec` and `@reviewer-quality` review each completed task
-7. `@security` reviews risk-sensitive changes
-8. `@qa` reviews test strategy gaps when useful
-9. `@docs` updates documentation if behavior changed
-10. Run fresh `agentic verify all`
-11. `@reviewer-final` checks the integrated diff, verification, security/QA/docs risks, and PR/release readiness without replacing Stage 1 or Stage 2 gates
-12. `@release` prepares PR/release evidence and traceability

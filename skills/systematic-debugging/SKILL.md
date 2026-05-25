@@ -23,28 +23,7 @@ If you have not completed Phase 1, you cannot propose fixes.
 
 ## When To Use
 
-Use for any technical issue:
-
-- test failures
-- bugs in production or staging
-- unexpected behavior
-- performance problems
-- build failures
-- integration issues
-- inconsistent behavior across environments
-
-**Use this especially when:**
-
-- under time pressure (emergencies make guessing tempting)
-- "just one quick fix" seems obvious
-- multiple previous fixes did not work
-- you do not fully understand the issue
-
-**Do not skip when:**
-
-- the issue seems simple — simple bugs have root causes too
-- you are in a hurry — rushing guarantees rework
-- a reviewer wants it fixed NOW — systematic is faster than thrashing
+Any technical issue: test failures, bugs, unexpected behavior, performance problems, build failures, integration issues. **Especially when** under time pressure, "just one quick fix" seems obvious, multiple previous fixes didn't work, or you don't fully understand the issue. Systematic is faster than thrashing.
 
 ## Workflow
 
@@ -237,27 +216,8 @@ When you see these signals: STOP. Return to Phase 1.
 | 3. Hypothesis | Form theory, test minimally, one variable at a time | Confirmed or new hypothesis |
 | 4. Implementation | Failing test, single fix, regression proof | Bug resolved, tests pass, no new failures |
 
-## When Investigation Reveals "No Root Cause"
-
-If systematic investigation reveals the issue is truly environmental, timing-dependent, or external:
-
-1. you have completed the process
-2. document what you investigated and ruled out
-3. implement appropriate handling (retry, timeout, error message, condition-based wait)
-4. add monitoring/logging for future investigation
-
-**Caveat:** most "no root cause" verdicts are incomplete investigation. Re-check.
-
 ## Companion Files
 
 - `hypothesis-log-template.md` — capture symptom, current hypothesis, evidence, and outcome per iteration
 - `references/debugging-checklist.md` — readiness check before claiming the issue is understood
 
-## Real-World Impact
-
-From debugging sessions where the discipline was followed:
-
-- systematic approach: ~15-30 minutes to fix
-- random-fix thrashing: 2-3 hours
-- first-time fix rate: ~95% vs ~40%
-- new bugs introduced: near zero vs common

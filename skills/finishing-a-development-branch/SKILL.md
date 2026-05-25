@@ -223,36 +223,11 @@ WORKTREE_PATH=$(git rev-parse --show-toplevel)
 
 ## Red Flags
 
-**Never:**
-
-- proceed with failing tests or red `agentic verify all`
-- merge without verifying tests on the merged result
-- delete work without typed confirmation
-- force-push without explicit request
-- remove a worktree before confirming merge success
-- clean up worktrees you did not create (provenance check)
-- run `git worktree remove` from inside the worktree
-- ask a runtime agent to make merge-readiness decisions without evidence
-
-**Always:**
-
-- verify tests and gates before offering options
-- detect environment before presenting the menu
-- present exactly 4 options (or 3 for detached HEAD)
-- get typed confirmation for Option 4
-- clean up the worktree only for Options 1 and 4
-- record the handoff in `branch-hand-off-template.md`
+Stop if you are about to: proceed with failing tests, delete work without typed confirmation, force-push without explicit request, remove a worktree you did not create, or run `git worktree remove` from inside the worktree.
 
 ## Handoff Summary
 
-Use `branch-hand-off-template.md` to record:
-
-- what changed (1-3 bullets)
-- how it was verified (`agentic verify all` evidence + any targeted commands)
-- known follow-ups and explicit deferrals
-- open risks for the next reviewer
-
-Hand off with evidence, not memory.
+Use `branch-hand-off-template.md`: what changed, how it was verified, known follow-ups, open risks. Hand off with evidence, not memory.
 
 ## Companion Files
 

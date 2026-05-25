@@ -139,38 +139,9 @@ How to push back:
 
 ## Acknowledging Correct Feedback
 
-When the feedback is correct:
+When correct: state the fix briefly and move on. `"Fixed — [what changed]"` or just fix it and let the code speak. No "great point", no gratitude.
 
-```text
-✅ "Fixed. [brief description of what changed]"
-✅ "Good catch — [specific issue]. Fixed in [location]."
-✅ [just fix it and show in the code]
-```
-
-```text
-❌ "You're absolutely right!"
-❌ "Great point!"
-❌ "Thanks for catching that!"
-```
-
-Actions speak. State the fix. Move on.
-
-## Gracefully Correcting Your Pushback
-
-If you pushed back and were wrong:
-
-```text
-✅ "You were right — I checked [X] and it does [Y]. Implementing now."
-✅ "Verified this and you're correct. My initial understanding was wrong because [reason]. Fixing."
-```
-
-```text
-❌ Long apology
-❌ Defending why you pushed back
-❌ Over-explaining
-```
-
-State the correction factually and move on.
+If you pushed back and were wrong: `"You were right — verified [X]. Fixing."` No apology, no defense.
 
 ## GitHub Thread Replies
 
@@ -238,14 +209,6 @@ Stop if you catch yourself:
 - blindly accepting external feedback without checking the codebase
 - adding unused functionality without a YAGNI check
 - offering performative agreement such as "great point" instead of a technical response
-
-## The Bottom Line
-
-External feedback is a suggestion to evaluate, not an order to follow.
-
-Verify. Question. Then implement.
-
-No performative agreement. Technical rigor always.
 
 ## Companion Files
 
