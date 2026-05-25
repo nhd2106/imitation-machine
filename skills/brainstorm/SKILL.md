@@ -77,7 +77,9 @@ Before asking detailed questions, assess scope:
 - do not spend questions refining details of a project that needs to be decomposed first
 - if the project is too large for a single spec, help the user decompose: what are the independent pieces, how do they relate, what order should they be built? Each sub-project then gets its own spec → plan → implementation cycle
 
-If the request involves visual or interaction questions (UI, layout, flow), offer a handoff to the `design` skill — that is its own message, not combined with clarifying questions.
+If upcoming questions will involve UI, layout, or interaction design, offer a [Visual Companion](#visual-companion) — that is its own message, not combined with clarifying questions.
+
+If the request is primarily about locking a UI direction or visual anchor before building, offer a handoff to the `design` skill instead — that is its own message, not combined with clarifying questions.
 
 ### 3. Clarify One Question At A Time
 
@@ -150,6 +152,28 @@ Stop if you catch yourself thinking:
 - "I should start planning before the user approves"
 - "I can skip writing the design down"
 - "One vague paragraph is enough for a planner"
+
+## Visual Companion
+
+A browser-based companion for showing mockups, diagrams, and visual options during brainstorming. Offer it once when you anticipate visual questions — not for every session.
+
+**Offering it — use this exact wording, as its own message with nothing else:**
+
+> "Some of what we're working on might be easier to explain if I can show it to you in a web browser. I can put together mockups, diagrams, and visual comparisons as we go. Want to try it? (Requires opening a local URL)"
+
+**Rules:**
+- This offer must be a standalone message. Do not combine it with clarifying questions or any other content.
+- Wait for the user's response before continuing.
+- If they decline, proceed with text-only brainstorming.
+
+**Per-question decision:** Even after the user accepts, decide for each question whether the browser adds value. The test: **would the user understand this better by seeing it than reading it?**
+
+- Use the browser for genuinely visual content — mockups, wireframes, layout comparisons, architecture diagrams
+- Use the terminal for text content — requirements questions, trade-off lists, scope decisions, conceptual choices
+
+A question about a UI topic is not automatically a visual question. "What does 'admin dashboard' mean in this context?" is conceptual — use the terminal. "Which layout works better?" is visual — use the browser.
+
+**Do not confuse this with `design`:** the Visual Companion is a clarification tool for visual questions during brainstorming. `design` is a separate skill for locking UI direction and visual anchors before implementation.
 
 ## Companion Files
 
