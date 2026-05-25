@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "imitation-machine",
-      "description": "Enterprise agentic SDLC workflow plugin and skills for Claude Code and OpenCode",
+      "description": "Standalone enterprise agentic SDLC plugin: gates, personas, audit, monorepo, intake, staged review, and the agentic CLI",
       "version": "0.1.0",
       "source": "./",
       "author": {

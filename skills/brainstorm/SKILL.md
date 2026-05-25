@@ -9,7 +9,11 @@ Turn rough ideas into an approved design or spec before planning or implementati
 
 ## Hard Gate
 
-Do not load `plan`, `tdd`, or any implementation workflow until you have presented a design and the user has approved it.
+Do not load `plan`, `tdd`, or any implementation workflow until you have presented a design and the user has approved it. This applies to every project regardless of perceived simplicity.
+
+## Anti-Pattern: "This Is Too Simple To Need A Design"
+
+Every project goes through this process. A todo list, a single-function utility, a config change — all of them. "Simple" projects are where unexamined assumptions cause the most wasted work. The design can be short (a few sentences for truly simple projects), but you MUST present it and get approval before planning or implementing.
 
 ## When To Use
 
@@ -18,7 +22,7 @@ Do not load `plan`, `tdd`, or any implementation workflow until you have present
 - design-heavy requests
 - requests that still leave room for materially different implementations
 
-Do not use this for already-approved, fully-specified tasks.
+Do not use this for already-approved, fully-specified tasks. For those, go straight to `plan` or `executing-plans`.
 
 ## Workflow
 
@@ -65,7 +69,17 @@ digraph brainstorm_flow {
 - identify relevant patterns, constraints, and docs
 - detect when the request is really multiple subsystems
 
-### 2. Clarify One Question At A Time
+### 2. Scope Check Before Detail Questions
+
+Before asking detailed questions, assess scope:
+
+- if the request describes multiple independent subsystems (e.g., "build a platform with chat, file storage, billing, and analytics"), **flag this immediately**
+- do not spend questions refining details of a project that needs to be decomposed first
+- if the project is too large for a single spec, help the user decompose: what are the independent pieces, how do they relate, what order should they be built? Each sub-project then gets its own spec → plan → implementation cycle
+
+If the request involves visual or interaction questions (UI, layout, flow), offer a handoff to the `design` skill — that is its own message, not combined with clarifying questions.
+
+### 3. Clarify One Question At A Time
 
 Ask one question per message.
 

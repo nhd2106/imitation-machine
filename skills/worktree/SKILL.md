@@ -9,7 +9,33 @@ Use worktrees to isolate implementation streams. They reduce branch drift, keep 
 
 ## Overview
 
-The goal is reliable isolation: choose the right directory, verify it is safe, then start from a clean baseline.
+The goal is reliable isolation: detect existing isolation first, then choose the right directory, verify it is safe, and start from a clean baseline. Never fight the harness.
+
+## Step 0: Detect Existing Isolation
+
+Before creating anything, check if you are already in an isolated workspace:
+
+```sh
+GIT_DIR=$(cd "$(git rev-parse --git-dir)" 2>/dev/null && pwd -P)
+GIT_COMMON=$(cd "$(git rev-parse --git-common-dir)" 2>/dev/null && pwd -P)
+BRANCH=$(git branch --show-current)
+```
+
+**Submodule guard:** `GIT_DIR != GIT_COMMON` is also true inside git submodules. Verify you are not in a submodule:
+
+```sh
+# If this returns a path, you are in a submodule, not a worktree — treat as a normal repo.
+git rev-parse --show-superproject-working-tree 2>/dev/null
+```
+
+- **If `GIT_DIR != GIT_COMMON` (and not a submodule):** you are already in a linked worktree. Skip to setup and baseline checks. Do NOT create another worktree.
+- **If `GIT_DIR == GIT_COMMON` (or in a submodule):** you are in a normal repo checkout. Proceed to directory selection.
+
+Report the detected state before doing anything else:
+
+- on a branch: `Already in isolated workspace at <path> on branch <name>.`
+- detached HEAD: `Already in isolated workspace at <path> (detached HEAD, externally managed).`
+- normal repo: `In normal repo checkout at <path>; preparing to create a worktree.`
 
 ## Directory Selection
 

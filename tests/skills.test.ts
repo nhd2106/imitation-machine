@@ -1156,7 +1156,6 @@ describe("core skill content", () => {
 
     expect(skill.includes("superpowers:")).toBe(false);
     expect(testingReference.includes("superpowers:")).toBe(false);
-    expect(skill.includes("imitation-machine-local")).toBe(true);
   });
 
   test("superpowers-gap skills include frontmatter workflow and red flags", async () => {

@@ -1,15 +1,20 @@
 # @duoc95/imitation-machine
 
-Enterprise-oriented agentic SDLC framework with:
+Standalone enterprise agentic SDLC plugin and CLI. Install once and you have the full workflow — gates, personas, audit trail, monorepo impact tooling, intake decomposition, staged review, and the `agentic` CLI — without depending on any other plugin.
 
-- Skill-driven workflow (brainstorm, plan, tdd, writing-skills, staged reviews)
-- Expanded workflow inventory (`grill-me`, `systematic-debugging`, `dispatching-parallel-agents`, `executing-plans`, `finishing-a-development-branch`, `requesting-code-review`, `receiving-code-review`, `review-final`)
-- Hard gates (coverage/typecheck/security)
+What you get:
+
+- Complete skill-driven workflow (brainstorm → plan → TDD → staged reviews → verify → release)
+- Hard gates (coverage / typecheck / security / spec / quality)
 - Verification-before-completion (`agentic verify all`)
 - Mono-repo impact tooling (`agentic repo *`)
-- Audit trail and approvals
-- Worktree lifecycle support
+- Audit trail and plan approvals
+- Worktree lifecycle (`agentic worktree create / cleanup-merged`)
 - Persona orchestration (`agentic orchestrate run --plan PLN-...`)
+- Intake decomposition unique to this plugin: `zoom-out`, `architecture-deepening`, `requirements-brief`, `issue-slicing`, `grill-me`, `prototype`
+- Staged review unique to this plugin: `review-spec` → `review-quality` → `review-security` → `review-final`
+
+Prior art and inspiration: the discipline-shaping patterns in this plugin (RED-GREEN-REFACTOR, root-cause-first debugging, fresh-subagent-per-task review, evidence-before-completion) draw on community work like Superpowers and related skill libraries. The implementation is fully self-contained — no runtime dependency on any external plugin.
 
 ## Quickstart
 

@@ -11,6 +11,8 @@ Why delegation works: the controller keeps coordination context while each runti
 
 Core principle: fresh subagent per task + spec review before quality review = focused implementation with fewer context leaks.
 
+**Continuous execution:** Do not pause to check in between tasks. Execute all tasks from the approved plan without stopping. The only reasons to stop are: a `BLOCKED` status you cannot resolve, ambiguity that genuinely prevents progress, a failed verification that needs the user, or all tasks complete. "Should I continue?" prompts and progress summaries between tasks waste the user's time — they approved the plan, so execute it.
+
 ## When To Use
 
 - The plan is approved

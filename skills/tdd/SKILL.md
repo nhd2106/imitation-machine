@@ -73,19 +73,61 @@ digraph tdd_flow {
 }
 ```
 
-### RED - Write Failing Test
+### RED — Write Failing Test
 
 Write one minimal automated test for the next observable behavior. Name the behavior, call the public interface, and assert the required result. For a bug fix, RED is the regression test that reproduces the bug before the fix.
 
-Run the focused test and watch it fail for the expected reason. If it errors because of typos or setup, fix the test until it fails because the behavior is missing.
+**Requirements:**
 
-### GREEN - Minimal Code
+- one behavior per test
+- clear name that describes the behavior
+- real code (no mocks unless the boundary is external I/O)
 
-Write the minimal code needed to make that one test pass. Do not add options, generalized helpers, cleanup, or nearby improvements that the test did not require.
+### Verify RED — Watch It Fail
 
-Run the same focused test and read the passing output. If other focused tests break, fix the implementation before continuing.
+**Mandatory. Never skip.** Run the focused test:
 
-### REFACTOR - Clean Up While Green
+```sh
+bun test path/to/test.test.ts
+```
+
+Confirm:
+
+- the test **fails** (not errors)
+- the failure message is the one you expected
+- the failure is because the behavior is missing (not a typo, import error, or setup mistake)
+
+| Outcome | Action |
+|---|---|
+| Test passes immediately | You are testing existing behavior. Fix the test. |
+| Test errors on setup | Fix the error and rerun until it fails for the right reason. |
+| Test fails for the right reason | Proceed to GREEN. |
+
+### GREEN — Minimal Code
+
+Write the simplest code that makes the failing test pass. Do not add options, generalized helpers, cleanup, or nearby improvements that the test did not require.
+
+### Verify GREEN — Watch It Pass
+
+**Mandatory.** Run the focused test:
+
+```sh
+bun test path/to/test.test.ts
+```
+
+Confirm:
+
+- the test **passes**
+- other tests still pass
+- output is pristine (no errors, no warnings, no debug leftovers)
+
+| Outcome | Action |
+|---|---|
+| Test fails | Fix the **code**, not the test. |
+| Other tests fail | Fix them before continuing. |
+| Output noisy | Remove debug code before moving on. |
+
+### REFACTOR — Clean Up While Green
 
 Only refactor after GREEN. Improve names, remove duplication, or simplify shape without adding behavior. Run the focused tests after each refactor step. If a refactor breaks tests, get back to GREEN before changing anything else.
 
@@ -153,16 +195,86 @@ addTask(task: Task) {
 
 Only after the regression test passes, extract a `hasTaskNamed` helper if it makes the code clearer. Do not add case-insensitive matching or cross-project uniqueness until a failing test requires it.
 
+## Test Quality
+
+| Quality | Good | Bad |
+|---|---|---|
+| **Minimal** | One thing. If you have to say "and" in the name, split it. | `test('validates email and domain and whitespace')` |
+| **Clear name** | Name describes the behavior in plain language | `test('test1')`, `test('it works')` |
+| **Shows intent** | Demonstrates the desired API | Obscures what the code should do |
+| **Real code** | Calls public interface with real inputs | Verifies mock call counts instead of behavior |
+
+## Why Order Matters
+
+**"I'll write tests after to verify it works"**
+
+Tests written after code pass immediately. Passing immediately proves nothing:
+
+- might test the wrong thing
+- might test implementation, not behavior
+- might miss edge cases you forgot
+- you never saw it catch the bug
+
+Test-first forces you to see the test fail, proving it actually tests something.
+
+**"I already manually tested all the edge cases"**
+
+Manual testing is ad-hoc. You think you tested everything but:
+
+- no record of what you tested
+- cannot re-run when code changes
+- easy to forget cases under pressure
+- "it worked when I tried it" ≠ comprehensive
+
+Automated tests are systematic. They run the same way every time.
+
+**"Deleting X hours of work is wasteful"**
+
+Sunk cost fallacy. The time is already gone. Your choice now:
+
+- delete and rewrite with TDD (X more hours, high confidence)
+- keep it and add tests after (30 minutes, low confidence, likely bugs)
+
+The "waste" is keeping code you cannot trust. Working code without real tests is technical debt.
+
+**"TDD is dogmatic; being pragmatic means adapting"**
+
+TDD **is** pragmatic:
+
+- finds bugs before commit (faster than debugging after)
+- prevents regressions (tests catch breaks immediately)
+- documents behavior (tests show how to use code)
+- enables refactoring (change freely, tests catch breaks)
+
+"Pragmatic" shortcuts mean debugging in production, which is slower.
+
+**"Tests-after achieve the same goals — it's spirit, not ritual"**
+
+No. Tests-after answer "what does this do?" Tests-first answer "what should this do?"
+
+Tests-after are biased by your implementation. You test what you built, not what's required. You verify remembered edge cases, not discovered ones.
+
+Tests-first force edge-case discovery before implementing. Tests-after verify you remembered everything (you did not).
+
+30 minutes of tests-after ≠ TDD. You get coverage, lose proof the tests work.
+
 ## Rationalization Prevention
 
 | Excuse | Reality |
 |---|---|
+| "Too simple to test" | Simple code breaks. The test takes 30 seconds. |
 | "I will test after" | Tests-after are biased by the implementation and may pass immediately. |
-| "This is too small" | Small code still needs proof. |
-| "I need to keep the code as reference" | Delete means delete; keeping it turns the cycle into tests-after. |
-| "The test passes immediately, so that's fine" | A test passes immediately only proves the behavior already existed or the test is weak. |
+| "Tests-after achieve the same goals" | Tests-after = "what does this do?" Tests-first = "what should this do?" |
+| "Already manually tested" | Ad-hoc ≠ systematic. No record, cannot re-run. |
+| "Deleting X hours is wasteful" | Sunk cost fallacy. Keeping unverified code is technical debt. |
+| "Keep as reference, write tests first" | You will adapt it. That is testing after. Delete means delete. |
+| "Need to explore first" | Fine — throw away the exploration, then start TDD. |
+| "Test is hard = the test is wrong" | Hard to test usually = hard to use. Listen to the test. |
+| "TDD will slow me down" | TDD is faster than debugging. Pragmatic = test-first. |
+| "Manual test is faster" | Manual does not prove edge cases. You will re-test every change. |
+| "Existing code has no tests" | You are improving it. Add tests for what you touch. |
+| "The test passes immediately, so that's fine" | A test that passes immediately only proves the behavior already existed or the test is weak. |
 | "The spirit matters more than the ritual" | Violating the letter of TDD removes the evidence TDD exists to provide. |
-| "I manually tested it" | Manual testing is not repeatable and cannot guard future regressions. |
 | "I am stuck on the test" | Stop and simplify the desired public API; ask for help before coding around the missing test. |
 
 ## Red Flags
