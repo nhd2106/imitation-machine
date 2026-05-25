@@ -1,4 +1,4 @@
-# @duoc95/imitation-machine
+# @nhd2106/imitation-machine
 
 Standalone enterprise agentic SDLC plugin and CLI. Install once and you have the full workflow — gates, personas, audit trail, monorepo impact tooling, intake decomposition, staged review, and the `agentic` CLI — without depending on any other plugin.
 

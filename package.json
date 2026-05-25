@@ -1,5 +1,5 @@
 {
-  "name": "@duoc95/imitation-machine",
+  "name": "@nhd2106/imitation-machine",
   "version": "0.1.0",
   "description": "Enterprise agentic SDLC plugin and CLI for OpenCode and Claude-style skill workflows",
   "license": "MIT",

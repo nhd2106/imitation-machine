@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for contributing to `@duoc95/imitation-machine`.
+Thanks for contributing to `@nhd2106/imitation-machine`.
 
 ## Repo checkout setup
 

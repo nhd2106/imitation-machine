@@ -3,9 +3,9 @@
  * Imitation Machine installer
  *
  * Usage:
- *   npx @duoc95/imitation-machine [surface]
- *   npx @duoc95/imitation-machine --surface <claude|opencode|codex|all>
- *   npx @duoc95/imitation-machine --help
+ *   npx @nhd2106/imitation-machine [surface]
+ *   npx @nhd2106/imitation-machine --surface <claude|opencode|codex|all>
+ *   npx @nhd2106/imitation-machine --help
  *
  * surface: claude | opencode | codex | all (default: all)
  */
@@ -25,8 +25,8 @@ const HELP = `
 imitation-machine installer
 
 Usage:
-  npx @duoc95/imitation-machine [surface]
-  npx @duoc95/imitation-machine --surface <surface>
+  npx @nhd2106/imitation-machine [surface]
+  npx @nhd2106/imitation-machine --surface <surface>
 
 Surfaces:
   claude    Install into Claude Code   (~/.claude/plugins/)
@@ -35,9 +35,9 @@ Surfaces:
   all       Install all surfaces (default)
 
 Examples:
-  npx @duoc95/imitation-machine
-  npx @duoc95/imitation-machine claude
-  npx @duoc95/imitation-machine --surface opencode
+  npx @nhd2106/imitation-machine
+  npx @nhd2106/imitation-machine claude
+  npx @nhd2106/imitation-machine --surface opencode
 `.trim();
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -104,7 +104,7 @@ async function installClaude() {
   }
   ok(`Skills copied → ${claudeSkillsDir}`);
   warn("Bootstrap hook is NOT active. To enable it, install the claude CLI and re-run:");
-  info("  npx @duoc95/imitation-machine claude");
+  info("  npx @nhd2106/imitation-machine claude");
 }
 
 async function installOpenCode() {

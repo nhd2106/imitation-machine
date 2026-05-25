@@ -1241,7 +1241,7 @@ describe("core skill content", () => {
     expect(installer.includes("installClaude")).toBe(true);
     expect(installer.includes("installOpenCode")).toBe(true);
     expect(installer.includes("installCodex")).toBe(true);
-    expect(installer.includes("npx @duoc95/imitation-machine")).toBe(true);
+    expect(installer.includes("npx @nhd2106/imitation-machine")).toBe(true);
     expect(installer.includes(".imitation-machine-enabled")).toBe(true);
   });
 

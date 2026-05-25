@@ -40,7 +40,7 @@ Add this to `opencode.json`:
 
 ```json
 {
-  "plugin": ["@duoc95/imitation-machine"]
+  "plugin": ["@nhd2106/imitation-machine"]
 }
 ```
 
