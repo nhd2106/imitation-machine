@@ -83,9 +83,21 @@ async function installClaude() {
     (await tryExec("claude", ["plugin", "marketplace", "add", INSTALL_DIR])) &&
     (await tryExec("claude", ["plugin", "install", "imitation-machine@imitation-machine-dev"]));
 
+  // Always install im- prefixed agents to ~/.claude/agents/ regardless of plugin path
+  const claudeAgentsDir = join(HOME, ".claude", "agents");
+  await mkdir(claudeAgentsDir, { recursive: true });
+  const agentsDir = join(INSTALL_DIR, "agents");
+  for (const file of await readdir(agentsDir)) {
+    if (!file.endsWith(".md")) continue;
+    const agentName = file.replace(/\.md$/, "");
+    await cp(join(agentsDir, file), join(claudeAgentsDir, `im-${agentName}.md`), { force: true });
+  }
+  ok(`Agents installed → ${claudeAgentsDir} (prefixed as im-*)`);
+
   if (viaPlugin) {
     ok("Installed via claude plugin CLI (hooks + bootstrap active).");
     info("Restart Claude Code and open a repo that has .imitation-machine-enabled.");
+    info("Agents available: im-coder, im-planner, im-reviewer-spec, im-reviewer-quality, im-reviewer-final, im-security, im-worktree");
     return;
   }
 

@@ -1308,4 +1308,41 @@ describe("core skill content", () => {
     expect(template.includes("## Open Questions")).toBe(true);
     expect(template.includes("## Landmines")).toBe(true);
   });
+
+  test("claude agent install script copies im- prefixed agents to ~/.claude/agents/", async () => {
+    const script = await Bun.file(join(ROOT, "scripts", "install-local-claude.sh")).text();
+
+    // Must install agents, not just skills
+    expect(script.includes("agents")).toBe(true);
+    expect(script.includes("im-")).toBe(true);
+    expect(script.includes(".claude/agents")).toBe(true);
+  });
+
+  test("npx installer installs im- prefixed agents for claude surface", async () => {
+    const installer = await Bun.file(join(ROOT, "bin", "im.mjs")).text();
+
+    // installClaude must reference agent installation
+    expect(installer.includes("im-")).toBe(true);
+    expect(installer.includes(".claude/agents")).toBe(true);
+    expect(installer.includes("agents")).toBe(true);
+  });
+
+  test("bootstrap hook injects claude code agent dispatch map", async () => {
+    const bootstrap = await Bun.file(join(ROOT, ".claude-plugin/hooks/bootstrap.sh")).text();
+
+    // Must mention Claude Code agent dispatch
+    expect(bootstrap.includes("im-coder")).toBe(true);
+    expect(bootstrap.includes("im-planner")).toBe(true);
+    expect(bootstrap.includes("im-reviewer-spec")).toBe(true);
+    expect(bootstrap.includes("Agent")).toBe(true);
+  });
+
+  test("using-agentic skill documents claude code agent dispatch", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "using-agentic", "SKILL.md")).text();
+
+    // Must document Claude Code dispatch alongside OpenCode @persona mentions
+    expect(content.includes("im-coder")).toBe(true);
+    expect(content.includes("im-planner")).toBe(true);
+    expect(content.includes("Claude Code")).toBe(true);
+  });
 });
