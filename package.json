@@ -41,7 +41,8 @@
     "pack:dry": "npm pack --dry-run"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2"
