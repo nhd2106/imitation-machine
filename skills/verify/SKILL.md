@@ -89,7 +89,7 @@ If the original failure came from a targeted test, use that targeted test first.
 
 ## Red Flags
 
-Stop if you are about to say:
+Stop if you are about to say any of these without a fresh verification run that proves it:
 
 - "done"
 - "looks good"
@@ -97,8 +97,8 @@ Stop if you are about to say:
 - "ready for PR"
 - "tests are green"
 - "probably fixed"
-
-without a fresh verification run that proves it.
+- "Great!", "Perfect!", "All set!" — any expression of satisfaction before evidence
+- ANY wording implying success that did not come from running the verification command in this session
 
 Agent reports success only starts verification. Check what changed, rerun the relevant command, and report the actual state. Do not trust delegated success reports without independent evidence.
 

@@ -1,5 +1,9 @@
 # Skills Comparison Matrix
 
+**Status:** `imitation-machine` is a **standalone enterprise SDLC plugin** with no runtime dependency on any external plugin. Users install IM alone and get the full workflow.
+
+This matrix exists as a contributor reference: it records which discipline-shaping patterns IM borrowed and improved from prior art (notably the Superpowers skill library), and which patterns are unique to IM. The columns describe the current state of each skill package, not a competitive position.
+
 This matrix compares `imitation-machine` to `superpowers` skill-by-skill. It focuses on whether each workflow area is covered, how complete the package is, how much evaluation coverage exists, and which remaining gaps are still worth closing.
 
 ## How to Read This Matrix
