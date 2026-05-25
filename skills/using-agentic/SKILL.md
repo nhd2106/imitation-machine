@@ -150,6 +150,22 @@ In opted-in workflow sessions, do not claim completion or start final holistic r
 agentic verify all
 ```
 
+## Agent Dispatch
+
+**OpenCode** — use `@persona` syntax: `@coder`, `@planner`, `@reviewer-spec`, `@reviewer-quality`, `@reviewer-final`, `@security`, `@worktree`.
+
+**Claude Code** — use the `Agent` tool with `subagent_type`. Agents are installed as `im-*` to avoid conflicts with existing agents:
+
+| Role | subagent_type |
+|---|---|
+| Bounded TDD implementation | `im-coder` |
+| Task decomposition | `im-planner` |
+| Stage 1 spec review | `im-reviewer-spec` |
+| Stage 2 quality review | `im-reviewer-quality` |
+| Final holistic review | `im-reviewer-final` |
+| Security review | `im-security` |
+| Workspace isolation | `im-worktree` |
+
 ## Companion Files
 
 - `references/opencode-tools.md`

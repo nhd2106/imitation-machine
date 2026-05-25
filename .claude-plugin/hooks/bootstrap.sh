@@ -26,7 +26,9 @@ escape_for_json() {
 
 using_agentic_escaped=$(escape_for_json "$using_agentic_content")
 
-session_context="<EXTREMELY_IMPORTANT>\nImitation Machine is active in this repository.\n\n**Below is the full content of your 'imitation-machine:using-agentic' skill. For all other skills, use the Skill tool:**\n\n${using_agentic_escaped}\n</EXTREMELY_IMPORTANT>"
+claude_agent_map="**Claude Code — Agent dispatch map (use the Agent tool, not @persona syntax):**\nim-coder → bounded TDD implementation of one task\nim-planner → task decomposition from an approved spec\nim-reviewer-spec → Stage 1: does the implementation match the spec?\nim-reviewer-quality → Stage 2: readability, naming, structure\nim-reviewer-final → final holistic production-readiness review\nim-security → security review for auth/input/secrets/injection surfaces\nim-worktree → workspace isolation and branch setup\n\nExample: Agent({ subagent_type: \"im-coder\", prompt: \"Implement task 3: add X to Y. Allowed files: src/y.ts. Verification: bun test src/y.test.ts\" })"
+
+session_context="<EXTREMELY_IMPORTANT>\nImitation Machine is active in this repository.\n\n**Below is the full content of your 'imitation-machine:using-agentic' skill. For all other skills, use the Skill tool:**\n\n${using_agentic_escaped}\n\n${claude_agent_map}\n</EXTREMELY_IMPORTANT>"
 
 # Platform-specific output: Claude Code expects hookSpecificOutput.additionalContext.
 # Uses printf instead of heredoc to avoid bash 5.3+ heredoc hang.
