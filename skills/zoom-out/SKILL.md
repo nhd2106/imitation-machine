@@ -24,6 +24,7 @@ Do not load for direct implementation, refactor, prototype, or architecture deci
 
 ## Workflow
 
+0. **Read `CODEMAP.md` first if it exists** — `ls CODEMAP.md 2>/dev/null && cat CODEMAP.md`. This replaces most of the exploration step; skip to step 2 for any gaps the map doesn't cover. If the map is stale, note it and offer to update it using the `codemap` skill after orientation.
 1. Inspect only the minimum repo files, tests, scripts, docs, and references needed to orient the requested scope.
 2. Track evidence/sources as paths, symbols, commands, or excerpts that support each claim.
 3. Produce the discovery map with confidence labels and unknowns instead of closing gaps by assumption.
