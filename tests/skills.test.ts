@@ -1345,4 +1345,49 @@ describe("core skill content", () => {
     expect(content.includes("im-planner")).toBe(true);
     expect(content.includes("Claude Code")).toBe(true);
   });
+
+  test("codemap skill covers create, update, and read-first protocols", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "codemap", "SKILL.md")).text();
+    expect(content.startsWith("---\nname: codemap\n")).toBe(true);
+
+    // Two modes: create and update
+    expect(content.includes("## Create")).toBe(true);
+    expect(content.includes("## Update")).toBe(true);
+
+    // Names the artifact
+    expect(content.includes("CODEMAP.md")).toBe(true);
+
+    // Read-first protocol — agents must read before exploring
+    expect(content.includes("read-first")).toBe(true);
+
+    // Core sections the map must have
+    expect(content.includes("Module Map")).toBe(true);
+    expect(content.includes("Entry Points")).toBe(true);
+    expect(content.includes("Domain Language")).toBe(true);
+
+    // Red flags
+    expect(content.includes("## Red Flags")).toBe(true);
+  });
+
+  test("codemap ships a CODEMAP template companion file", async () => {
+    const exists = await Bun.file(join(ROOT, "skills", "codemap", "codemap-template.md")).exists();
+    expect(exists).toBe(true);
+
+    const template = await Bun.file(join(ROOT, "skills", "codemap", "codemap-template.md")).text();
+    expect(template.includes("## Module Map")).toBe(true);
+    expect(template.includes("## Entry Points")).toBe(true);
+    expect(template.includes("## Domain Language")).toBe(true);
+    expect(template.includes("## Key Patterns")).toBe(true);
+  });
+
+  test("zoom-out references codemap as a read-first step when available", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "zoom-out", "SKILL.md")).text();
+    expect(content.includes("CODEMAP.md")).toBe(true);
+    expect(content.includes("codemap")).toBe(true);
+  });
+
+  test("bootstrap hook mentions CODEMAP.md for opted-in repos", async () => {
+    const bootstrap = await Bun.file(join(ROOT, ".claude-plugin/hooks/bootstrap.sh")).text();
+    expect(bootstrap.includes("CODEMAP.md")).toBe(true);
+  });
 });
