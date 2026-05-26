@@ -1,16 +1,16 @@
 {
   "name": "imitation-machine-dev",
   "owner": {
-    "name": "duoc95"
+    "name": "nhd2106"
   },
   "plugins": [
     {
       "name": "imitation-machine",
       "description": "Standalone enterprise agentic SDLC plugin: gates, personas, audit, monorepo, intake, staged review, and the agentic CLI",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "source": "./",
       "author": {
-        "name": "duoc95"
+        "name": "nhd2106"
       }
     }
   ]

@@ -1,6 +1,6 @@
 {
   "name": "@nhd2106/imitation-machine",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Enterprise agentic SDLC plugin and CLI for OpenCode and Claude-style skill workflows",
   "license": "MIT",
   "type": "module",
