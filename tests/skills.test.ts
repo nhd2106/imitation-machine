@@ -144,6 +144,7 @@ const SUPERPOWERS_GAP_SKILLS = [
   "finishing-a-development-branch",
   "requesting-code-review",
   "receiving-code-review",
+  "triage",
 ] as const;
 
 describe("zoom-out read-only orientation expectations", () => {
@@ -231,6 +232,46 @@ describe("core skill content", () => {
       "Must not produce task plans",
       "Must not write code",
     ]);
+
+    // Domain awareness additions
+    expectContainsAll(content, [
+      "CONTEXT.md",
+      "ADR",
+      "Challenge against the glossary",
+      "Update CONTEXT.md inline",
+      "CONTEXT-FORMAT.md",
+      "ADR-FORMAT.md",
+    ]);
+  });
+
+  test("grill-me companion files exist", async () => {
+    const contextFormat = await Bun.file(join(ROOT, "skills", "grill-me", "CONTEXT-FORMAT.md")).exists();
+    const adrFormat = await Bun.file(join(ROOT, "skills", "grill-me", "ADR-FORMAT.md")).exists();
+    expect(contextFormat).toBe(true);
+    expect(adrFormat).toBe(true);
+  });
+
+  test("triage skill covers issue state machine and agent brief workflow", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "triage", "SKILL.md")).text();
+
+    expectContainsAll(content, [
+      "needs-triage",
+      "needs-info",
+      "ready-for-agent",
+      "ready-for-human",
+      "wontfix",
+      "AGENT-BRIEF.md",
+      "OUT-OF-SCOPE.md",
+      "grill-me",
+      "## Red Flags",
+    ]);
+  });
+
+  test("triage companion files exist", async () => {
+    const agentBrief = await Bun.file(join(ROOT, "skills", "triage", "AGENT-BRIEF.md")).exists();
+    const outOfScope = await Bun.file(join(ROOT, "skills", "triage", "OUT-OF-SCOPE.md")).exists();
+    expect(agentBrief).toBe(true);
+    expect(outOfScope).toBe(true);
   });
 
   test("using-agentic is scoped to opted-in repos", async () => {
@@ -243,6 +284,7 @@ describe("core skill content", () => {
     expect(content.includes("requesting-code-review")).toBe(true);
     expect(content.includes("receiving-code-review")).toBe(true);
     expect(content.includes("grill-me")).toBe(true);
+    expect(content.includes("triage")).toBe(true);
   });
 
   test("using-agentic places fresh verification before final review and handoff", async () => {

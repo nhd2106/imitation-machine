@@ -19,7 +19,7 @@ Random fixes waste time and create new bugs. Quick patches mask underlying issue
 NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST
 ```
 
-If you have not completed Phase 1, you cannot propose fixes.
+If you have not completed Phase 0, you cannot enter Phase 1.
 
 ## When To Use
 
@@ -27,11 +27,34 @@ Any technical issue: test failures, bugs, unexpected behavior, performance probl
 
 ## Workflow
 
-You MUST complete each of the four phases below before proceeding to the next. Keep the runtime agent focused on one observable hypothesis at a time, and capture each step in `hypothesis-log-template.md` so the chain of evidence is auditable.
+You MUST complete each phase before proceeding to the next. Keep the runtime agent focused on one observable hypothesis at a time, and capture each step in `hypothesis-log-template.md` so the chain of evidence is auditable.
 
-## The Four Phases
+## The Phases
 
-You MUST complete each phase before proceeding to the next.
+### Phase 0: Build a Feedback Loop
+
+**This is the skill.** If you have a fast, deterministic, agent-runnable pass/fail signal for the bug, you will find the cause — bisection, hypothesis-testing, and instrumentation all just consume that signal. If you don't have one, no amount of staring at code will save you.
+
+Spend disproportionate effort here. **Be aggressive. Be creative. Refuse to give up.**
+
+Try these strategies in roughly this order:
+
+1. **Failing test** at whatever seam reaches the bug — unit, integration, e2e.
+2. **Curl / HTTP script** against a running dev server.
+3. **CLI invocation** with a fixture input, diffing stdout against a known-good snapshot.
+4. **Headless browser script** (Playwright / Puppeteer) — drives the UI, asserts on DOM/console/network.
+5. **Replay a captured trace** — save a real network request/payload/event log to disk; replay it through the code path in isolation.
+6. **Throwaway harness** — spin up a minimal subset of the system (one service, mocked deps) that exercises the bug code path with a single function call.
+7. **Property / fuzz loop** — if the bug is "sometimes wrong output", run 1000 random inputs and look for the failure mode.
+8. **Bisection harness** — if the bug appeared between two known states, automate "boot at state X, check, repeat" so you can `git bisect run` it.
+9. **Differential loop** — run the same input through old-version vs new-version and diff outputs.
+10. **HITL script** — last resort; if a human must click, structure the loop so output feeds back to you.
+
+Once you have a loop, improve it: make it faster, make the signal sharper, make it deterministic. A 2-second deterministic loop beats a 30-second flaky one.
+
+**For non-deterministic bugs:** the goal is not a clean repro but a higher reproduction rate. Loop the trigger 100×, parallelise, add stress. A 50%-flake is debuggable; 1% is not.
+
+**If you genuinely cannot build a loop:** stop and say so. List what you tried. Ask for access to the environment, a captured artifact (HAR file, log dump, screen recording), or permission to add temporary production instrumentation. Do **not** proceed to Phase 1 without a loop.
 
 ### Phase 1: Root Cause Investigation
 

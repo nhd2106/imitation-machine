@@ -97,6 +97,7 @@ Canonical final sequence:
 | Approved plan should be executed directly in-session | `executing-plans` |
 | Implementation or bug fix | `tdd` |
 | Debugging a stubborn failure | `systematic-debugging` |
+| Triaging issues on the project issue tracker | `triage` |
 | Safe fanout of independent agent work | `dispatching-parallel-agents` |
 
 Ambiguous prototype requests stay in `brainstorm` or read-only `zoom-out`; read-only prototype exploration stays in `zoom-out` until a disposable prototype is approved.
