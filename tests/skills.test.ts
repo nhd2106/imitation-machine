@@ -1390,4 +1390,21 @@ describe("core skill content", () => {
     const bootstrap = await Bun.file(join(ROOT, ".claude-plugin/hooks/bootstrap.sh")).text();
     expect(bootstrap.includes("CODEMAP.md")).toBe(true);
   });
+
+  test("bootstrap hook assigns controller role and mandates agent dispatch", async () => {
+    const bootstrap = await Bun.file(join(ROOT, ".claude-plugin/hooks/bootstrap.sh")).text();
+
+    // Must assign controller role explicitly
+    expect(bootstrap.includes("controller")).toBe(true);
+
+    // Must prohibit inline implementation
+    expect(bootstrap.includes("do not implement")).toBe(true);
+
+    // Must give concrete dispatch decision rule
+    expect(bootstrap.includes("im-planner")).toBe(true);
+    expect(bootstrap.includes("im-coder")).toBe(true);
+
+    // Must state first action before any task
+    expect(bootstrap.includes("CODEMAP.md")).toBe(true);
+  });
 });
