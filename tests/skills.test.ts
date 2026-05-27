@@ -1369,6 +1369,13 @@ describe("core skill content", () => {
     expect(content.includes("## Red Flags")).toBe(true);
   });
 
+  test("codemap create flow wires CODEMAP.md into CLAUDE.md via @-include", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "codemap", "SKILL.md")).text();
+    // Must guide wiring into CLAUDE.md so the map is available without the plugin
+    expect(content.includes("CLAUDE.md")).toBe(true);
+    expect(content.includes("@CODEMAP.md")).toBe(true);
+  });
+
   test("codemap ships a CODEMAP template companion file", async () => {
     const exists = await Bun.file(join(ROOT, "skills", "codemap", "codemap-template.md")).exists();
     expect(exists).toBe(true);

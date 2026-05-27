@@ -1,3 +1,5 @@
+@CODEMAP.md
+
 # Imitation Machine contributor guide
 
 This repository is an enterprise agentic SDLC plugin and CLI. It packages skills, gates, personas, harnesses, and local install surfaces for OpenCode, Claude, and Codex-style workflows.

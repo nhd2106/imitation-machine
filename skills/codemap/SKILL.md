@@ -49,10 +49,22 @@ Copy `codemap-template.md` and fill every section. Rules:
 - **Domain Language**: terms specific to this project that a fresh agent would not know. One sentence each. Borrow from `CONTEXT.md` if it exists. No generic programming terms.
 - **Key Patterns**: recurring implementation patterns (e.g. "all DB queries go through `db/query.ts`", "config is always read from env via `config.ts`"). 3–7 entries.
 
-**Step 4 — Commit**
+**Step 4 — Wire into CLAUDE.md**
+
+Add `@CODEMAP.md` to the repo's `CLAUDE.md` (create it if missing). This auto-includes the map in every Claude Code session — with or without the IM plugin.
+
+```markdown
+# If CLAUDE.md already exists, append:
+@CODEMAP.md
+
+# If CLAUDE.md does not exist, create it with:
+@CODEMAP.md
+```
+
+**Step 5 — Commit**
 
 ```sh
-git add CODEMAP.md && git commit -m "docs: add CODEMAP.md for agent navigation"
+git add CODEMAP.md CLAUDE.md && git commit -m "docs: add CODEMAP.md for agent navigation"
 ```
 
 ## Update
