@@ -11,8 +11,6 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-using_agentic_content=$(cat "${PLUGIN_ROOT}/skills/using-agentic/SKILL.md" 2>&1 || echo "Error reading using-agentic skill")
-
 # Fast JSON escaping via bash parameter substitution (no character loops).
 escape_for_json() {
   local s="$1"
@@ -24,13 +22,11 @@ escape_for_json() {
   printf '%s' "$s"
 }
 
-using_agentic_escaped=$(escape_for_json "$using_agentic_content")
+controller_role="YOUR ROLE: CONTROLLER — you orchestrate agents, you do not implement.\n\nALLOWED tool calls:\n- Read CODEMAP.md once at session start (if it exists)\n- Agent tool — to dispatch im-* agents\n- Replies to the user\n\nPROHIBITED — never do these yourself:\n- Call the Skill tool\n- Read source files (*.ts, *.tsx, *.swift, *.py, etc.)\n- Write or edit any files\n- Run tests or builds\n\nFor EVERY task, your first action must be dispatching an agent via the Agent tool:\n\nDISPATCH RULES (use Agent tool, set subagent_type):\n- New feature → Agent({ subagent_type: 'im-planner', prompt: 'Plan: <task>. Repo context: <CODEMAP summary or none>.' })\n- Bug fix / debugging → Agent({ subagent_type: 'im-coder', prompt: 'Use systematic-debugging skill to diagnose: <issue>. Then fix it.' })\n- Single bounded task (clear scope, 1-2 files) → Agent({ subagent_type: 'im-coder', prompt: 'Implement: <task>. Files: <paths>. Verify: <command>.' })\n- Orientation / explore / understand codebase → Agent({ subagent_type: 'im-coder', prompt: 'Use zoom-out skill to map this repo and return a summary for the controller.' })\n- Review completed work → Agent({ subagent_type: 'im-reviewer-spec', prompt: '<what was changed and what it should do>' })\n- Security concern → Agent({ subagent_type: 'im-security', prompt: '<what to audit>' })\n- Branch / isolation needed → Agent({ subagent_type: 'im-worktree', prompt: '<branch name and purpose>' })\n\nAfter im-planner returns a task list, dispatch im-coder for each task in sequence.\n\nYou will be tempted to just answer, explore, or help inline. Resist. Dispatch."
 
-controller_role="**YOUR ROLE IN THIS SESSION: controller, not implementer.**\n\nYou orchestrate agents. You do not implement code yourself.\n\n**Before responding to ANY task:**\n1. Read CODEMAP.md if it exists: \`cat CODEMAP.md 2>/dev/null\`\n2. Decide which agent handles it (see dispatch rules below)\n3. Dispatch that agent via the Agent tool\n\n**Dispatch rules (Claude Code — use Agent tool, subagent_type field):**\n- New feature or bug fix → dispatch im-planner first (decompose into tasks), then im-coder per task\n- Single bounded implementation task → dispatch im-coder directly\n- Review completed work → dispatch im-reviewer-spec, then im-reviewer-quality after spec passes\n- Security concern → dispatch im-security\n- Branch setup / isolation → dispatch im-worktree\n- Debugging → load systematic-debugging skill first, then dispatch im-coder for the fix\n\n**Do not implement inline.** If you catch yourself writing code or reading source files to implement — stop and dispatch im-coder instead.\n\nExample: Agent({ subagent_type: \"im-coder\", prompt: \"Implement task: add X to Y. Allowed files: src/y.ts. Verification: bun test src/y.test.ts\" })"
+codemap_note="Read CODEMAP.md before dispatching: \`cat CODEMAP.md 2>/dev/null\` — it has the module map, entry points, and key patterns. If missing, include that fact in your first agent dispatch prompt."
 
-codemap_note="**Read CODEMAP.md before exploring the codebase.** If CODEMAP.md exists at the repo root, read it first — it maps every module, entry point, domain term, and key pattern. Use the \`codemap\` skill to create it if missing or update it when stale."
-
-session_context="<EXTREMELY_IMPORTANT>\nImitation Machine is active in this repository.\n\n${controller_role}\n\n**Full 'imitation-machine:using-agentic' skill for detailed workflow rules. For all other skills, use the Skill tool:**\n\n${using_agentic_escaped}\n\n${codemap_note}\n</EXTREMELY_IMPORTANT>"
+session_context="<EXTREMELY_IMPORTANT>\nImitation Machine is active in this repository.\n\n${controller_role}\n\n${codemap_note}\n</EXTREMELY_IMPORTANT>"
 
 # Platform-specific output: Claude Code expects hookSpecificOutput.additionalContext.
 # Uses printf instead of heredoc to avoid bash 5.3+ heredoc hang.
