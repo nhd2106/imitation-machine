@@ -1,7 +1,7 @@
 {
   "name": "imitation-machine",
   "version": "0.2.0",
-  "description": "Imitation Machine enterprise software development framework",
+  "description": "Governance layer for AI coding agents that enforces planning, isolated execution, staged reviews, and verification before code reaches production.",
   "skills": "./skills/",
   "interface": {
     "displayName": "Imitation Machine",

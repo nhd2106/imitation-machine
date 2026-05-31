@@ -1,7 +1,7 @@
 {
   "name": "@nhd2106/imitation-machine",
   "version": "0.2.0",
-  "description": "Enterprise agentic SDLC plugin and CLI for OpenCode and Claude-style skill workflows",
+  "description": "Governance layer for AI coding agents that enforces planning, isolated execution, staged reviews, and verification before code reaches production.",
   "license": "MIT",
   "type": "module",
   "main": ".opencode/plugins/imitation-machine.js",

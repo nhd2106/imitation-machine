@@ -1,7 +1,7 @@
 {
   "name": "imitation-machine",
   "version": "0.2.0",
-  "description": "Standalone enterprise agentic SDLC plugin: gates, personas, audit, monorepo, intake, staged review, and the agentic CLI",
+  "description": "Governance layer for AI coding agents that enforces planning, isolated execution, staged reviews, and verification before code reaches production.",
   "author": {
     "name": "nhd2106"
   },
