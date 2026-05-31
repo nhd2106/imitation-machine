@@ -1,20 +1,42 @@
-# @nhd2106/imitation-machine
+# Imitation Machine
 
-Standalone enterprise agentic SDLC plugin and CLI. Install once and you have the full workflow — gates, personas, audit trail, monorepo impact tooling, intake decomposition, staged review, and the `agentic` CLI — without depending on any other plugin.
+Imitation Machine is a governance layer for AI coding agents.
 
-What you get:
+Modern coding agents can generate code, modify infrastructure, execute shell commands, and commit changes faster than ever. However, speed without process creates risk.
 
-- Complete skill-driven workflow (brainstorm → plan → TDD → staged reviews → verify → release)
-- Hard gates (coverage / typecheck / security / spec / quality)
-- Verification-before-completion (`agentic verify all`)
-- Mono-repo impact tooling (`agentic repo *`)
-- Audit trail and plan approvals
-- Worktree lifecycle (`agentic worktree create / cleanup-merged`)
-- Persona orchestration (`agentic orchestrate run --plan PLN-...`)
-- Intake decomposition unique to this plugin: `zoom-out`, `architecture-deepening`, `requirements-brief`, `issue-slicing`, `grill-me`, `prototype`
-- Staged review unique to this plugin: `review-spec` → `review-quality` → `review-security` → `review-final`
+Imitation Machine introduces a structured Software Development Lifecycle (SDLC) for AI agents, ensuring every task follows a disciplined workflow:
 
-Prior art and inspiration: the discipline-shaping patterns in this plugin (RED-GREEN-REFACTOR, root-cause-first debugging, fresh-subagent-per-task review, evidence-before-completion) draw on community work like Superpowers and related skill libraries. The implementation is fully self-contained — no runtime dependency on any external plugin.
+* Plan before implementation
+* Work in isolated environments
+* Review before completion
+* Verify with fresh tests and checks
+* Maintain an auditable decision trail
+
+Rather than replacing your favorite coding agent, Imitation Machine works alongside tools like Codex, Claude Code, OpenCode, and future AI development platforms.
+
+> **GitHub Actions governs deployments. Imitation Machine governs AI agents.**
+
+## Core Principles
+
+### Planning First
+
+Agents must define objectives, requirements, and implementation strategy before writing code.
+
+### Controlled Execution
+
+Work is performed in isolated branches or worktrees to reduce unintended side effects.
+
+### Staged Reviews
+
+Code passes through structured review gates before completion.
+
+### Verification Required
+
+Type checking, testing, linting, and validation are performed before a task can be considered complete.
+
+### Auditability
+
+Every major decision and workflow step is recorded, making agent behavior easier to inspect and trust.
 
 ## Quickstart
 
@@ -24,10 +46,10 @@ From this source checkout, use `./bin/agentic` unless you already installed `age
 
 1. Install local dependencies first: `bun install`
 2. If you are contributing from this checkout, read [CONTRIBUTING.md](CONTRIBUTING.md) for the full repo-local setup and verification flow.
-3. Choose exactly one install target based on the client you use. Here, **surface** means the client or tool you are installing into, such as OpenCode or Claude.
+3. Choose exactly one install target based on the client you use. Here, **surface** means the client or tool you are installing into, such as Codex, OpenCode, or Claude.
+   - Codex: `./bin/agentic install local --surface codex` (supported packaged local install surface)
    - OpenCode: `./bin/agentic install local --surface opencode`
    - Claude: `./bin/agentic install local --surface claude`
-   - Codex: `./bin/agentic install local --surface codex` (supported packaged local install surface)
 4. Check the current workflow mode: `./bin/agentic mode show`
 5. Run the final verification gate: `./bin/agentic verify all`
 
@@ -119,13 +141,13 @@ Use this table as the single install hub:
 
 | Client | Recommended path | Manual fallback | Exact instructions | Support status / notes |
 | --- | --- | --- | --- | --- |
+| Codex | `./bin/agentic install local --surface codex` | `./scripts/install-local-codex.sh` | [`CODEX_INSTALL.md`](CODEX_INSTALL.md) | Supported packaged local install from this repo via a minimal Codex plugin root and local marketplace entry; no hooks, no `mcpServers`, no apps, no agents support, and no bootstrap injection; no live Codex harness claim. |
 | OpenCode | `./bin/agentic install local --surface opencode` | `./scripts/install-local-opencode.sh` | [`.opencode/INSTALL.md`](.opencode/INSTALL.md) | Supported packaged local install from this repo via plugin + skills. |
 | Claude | `./bin/agentic install local --surface claude` | `./scripts/install-local-claude-plugin.sh` | [`CLAUDE_INSTALL.md`](CLAUDE_INSTALL.md) | Supported packaged local install from this repo via Claude development marketplace. |
-| Codex | `./bin/agentic install local --surface codex` | `./scripts/install-local-codex.sh` | [`CODEX_INSTALL.md`](CODEX_INSTALL.md) | Supported packaged local install from this repo via a minimal Codex plugin root and local marketplace entry; no hooks, no `mcpServers`, no apps, no agents support, and no bootstrap injection; no live Codex harness claim. |
 | Cursor | Not currently supported | None | See notes in this table | No packaged installer or verified install flow in this repo today. |
 | Gemini | Not currently supported | None | See notes in this table | No packaged installer or verified install flow in this repo today. |
 
-If the CLI is already on your `PATH`, the equivalent install commands are `agentic install local --surface opencode`, `agentic install local --surface claude`, and `agentic install local --surface codex`.
+If the CLI is already on your `PATH`, the equivalent install commands are `agentic install local --surface codex`, `agentic install local --surface opencode`, and `agentic install local --surface claude`.
 
 For OpenCode, the packaged local install from this repo creates a local package layout under `~/.config/opencode/imitation-machine/`, registers the plugin in `~/.config/opencode/plugins/`, and exposes the skills in `~/.config/opencode/skills/imitation-machine/`.
 
@@ -135,7 +157,7 @@ For Claude, the packaged local install from this repo registers a local Claude C
 
 For Codex, the packaged local install from this repo creates `~/plugins/imitation-machine`, copies this repo's `skills/` directory into `~/plugins/imitation-machine/skills`, and manages `~/.agents/plugins/marketplace.json` with a local `./plugins/imitation-machine` entry. The checked-in manifest stays minimal: no hooks, no `mcpServers`, no apps, no agents support, and no bootstrap injection, and no live Codex harness claim.
 
-`./bin/agentic install local` and `./bin/agentic install local --surface all` now install OpenCode, Claude, and Codex in that stable order.
+`./bin/agentic install local` and `./bin/agentic install local --surface all` now install Codex, OpenCode, and Claude in that stable order.
 
 Published registry install guidance, when available for a surface, is documented separately from the packaged local install flow above.
 

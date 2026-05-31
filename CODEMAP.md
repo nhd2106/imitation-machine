@@ -57,10 +57,10 @@ Enterprise agentic SDLC plugin and CLI (`agentic`). Packages skills, gates, agen
 - **Skill tests are content-anchored**: `tests/skills.test.ts` checks for specific strings in SKILL.md files — adding a skill without tests means it has no quality contract
 - **Worktrees under `.worktrees/feat/`**: IM-owned worktrees live here; worktrees elsewhere are treated as externally managed and never cleaned up automatically
 - **`im-` agent prefix**: IM agents installed to `~/.claude/agents/` use `im-` prefix to avoid clobbering existing user agents
-- **Bootstrap scope**: the SessionStart hook (`bootstrap.sh`) only fires in repos with `.imitation-machine-enabled` or `.agentic/` present — never globally
+- **Bootstrap controller role**: the SessionStart hook (`bootstrap.sh`) fires in opted-in repos and injects a strict **controller role** — the main assistant is prohibited from implementing, reading source files, or calling the Skill tool; every task must be dispatched to an `im-*` agent via the Agent tool
 - **Plan approval gate**: `gates/plan.ts` blocks execution unless the plan has an approval record in `audit/approvals.ts`
 - **`agentic verify all`** = typecheck + gate coverage + gate security + bun test — the canonical "is this ready?" command before any completion claim
 
 ## Last Updated
 
-2026-05-26
+2026-05-27
