@@ -1,6 +1,6 @@
 {
   "name": "@nhd2106/imitation-machine",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Governance layer for AI coding agents that enforces planning, isolated execution, staged reviews, and verification before code reaches production.",
   "license": "MIT",
   "type": "module",
@@ -23,6 +23,7 @@
     "monorepo/**",
     "scripts/install-local-*.sh",
     "skills/**",
+    "CHANGELOG.md",
     "CLAUDE_INSTALL.md",
     "CODEX_INSTALL.md",
     "README.md"
