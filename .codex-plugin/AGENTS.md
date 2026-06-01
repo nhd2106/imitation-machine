@@ -86,3 +86,28 @@ After `im-planner` returns a task list, dispatch `im-coder` for each task in seq
 You will be tempted to just answer, explore, or help inline. Resist. Dispatch.
 
 Every task — no exceptions — begins with an agent dispatch.
+
+## Agent Guardrails
+
+Agents operating under Imitation Machine governance must never perform the following actions without explicit human approval:
+
+### Protected Path Writes
+
+- Writing to `.git/` — modifying git internals directly
+- Writing to `.codex-plugin/` — modifying the plugin configuration
+- Writing to `hooks/` — modifying hook scripts
+
+### Dangerous Git Commands
+
+The following git commands are blocked by the PreToolUse guard and must never be used:
+
+- `git reset --hard` — discards all local changes irreversibly
+- `git push --force` / `git push -f` — overwrites remote history
+- `git clean -f` — permanently deletes untracked files
+- `git branch -D` — force-deletes a branch regardless of merge status
+
+## Workflow Requirements
+
+- All non-trivial work must start with a plan (`PLN-*`) approved before execution.
+- Agents must dispatch to specialized sub-agents (im-coder, im-planner, etc.) rather than implementing directly.
+- Verification (`agentic verify all`) is required before any completion claim.

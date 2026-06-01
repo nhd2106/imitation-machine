@@ -25,6 +25,7 @@ mkdir -p "$STAGED_PLUGIN_ROOT/.codex-plugin"
 cp "$REPO_ROOT/.codex-plugin/plugin.json" "$STAGED_PLUGIN_ROOT/.codex-plugin/plugin.json"
 cp "$REPO_ROOT/.codex-plugin/AGENTS.md" "$STAGED_PLUGIN_ROOT/.codex-plugin/AGENTS.md"
 cp -R "$REPO_ROOT/skills" "$STAGED_PLUGIN_ROOT/skills"
+cp -R "$REPO_ROOT/agents" "$STAGED_PLUGIN_ROOT/agents"
 
 MARKETPLACE_PATH="$MARKETPLACE_PATH" STAGED_MARKETPLACE_PATH="$STAGED_MARKETPLACE_PATH" bun -e '
 const marketplacePath = process.env.MARKETPLACE_PATH;
@@ -166,6 +167,9 @@ Manifest:
 Skills directory:
   $PLUGIN_ROOT/skills
 
+Agents directory:
+  $PLUGIN_ROOT/agents
+
 Marketplace:
   $MARKETPLACE_PATH
 
@@ -173,8 +177,8 @@ Bootstrap:
   AGENTS.md and SessionStart hook installed → .codex/AGENTS.md, .codex/hooks.json
 
 This is a supported packaged local install surface for Codex.
-It installs a local plugin package with no \`mcpServers\`, no apps,
-no agents support, and no live Codex harness claim.
+It installs a local plugin package with skills and agents, but with no \`mcpServers\`, no apps,
+and no live Codex harness claim.
 
 Next steps:
 1. Restart Codex if it is already running.

@@ -99,3 +99,44 @@ describe("skill packages", () => {
     expect(await exists("skills/receiving-code-review/fix-summary-template.md")).toBe(true);
   });
 });
+
+describe("codex plugin packaging", () => {
+  test("plugin.json declares an agents field pointing to ./agents/", async () => {
+    const pluginJsonPath = join(ROOT, ".codex-plugin/plugin.json");
+    const raw = await Bun.file(pluginJsonPath).text();
+    const pluginJson = JSON.parse(raw);
+    expect(pluginJson.agents).toBe("./agents/");
+  });
+
+  test("agents directory contains all expected agent markdown files", async () => {
+    expect(await exists("agents/coder.md")).toBe(true);
+    expect(await exists("agents/planner.md")).toBe(true);
+    expect(await exists("agents/worktree.md")).toBe(true);
+  });
+});
+
+describe("codex plugin guardrails", () => {
+  test("hooks.json contains a PreToolUse hook with Write|Edit|Bash matcher", async () => {
+    const hooksJsonPath = join(ROOT, ".codex-plugin/hooks.json");
+    const raw = await Bun.file(hooksJsonPath).text();
+    const hooksJson = JSON.parse(raw);
+    const preToolUseHooks = hooksJson.hooks?.PreToolUse ?? [];
+    const hasGuard = preToolUseHooks.some(
+      (h: { matcher?: string; command?: string }) =>
+        typeof h.matcher === "string" &&
+        h.matcher.includes("Write") &&
+        h.matcher.includes("Bash"),
+    );
+    expect(hasGuard).toBe(true);
+  });
+
+  test("pre-tool guard script exists", async () => {
+    expect(await exists(".codex-plugin/guards/pre-tool.sh")).toBe(true);
+  });
+
+  test("pre-tool guard script blocks .git writes", async () => {
+    const scriptPath = join(ROOT, ".codex-plugin/guards/pre-tool.sh");
+    const content = await Bun.file(scriptPath).text();
+    expect(content).toContain(".git/");
+  });
+});
