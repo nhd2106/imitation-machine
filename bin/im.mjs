@@ -148,11 +148,20 @@ async function installCodex() {
     join(pluginDst, ".codex-plugin", "plugin.json"),
     { force: true },
   );
+  await cp(
+    join(INSTALL_DIR, ".codex-plugin", "AGENTS.md"),
+    join(pluginDst, ".codex-plugin", "AGENTS.md"),
+    { force: true },
+  );
   await cp(join(INSTALL_DIR, "skills"), join(pluginDst, "skills"), {
     recursive: true,
     force: true,
   });
   ok(`Plugin files copied → ${pluginDst}`);
+  info("AGENTS.md copied into plugin root for Codex controller-role injection.");
+  info("To activate bootstrap in an opted-in project, run:");
+  info("  ./bin/agentic install local --surface codex");
+  info("This writes .codex/AGENTS.md and .codex/hooks.json into the project root.");
 
   // Update ~/.agents/plugins/marketplace.json
   const marketplacePath = join(HOME, ".agents", "plugins", "marketplace.json");

@@ -168,6 +168,33 @@ agentic verify all
 | Security review | `im-security` |
 | Workspace isolation | `im-worktree` |
 
+**Codex** — controller-role injection is delivered via `AGENTS.md` placed at the project root. Codex reads this file statically at session start, so no runtime hook is required for basic controller-role injection.
+
+The `AGENTS.md` file documents the controller role, dispatch rules, and prohibited actions.
+
+Optional `SessionStart` hook via `.codex/hooks.json`: point it at `.claude-plugin/hooks/bootstrap.sh` to enable dynamic session injection. Requires `[features]\ncodex_hooks = true` in `.codex/config.toml`. The local installer writes both files when run in an opted-in project.
+
+The same dispatch-rule table applies:
+
+| Role | Agent |
+|---|---|
+| Vague request, missing acceptance criteria, or unclear scope | `im-po` |
+| Task decomposition | `im-planner` |
+| Bounded TDD implementation | `im-coder` |
+| Stage 1 spec review | `im-reviewer-spec` |
+| Stage 2 quality review | `im-reviewer-quality` |
+| Final holistic review | `im-reviewer-final` |
+| Security review | `im-security` |
+| Workspace isolation | `im-worktree` |
+
+To install bootstrap files in an opted-in project:
+
+```sh
+./bin/agentic install local --surface codex
+```
+
+This writes `.codex/AGENTS.md` and `.codex/hooks.json` into the project root.
+
 ## Companion Files
 
 - `references/opencode-tools.md`
