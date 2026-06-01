@@ -153,12 +153,13 @@ agentic verify all
 
 ## Agent Dispatch
 
-**OpenCode** — use `@persona` syntax: `@coder`, `@planner`, `@reviewer-spec`, `@reviewer-quality`, `@reviewer-final`, `@security`, `@worktree`.
+**OpenCode** — use `@persona` syntax: `@po`, `@coder`, `@planner`, `@architect`, `@qa`, `@docs`, `@reviewer-spec`, `@reviewer-quality`, `@reviewer-final`, `@security`, `@release`, `@worktree`.
 
 **Claude Code** — use the `Agent` tool with `subagent_type`. Agents are installed as `im-*` to avoid conflicts with existing agents:
 
 | Role | subagent_type |
 |---|---|
+| Vague request, missing acceptance criteria, or unclear scope | `im-po` |
 | Bounded TDD implementation | `im-coder` |
 | Task decomposition | `im-planner` |
 | Stage 1 spec review | `im-reviewer-spec` |

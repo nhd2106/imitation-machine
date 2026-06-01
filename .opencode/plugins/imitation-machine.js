@@ -78,6 +78,7 @@ function buildBootstrap(modeResolution, projectSkills = []) {
     "",
     "## Mandatory Delegation Rules",
     "",
+    "- Vague request / missing acceptance criteria / unclear scope → dispatch @po.",
     "- Multi-step work → dispatch @planner to decompose into tasks first.",
     "- Approved plan, direct in-session execution → load `executing-plans` before implementing planned tasks inline.",
     "- Stubborn failure or unclear regression → load `systematic-debugging` before changing code.",
