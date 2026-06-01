@@ -1456,4 +1456,55 @@ describe("core skill content", () => {
     // Must state first action before any task
     expect(bootstrap.includes("CODEMAP.md")).toBe(true);
   });
+
+  test("opencode plugin bootstrap includes im-po dispatch rule before planner", async () => {
+    const plugin = await Bun.file(join(ROOT, ".opencode/plugins/imitation-machine.js")).text();
+
+    // Must include the vague/unclear scope → @po rule
+    expect(plugin).toContain("@po");
+    expect(plugin).toContain("unclear scope");
+
+    // The @po dispatch rule must appear before the @planner dispatch rule
+    const poIndex = plugin.indexOf("Vague request");
+    const plannerIndex = plugin.indexOf("Multi-step work");
+    expect(poIndex, "@po rule (Vague request) should exist").toBeGreaterThanOrEqual(0);
+    expect(plannerIndex, "@planner rule (Multi-step work) should exist").toBeGreaterThanOrEqual(0);
+    expect(poIndex, "@po rule should appear before @planner rule").toBeLessThan(plannerIndex);
+  });
+
+  test("using-agentic skill documents @po in opencode agent list", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "using-agentic", "SKILL.md")).text();
+
+    // OpenCode section should mention @po
+    const openCodeSection = content.slice(content.indexOf("**OpenCode**"));
+    const claudeCodeSection = content.slice(content.indexOf("**Claude Code**"));
+
+    expect(openCodeSection, "OpenCode section should mention @po").toContain("@po");
+    expect(claudeCodeSection, "Claude Code section should mention im-po").toContain("im-po");
+  });
+
+  test("using-agentic OpenCode agent dispatch line includes all agents", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "using-agentic", "SKILL.md")).text();
+    const openCodeLine = content
+      .split("\n")
+      .find((line) => line.includes("**OpenCode**") && line.includes("@persona"));
+    expect(openCodeLine, "OpenCode @persona line should exist").toBeTruthy();
+    const missingAgents = ["@architect", "@qa", "@docs", "@release"].filter(
+      (agent) => !openCodeLine?.includes(agent),
+    );
+    expect(missingAgents, "OpenCode dispatch line should include all agents").toEqual([]);
+  });
+
+  test("opencode.json is gitignored to avoid committing hardcoded absolute paths", async () => {
+    const gitignore = await Bun.file(join(ROOT, ".gitignore")).text();
+    expect(gitignore, ".gitignore should exclude opencode.json").toMatch(
+      /\.opencode\/opencode\.json|opencode\.json/,
+    );
+  });
+
+  test("install-local-opencode.sh generates opencode.json with the local absolute path", async () => {
+    const script = await Bun.file(join(ROOT, "scripts", "install-local-opencode.sh")).text();
+    expect(script, "install script should write opencode.json").toContain("opencode.json");
+    expect(script, "install script should embed an absolute file:// plugin path").toContain("file://");
+  });
 });

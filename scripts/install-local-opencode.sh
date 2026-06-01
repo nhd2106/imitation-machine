@@ -19,6 +19,26 @@ ln -sfn "$PACKAGE_DIR/.opencode/plugins/imitation-machine.js" "$PLUGINS_DIR/imit
 # Also expose the skills as a plain local skill bundle for visibility/debugging
 ln -sfn "$REPO_ROOT/skills" "$SKILLS_DIR/imitation-machine"
 
+# Generate .opencode/opencode.json with the correct local absolute path.
+# OpenCode's plugin field requires a file:// URI; relative paths are not supported.
+# This file is gitignored to prevent hardcoded absolute paths from being committed.
+OPENCODE_JSON="$REPO_ROOT/.opencode/opencode.json"
+PLUGIN_PATH="file://$REPO_ROOT/.opencode/plugins/imitation-machine.js"
+python3 -c "
+import json, sys
+path = '$OPENCODE_JSON'
+try:
+    with open(path) as f:
+        cfg = json.load(f)
+except Exception:
+    cfg = {}
+cfg.setdefault('\$schema', 'https://opencode.ai/config.json')
+cfg['plugin'] = ['$PLUGIN_PATH']
+with open(path, 'w') as f:
+    json.dump(cfg, f, indent=2)
+    f.write('\n')
+"
+
 cat <<EOF
 Installed Imitation Machine for OpenCode locally.
 
