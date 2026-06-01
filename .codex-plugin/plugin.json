@@ -3,6 +3,7 @@
   "version": "0.2.0",
   "description": "Governance layer for AI coding agents that enforces planning, isolated execution, staged reviews, and verification before code reaches production.",
   "skills": "./skills/",
+  "agents": "./agents/",
   "interface": {
     "displayName": "Imitation Machine",
     "shortDescription": "Enterprise agentic SDLC workflows and skills.",

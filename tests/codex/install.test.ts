@@ -110,7 +110,7 @@ describe("codex local installer", () => {
     expect(pluginJson.hooks).toBeUndefined();
     expect(pluginJson.mcpServers).toBeUndefined();
     expect(pluginJson.apps).toBeUndefined();
-    expect(pluginJson.agents).toBeUndefined();
+    expect(pluginJson.agents).toBe("./agents/");
   });
 
   test("installer creates a local codex plugin root, skills symlink, and marketplace entry", async () => {
@@ -155,9 +155,9 @@ describe("codex local installer", () => {
     expect(pluginJson.hooks).toBeUndefined();
     expect(pluginJson.mcpServers).toBeUndefined();
     expect(pluginJson.apps).toBeUndefined();
-    expect(pluginJson.agents).toBeUndefined();
+    expect(pluginJson.agents).toBe("./agents/");
     expect(await Bun.file(join(pluginRoot, "plugin.json")).exists()).toBe(false);
-    expect((await readdir(pluginRoot)).sort()).toEqual([".codex-plugin", "skills"]);
+    expect((await readdir(pluginRoot)).sort()).toEqual([".codex-plugin", "agents", "skills"]);
     expect((await readdir(join(pluginRoot, ".codex-plugin"))).sort()).toEqual(["AGENTS.md", "plugin.json"]);
     expect((await lstat(join(pluginRoot, ".codex-plugin", "plugin.json"))).isSymbolicLink()).toBe(false);
     expect((await lstat(join(pluginRoot, "skills"))).isSymbolicLink()).toBe(false);
@@ -186,7 +186,6 @@ describe("codex local installer", () => {
     expect(stdout).toContain("AGENTS.md and SessionStart hook installed");
     expect(stdout).toContain("no `mcpServers`");
     expect(stdout).toContain("no apps");
-    expect(stdout).toContain("no agents support");
     expect(stdout).toContain("no live Codex harness claim");
   });
 
@@ -354,7 +353,7 @@ describe("codex local installer", () => {
     const { exitCode } = await runInstaller(tempRoot);
 
     expect(exitCode).toBe(0);
-    expect((await readdir(pluginRoot)).sort()).toEqual([".codex-plugin", "skills"]);
+    expect((await readdir(pluginRoot)).sort()).toEqual([".codex-plugin", "agents", "skills"]);
     expect(await Bun.file(join(pluginRoot, "stale.txt")).exists()).toBe(false);
     expect(await Bun.file(join(pluginRoot, "old-manifest.json")).exists()).toBe(false);
     expect(await Bun.file(join(pluginRoot, "plugin.json")).exists()).toBe(false);

@@ -4,6 +4,12 @@
       {
         "command": ".claude-plugin/hooks/bootstrap.sh"
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|Bash",
+        "command": ".codex-plugin/guards/pre-tool.sh"
+      }
     ]
   }
 }

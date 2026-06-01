@@ -157,6 +157,8 @@ async function installCodex() {
     recursive: true,
     force: true,
   });
+  await cp(join(INSTALL_DIR, "agents"), join(pluginDst, "agents"), { recursive: true, force: true });
+  ok(`Agents copied → ${join(pluginDst, "agents")}`);
   ok(`Plugin files copied → ${pluginDst}`);
   info("AGENTS.md copied into plugin root for Codex controller-role injection.");
   info("To activate bootstrap in an opted-in project, run:");
