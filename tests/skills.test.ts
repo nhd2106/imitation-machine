@@ -1507,4 +1507,12 @@ describe("core skill content", () => {
     expect(script, "install script should write opencode.json").toContain("opencode.json");
     expect(script, "install script should embed an absolute file:// plugin path").toContain("file://");
   });
+
+  test("using-agentic skill documents Codex bootstrap via AGENTS.md and SessionStart hook", async () => {
+    const content = await Bun.file(join(ROOT, "skills", "using-agentic", "SKILL.md")).text();
+    expect(content).toContain("Codex");
+    expect(content).toContain("AGENTS.md");
+    expect(content).toContain(".codex/hooks.json");
+    expect(content).toContain("codex_hooks");
+  });
 });

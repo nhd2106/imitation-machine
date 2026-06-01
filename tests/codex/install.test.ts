@@ -31,6 +31,48 @@ async function runInstaller(tempRoot: string, agentsDir = join(tempRoot, "agents
   return { stdout, stderr, exitCode, agentsDir };
 }
 
+describe("AGENTS.md template", () => {
+  test("checked-in AGENTS.md template contains controller role text", async () => {
+    const content = await Bun.file(join(ROOT, ".codex-plugin", "AGENTS.md")).text();
+    expect(content).toContain("CONTROLLER");
+    expect(content).toContain("CODEMAP.md");
+    expect(content).toContain("im-planner");
+    expect(content).toContain("im-coder");
+    expect(content).toContain("do not implement");
+  });
+
+  test("checked-in AGENTS.md template prohibits direct implementation and writing files", async () => {
+    const content = await Bun.file(join(ROOT, ".codex-plugin", "AGENTS.md")).text();
+    expect(content).toMatch(/prohibit|never|do not/i);
+    expect(content.toLowerCase()).toContain("implement");
+    expect(content.toLowerCase()).toContain("write");
+  });
+
+  test("checked-in AGENTS.md template contains all dispatch rules", async () => {
+    const content = await Bun.file(join(ROOT, ".codex-plugin", "AGENTS.md")).text();
+    expect(content).toContain("im-po");
+    expect(content).toContain("im-reviewer-spec");
+    expect(content).toContain("im-security");
+    expect(content).toContain("im-worktree");
+  });
+});
+
+describe("hooks.json", () => {
+  test("checked-in hooks.json has SessionStart entry pointing at bootstrap.sh", async () => {
+    const parsed = await Bun.file(join(ROOT, ".codex-plugin", "hooks.json")).json() as {
+      hooks?: { SessionStart?: Array<{ command?: string }> };
+    };
+    expect(Array.isArray(parsed.hooks?.SessionStart)).toBe(true);
+    const entry = parsed.hooks?.SessionStart?.[0];
+    expect(entry?.command).toContain("bootstrap.sh");
+  });
+
+  test("checked-in hooks.json is valid JSON with only a hooks key", async () => {
+    const parsed = await Bun.file(join(ROOT, ".codex-plugin", "hooks.json")).json() as Record<string, unknown>;
+    expect(Object.keys(parsed)).toEqual(["hooks"]);
+  });
+});
+
 describe("codex local installer", () => {
   test("package exposes a focused codex installer verification lane", async () => {
     const packageJson = await Bun.file(join(ROOT, "package.json")).json() as {
@@ -116,11 +158,14 @@ describe("codex local installer", () => {
     expect(pluginJson.agents).toBeUndefined();
     expect(await Bun.file(join(pluginRoot, "plugin.json")).exists()).toBe(false);
     expect((await readdir(pluginRoot)).sort()).toEqual([".codex-plugin", "skills"]);
-    expect((await readdir(join(pluginRoot, ".codex-plugin"))).sort()).toEqual(["plugin.json"]);
+    expect((await readdir(join(pluginRoot, ".codex-plugin"))).sort()).toEqual(["AGENTS.md", "plugin.json"]);
     expect((await lstat(join(pluginRoot, ".codex-plugin", "plugin.json"))).isSymbolicLink()).toBe(false);
     expect((await lstat(join(pluginRoot, "skills"))).isSymbolicLink()).toBe(false);
     expect(await Bun.file(join(pluginRoot, "skills", "using-agentic", "SKILL.md")).exists()).toBe(true);
     expect(await Bun.file(join(agentsDir, "AGENTS.md")).exists()).toBe(false);
+    expect(await Bun.file(join(pluginRoot, ".codex-plugin", "AGENTS.md")).exists()).toBe(true);
+    const agentsMdContent = await Bun.file(join(pluginRoot, ".codex-plugin", "AGENTS.md")).text();
+    expect(agentsMdContent).toContain("CONTROLLER");
     expect(marketplace.name).toBe("local-repo");
     expect(marketplace.interface?.displayName).toBe("Local Repo");
     expect(marketplace.plugins).toContainEqual({
@@ -138,8 +183,7 @@ describe("codex local installer", () => {
     expect(stdout).toContain("Installed Imitation Machine as a Codex local plugin.");
     expect(stdout).toContain(pluginRoot);
     expect(stdout).toContain("marketplace.json");
-    expect(stdout).toContain("no bootstrap injection");
-    expect(stdout).toContain("no hooks");
+    expect(stdout).toContain("AGENTS.md and SessionStart hook installed");
     expect(stdout).toContain("no `mcpServers`");
     expect(stdout).toContain("no apps");
     expect(stdout).toContain("no agents support");

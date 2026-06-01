@@ -23,6 +23,7 @@ trap cleanup EXIT
 
 mkdir -p "$STAGED_PLUGIN_ROOT/.codex-plugin"
 cp "$REPO_ROOT/.codex-plugin/plugin.json" "$STAGED_PLUGIN_ROOT/.codex-plugin/plugin.json"
+cp "$REPO_ROOT/.codex-plugin/AGENTS.md" "$STAGED_PLUGIN_ROOT/.codex-plugin/AGENTS.md"
 cp -R "$REPO_ROOT/skills" "$STAGED_PLUGIN_ROOT/skills"
 
 MARKETPLACE_PATH="$MARKETPLACE_PATH" STAGED_MARKETPLACE_PATH="$STAGED_MARKETPLACE_PATH" bun -e '
@@ -143,6 +144,16 @@ STAGED_PLUGIN_ROOT=""
 mv "$STAGED_MARKETPLACE_PATH" "$MARKETPLACE_PATH"
 STAGED_MARKETPLACE_PATH=""
 
+# Write Codex bootstrap files into the current working directory (opted-in project).
+mkdir -p ".codex"
+cp "$REPO_ROOT/.codex-plugin/AGENTS.md" ".codex/AGENTS.md"
+cp "$REPO_ROOT/.codex-plugin/hooks.json" ".codex/hooks.json"
+
+# Idempotently append codex_hooks feature flag to .codex/config.toml.
+if [ ! -f ".codex/config.toml" ] || ! grep -q "codex_hooks" ".codex/config.toml"; then
+  printf '\n[features]\ncodex_hooks = true\n' >> ".codex/config.toml"
+fi
+
 cat <<EOF
 Installed Imitation Machine as a Codex local plugin.
 
@@ -158,9 +169,12 @@ Skills directory:
 Marketplace:
   $MARKETPLACE_PATH
 
+Bootstrap:
+  AGENTS.md and SessionStart hook installed → .codex/AGENTS.md, .codex/hooks.json
+
 This is a supported packaged local install surface for Codex.
-It installs a minimal local plugin package with no hooks, no \`mcpServers\`, no apps,
-no agents support, no bootstrap injection, and no live Codex harness claim.
+It installs a local plugin package with no \`mcpServers\`, no apps,
+no agents support, and no live Codex harness claim.
 
 Next steps:
 1. Restart Codex if it is already running.
