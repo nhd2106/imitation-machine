@@ -133,6 +133,28 @@ async function installOpenCode() {
   await symlink(pluginSrc, pluginDst);
 
   ok(`Plugin symlinked → ${pluginDst}`);
+
+  const projectRoot = process.cwd();
+  const projectOpencodeDir = join(projectRoot, ".opencode");
+  await mkdir(projectOpencodeDir, { recursive: true });
+  const projectConfigPath = join(projectOpencodeDir, "opencode.json");
+
+  const pluginUri = `file://${pluginSrc}`;
+  let existing = {};
+  try {
+    existing = JSON.parse(await readFile(projectConfigPath, "utf8"));
+  } catch {
+    // file absent or malformed — start fresh
+  }
+  const updated = {
+    $schema: "https://opencode.ai/config.json",
+    ...existing,
+    plugin: [pluginUri],
+  };
+  await writeFile(projectConfigPath, JSON.stringify(updated, null, 2) + "\n");
+  ok(`opencode.json written → ${projectConfigPath}`);
+  info(`  plugin URI: ${pluginUri}`);
+
   info("Restart OpenCode to activate.");
   info("Skills are at: " + join(INSTALL_DIR, "skills"));
 }
