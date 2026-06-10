@@ -10,9 +10,24 @@
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
-import { describeModeSource, getModePolicy, getRelevantModePath, resolveProjectMode } from "../../cli/mode";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Safe fallbacks used when cli/mode cannot be resolved (e.g. copied plugin file)
+let resolveProjectMode = () => ({ mode: "standard", source: "fallback", projectRoot: process.cwd(), storePath: "", relevantPath: null, warnings: [] });
+let getModePolicy = () => ({ allowWriteWithoutWorkflowSkill: false, allowBashWithoutWorkflowSkill: true, summary: "standard fallback" });
+let describeModeSource = () => "standard (fallback)";
+let getRelevantModePath = () => null;
+
+try {
+  const modeModule = await import("../../cli/mode");
+  resolveProjectMode = modeModule.resolveProjectMode;
+  getModePolicy = modeModule.getModePolicy;
+  describeModeSource = modeModule.describeModeSource;
+  getRelevantModePath = modeModule.getRelevantModePath;
+} catch {
+  // Running outside the IM repo (npx install, copied file) — fallbacks active
+}
 const skillsDir = path.resolve(__dirname, "../../skills");
 const agentsDir = path.resolve(__dirname, "../agents");
 const pluginRoot = path.resolve(__dirname, "../..");

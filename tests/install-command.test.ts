@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { mkdtemp, readFile } from "node:fs/promises";
+import { tmpdir, homedir } from "node:os";
 import { join } from "node:path";
 
 const ROOT = process.cwd();
@@ -391,5 +393,73 @@ describe("install command", () => {
     expect(readme).toContain("### Repo-checkout / plugin-development verification");
     expect(readme).toContain("~/.config/opencode/plugins/imitation-machine.js");
     expect(readme).toContain("~/.config/opencode/skills/imitation-machine");
+  });
+});
+
+describe("installOpenCode writes opencode.json into user project root", () => {
+  const HOME = homedir();
+  const INSTALL_DIR = join(HOME, ".imitation-machine");
+  const expectedPluginSrc = join(INSTALL_DIR, ".opencode", "plugins", "imitation-machine.js");
+
+  async function runInstallOpenCode(projectRoot: string): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+    const proc = Bun.spawn(["node", join(ROOT, "bin", "im.mjs"), "--surface", "opencode"], {
+      cwd: projectRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+      env: {
+        ...process.env,
+        HOME,
+      },
+    });
+
+    const [stdout, stderr, exitCode] = await Promise.all([
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+      proc.exited,
+    ]);
+
+    return { stdout, stderr, exitCode };
+  }
+
+  test("writes .opencode/opencode.json with correct file:// URI when none exists", async () => {
+    const projectRoot = await mkdtemp(join(tmpdir(), "im-install-opencode-"));
+
+    await runInstallOpenCode(projectRoot);
+
+    const configPath = join(projectRoot, ".opencode", "opencode.json");
+    const content = await readFile(configPath, "utf8");
+    const parsed = JSON.parse(content);
+
+    expect(Array.isArray(parsed.plugin)).toBe(true);
+    const expectedUri = `file://${expectedPluginSrc}`;
+    expect(parsed.plugin).toContain(expectedUri);
+  });
+
+  test("overwrites existing opencode.json idempotently", async () => {
+    const projectRoot = await mkdtemp(join(tmpdir(), "im-install-opencode-"));
+    const { mkdir, writeFile } = await import("node:fs/promises");
+    await mkdir(join(projectRoot, ".opencode"), { recursive: true });
+    await writeFile(
+      join(projectRoot, ".opencode", "opencode.json"),
+      JSON.stringify({ plugin: ["file:///stale/path/imitation-machine.js"] }, null, 2) + "\n",
+    );
+
+    await runInstallOpenCode(projectRoot);
+
+    const configPath = join(projectRoot, ".opencode", "opencode.json");
+    const content = await readFile(configPath, "utf8");
+    const parsed = JSON.parse(content);
+
+    const expectedUri = `file://${expectedPluginSrc}`;
+    expect(parsed.plugin).toContain(expectedUri);
+    expect(parsed.plugin).not.toContain("file:///stale/path/imitation-machine.js");
+  });
+
+  test("prints a confirmation message mentioning opencode.json", async () => {
+    const projectRoot = await mkdtemp(join(tmpdir(), "im-install-opencode-"));
+
+    const result = await runInstallOpenCode(projectRoot);
+
+    expect(result.stdout).toContain("opencode.json");
   });
 });

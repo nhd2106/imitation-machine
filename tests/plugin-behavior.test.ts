@@ -908,4 +908,109 @@ describe("imitation-machine plugin behavior", () => {
     expect(String(config.agent?.coder?.prompt ?? "")).toContain("You are the Coder agent.");
     expect(config.agent?.coder?.permission).toEqual({ edit: "allow", bash: "ask", webfetch: "deny" });
   });
+
+  describe("mode import fallback", () => {
+    // These tests verify the plugin behaves correctly when cli/mode cannot be resolved,
+    // simulating the real-world failure mode when the plugin file is installed standalone
+    // (e.g. via npx or copied to ~/.config/opencode/plugins/).
+    // We use a subprocess to avoid contaminating the test worker's module cache.
+
+    async function runIsolatedPluginProbe(): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+      const { mkdtemp, mkdir, cp, writeFile: wf } = await import("node:fs/promises");
+      const { join: pathJoin } = await import("node:path");
+      const { tmpdir: osTmpdir } = await import("node:os");
+
+      const isolatedDir = await mkdtemp(pathJoin(osTmpdir(), "im-isolated-plugin-"));
+      const pluginDir = pathJoin(isolatedDir, ".opencode", "plugins");
+      await mkdir(pluginDir, { recursive: true });
+      // Copy the agents directory so the plugin can read agent prompts
+      const agentsDir = pathJoin(isolatedDir, ".opencode", "agents");
+      await mkdir(agentsDir, { recursive: true });
+      await cp(
+        pathJoin(originalCwd, ".opencode", "agents"),
+        agentsDir,
+        { recursive: true, force: true },
+      );
+      // Create an empty skills directory
+      await mkdir(pathJoin(isolatedDir, "skills"), { recursive: true });
+
+      // Copy only the plugin file — NOT the cli/ directory
+      await cp(
+        pathJoin(originalCwd, ".opencode", "plugins", "imitation-machine.js"),
+        pathJoin(pluginDir, "imitation-machine.js"),
+        { force: true },
+      );
+
+      // Create the project dir with the opt-in marker
+      const projectDir = pathJoin(isolatedDir, "project");
+      await mkdir(pathJoin(projectDir, ".opencode"), { recursive: true });
+      await wf(pathJoin(projectDir, ".imitation-machine-enabled"), "\n");
+
+      // Write a probe script that exercises the plugin and prints a JSON result
+      const pluginPath = pathJoin(pluginDir, "imitation-machine.js");
+      const probeScript = pathJoin(isolatedDir, "probe.mjs");
+      await wf(probeScript, [
+        `import { default as Plugin } from ${JSON.stringify(pluginPath)};`,
+        `import process from "process";`,
+        `const projectDir = ${JSON.stringify(projectDir)};`,
+        `process.chdir(projectDir);`,
+        `const plugin = await Plugin();`,
+        `const hasConfig = typeof plugin.config === "function";`,
+        `const hasTransform = typeof plugin["experimental.chat.messages.transform"] === "function";`,
+        `const chatOutput = { messages: [{ info: { role: "user" }, parts: [{ type: "text", text: "hello" }] }] };`,
+        `await plugin["experimental.chat.messages.transform"]?.({ sessionID: "s-probe", cwd: projectDir }, chatOutput);`,
+        `const bootstrapText = chatOutput.messages[0]?.parts[0]?.text ?? "";`,
+        `let bashAllowed = false;`,
+        `try {`,
+        `  await plugin["tool.execute.before"]?.({ sessionID: "s-probe", tool: "bash", cwd: projectDir }, { args: { command: "bun test" } });`,
+        `  bashAllowed = true;`,
+        `} catch { bashAllowed = false; }`,
+        `console.log(JSON.stringify({ hasConfig, hasTransform, bootstrapText: bootstrapText.slice(0, 200), bashAllowed }));`,
+      ].join("\n"));
+
+      const proc = Bun.spawn(["node", probeScript], {
+        cwd: projectDir,
+        stdout: "pipe",
+        stderr: "pipe",
+        env: { ...process.env },
+      });
+
+      const [stdout, stderr, exitCode] = await Promise.all([
+        new Response(proc.stdout).text(),
+        new Response(proc.stderr).text(),
+        proc.exited,
+      ]);
+
+      return { exitCode, stdout, stderr };
+    }
+
+    test("plugin still exports hooks when cli/mode import fails", async () => {
+      // The plugin must load and export config + experimental.chat.messages.transform
+      // even when the cli/mode module cannot be resolved (e.g. copied plugin file).
+      // With the static import this throws; with the dynamic fallback it succeeds.
+      const result = await runIsolatedPluginProbe();
+      expect(result.exitCode).toBe(0);
+      const data = JSON.parse(result.stdout);
+      expect(data.hasConfig).toBe(true);
+      expect(data.hasTransform).toBe(true);
+    });
+
+    test("resolveProjectMode fallback returns standard mode", async () => {
+      // When cli/mode is unavailable the fallback resolveProjectMode() must return
+      // an object whose mode is "standard".
+      const result = await runIsolatedPluginProbe();
+      expect(result.exitCode).toBe(0);
+      const data = JSON.parse(result.stdout);
+      expect(data.bootstrapText).toContain("standard");
+    });
+
+    test("getModePolicy fallback allows bash after bootstrap", async () => {
+      // When cli/mode is unavailable the fallback getModePolicy() must allow bash
+      // (allowBashWithoutWorkflowSkill: true) so bootstrap-only sessions are not broken.
+      const result = await runIsolatedPluginProbe();
+      expect(result.exitCode).toBe(0);
+      const data = JSON.parse(result.stdout);
+      expect(data.bashAllowed).toBe(true);
+    });
+  });
 });
